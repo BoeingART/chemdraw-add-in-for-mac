@@ -39,12 +39,18 @@ def office(action: str, host: str, *args: str) -> str:
 
 
 def chem_open(path: Path) -> None:
-    script(f'''set drawingFile to (POSIX file (item 1 of argv)) as alias
+    monitor = str(ROOT / "build/event-monitor")
+    # Launch Services delivers the document-open event after a cold application
+    # launch, rather than racing AppleScript against ChemDraw's startup screen.
+    launched = subprocess.run([monitor, "--open-document", CHEM_ID, str(path)],
+                              capture_output=True, text=True, timeout=45)
+    if launched.returncode:
+        raise RuntimeError(launched.stderr.strip() or "ChemDraw could not open this drawing")
+    script(f'''with timeout of 40 seconds
     tell application id "{CHEM_ID}"
-        open drawingFile
         set targetPath to item 1 of argv
         set targetFound to false
-        repeat 20 times
+        repeat 300 times
             repeat with d in documents
                 try
                     if POSIX path of ((file of d) as alias) is targetPath then
@@ -54,13 +60,13 @@ def chem_open(path: Path) -> None:
                 end try
             end repeat
             if targetFound then exit repeat
-            delay 0.05
+            delay 0.1
         end repeat
         if not targetFound then error "ChemDraw did not open the managed source"
         activate
-    end tell''', path)
-    monitor = str(ROOT / "build/event-monitor")
-    for _ in range(10):
+    end tell
+    end timeout''', path, timeout=45)
+    for _ in range(30):
         result = subprocess.run([monitor, "--activate-window", CHEM_ID, path.name], capture_output=True)
         if result.returncode == 0:
             focused = json.loads(subprocess.check_output([monitor, "--focused"], text=True))
@@ -71,6 +77,8 @@ def chem_open(path: Path) -> None:
 
 
 def chem_is_open(path: Path) -> bool:
+    if subprocess.check_output([str(ROOT / "build/event-monitor"), "--is-running", CHEM_ID], text=True).strip() != "yes":
+        return False
     return script(f'''tell application id "{CHEM_ID}"
         repeat with d in documents
             try

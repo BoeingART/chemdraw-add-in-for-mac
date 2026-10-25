@@ -55,6 +55,35 @@ if CommandLine.arguments.dropFirst().first == "--frontmost" {
     print(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none")
     exit(0)
 }
+if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--is-running" {
+    print(NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).isEmpty ? "no" : "yes")
+    exit(0)
+}
+if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-document" {
+    let identifier = CommandLine.arguments[2]
+    let document = URL(fileURLWithPath: CommandLine.arguments[3])
+    guard FileManager.default.fileExists(atPath: document.path),
+          let application = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier) else {
+        fputs("ChemDraw or the managed drawing was not found.\n", stderr)
+        exit(2)
+    }
+    let configuration = NSWorkspace.OpenConfiguration()
+    configuration.activates = true
+    var completed = false
+    var failure: Error?
+    NSWorkspace.shared.open([document], withApplicationAt: application, configuration: configuration) { _, error in
+        failure = error
+        completed = true
+    }
+    let deadline = Date().addingTimeInterval(40)
+    while !completed && Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
+    guard completed, failure == nil else {
+        fputs("\(failure?.localizedDescription ?? "ChemDraw did not finish launching in time.")\n", stderr)
+        exit(2)
+    }
+    print("opened")
+    exit(0)
+}
 if CommandLine.arguments.count == 4 && ["--activate-office", "--activate-window"].contains(CommandLine.arguments[1]) {
     guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).first else { exit(2) }
     let ax = AXUIElementCreateApplication(app.processIdentifier)
