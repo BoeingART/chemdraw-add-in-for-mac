@@ -2,6 +2,8 @@
 
 ChemOffice has two parts. The **local helper** opens ChemDraw and saves your edits back to Office. The **Office add-in** provides a visible ChemOffice entry, a status panel, instructions, and an Edit selected drawing button. The helper's double-click workflow works independently of the panel.
 
+Download **chemoffice-for-mac-v0.1.0-beta.1-source.zip** from the [first release](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1), then extract it to a permanent folder. This is a source preview that builds on your Mac, not a signed macOS application or installer. It requires Python 3.10 or later and Apple's command-line tools as well as your licensed Office and ChemDraw applications. The release includes SHA256SUMS for its downloadable files.
+
 ## Before you install the Office panel
 
 This preview is installed locally and has not been published in Microsoft AppSource. Keep your existing Office installation. Both Word and PowerPoint panels have been opened and used successfully on this test Mac's App Store builds.

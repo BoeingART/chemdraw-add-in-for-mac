@@ -4,6 +4,8 @@
 
 **Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
 
+[Download v0.1.0-beta.1](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
+
 [Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/launch-and-installation-results.md)
 
 </div>
@@ -11,6 +13,8 @@
 ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and PowerPoint. Use ordinary **⌘C / ⌘V**, double-click your drawing to edit it in the installed ChemDraw, and close the editing window to update Office. Copy just that drawing to another document and its editable source goes with it. Bonds and labels use **ChemDraw's native SVG vectors**, so enlarging the figure preserves their sharp edges.
 
 > **Early preview, real applications.** This independent local helper has been tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
+
+**First release: v0.1.0-beta.1.** Download the versioned source ZIP from [Releases](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1), extract it to a permanent folder, and follow the setup steps below. This release builds the helper on your Mac; it is not a signed `.app` or `.pkg` installer. Python 3.10 or later and Apple's command-line tools are required. Installation on a fresh Mac and compatibility beyond the tested application versions have not yet been verified.
 
 **Looking for ChemOffice inside Office?** A separate local Office add-in supplies the blue C entry, a right-hand panel, and a **ChemOffice** ribbon tab. Follow the [installation and viewing guide](docs/installation.md). The panels and their **Edit selected drawing** buttons have been verified in both Word and PowerPoint on the test Mac's existing App Store builds. The double-click workflow also works independently of the panel.
 

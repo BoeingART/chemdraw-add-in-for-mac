@@ -1,11 +1,15 @@
 ChemOffice for Mac · 安装与使用
 
-你的这台 Mac 已安装完成。Word 和 PowerPoint 的右侧面板均已打开并通过编辑入口验证，无需重新安装 Office。
+首个版本：v0.1.0-beta.1（源码测试版）
+下载地址：https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1
+下载 chemoffice-for-mac-v0.1.0-beta.1-source.zip，解压到固定位置。
+本版本需要本机准备运行环境并编译助手，尚未提供签名、公证的 .app 或 .pkg 安装包。
+目前已在开发者的测试 Mac 上完成 Word/PPT 实测；全新 Mac 的安装及其他应用版本尚未验证。
 
 每次开始使用
 
 1. 在项目文件夹中双击 Start ChemOffice.command，保留它打开的窗口。
-   当前项目位于 /Users/BoeingART_1/AIChem/AIChem_tools/chemoffice-for-mac
+   使用解压后的项目文件夹；请在首次安装完成后再启动。
 2. 在 Word 或 PowerPoint 中打开一个已保存的文档。
 3. 查看插件：开始 → 加载项 → 开发人员加载项 → ChemOffice for Mac（蓝色 C 图标）。
    激活后也可以通过 ChemOffice → Open ChemOffice 打开右侧面板。
