@@ -131,6 +131,9 @@ class Bridge:
             evidence = verify_saved_figure(session["document"], session["host"], session["id"], source, image)
             # A second dirty check inside chem_close refuses to discard a newer edit.
             chem_close(path)
+            bundle = "com.microsoft.Word" if session["host"] == "word" else "com.microsoft.Powerpoint"
+            subprocess.check_output([str(ROOT / "build/event-monitor"), "--activate-office",
+                                     bundle, Path(session["document"]).name], text=True)
             office("activate", session["host"], session["document"], session["id"])
             front = subprocess.check_output([str(ROOT / "build/event-monitor"), "--frontmost"], text=True).strip()
             record("committed", host=session["host"], drawing_id=session["id"], gesture=gesture,
@@ -204,6 +207,7 @@ def create_demo(host):
     carrier = png.with_suffix(".svg")
     create_carrier(source, png, drawing_id, carrier)
     office("demo", host, office_preview(host, carrier), tag, output, drawing_id)
+    verify_saved_figure(str(output), host, drawing_id, source, png)
     record("demo_created", host=host, path=str(output), drawing_id=drawing_id)
 
 

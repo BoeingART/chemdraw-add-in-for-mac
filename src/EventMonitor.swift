@@ -31,13 +31,15 @@ func captureChemicalClipboard(_ directory: URL, _ item: (String, Data)) throws {
         try item.1.write(to: directory.appendingPathComponent("carrier.svg"))
     } else {
         guard let pdf = NSPasteboard.general.data(forType: .pdf),
-              let page = PDFDocument(data: pdf)?.page(at: 0) else {
+              let document = PDFDocument(data: pdf), let page = document.page(at: 0) else {
             throw NSError(domain: "ChemOffice", code: 1, userInfo: [NSLocalizedDescriptionKey: "ChemDraw clipboard has no PDF preview"])
         }
         let bounds = page.bounds(for: .mediaBox)
         guard bounds.width > 0, bounds.height > 0 else { throw NSError(domain: "ChemOffice", code: 2) }
         let scale = min(3, 3200 / max(bounds.width, bounds.height))
-        let image = page.thumbnail(of: NSSize(width: bounds.width * scale, height: bounds.height * scale), for: .mediaBox)
+        let image = withExtendedLifetime(document) {
+            page.thumbnail(of: NSSize(width: bounds.width * scale, height: bounds.height * scale), for: .mediaBox)
+        }
         guard let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff),
               let png = bitmap.representation(using: .png, properties: [:]) else { throw NSError(domain: "ChemOffice", code: 3) }
         try item.1.write(to: directory.appendingPathComponent("source.cdx"))
@@ -47,6 +49,20 @@ func captureChemicalClipboard(_ directory: URL, _ item: (String, Data)) throws {
 
 if CommandLine.arguments.dropFirst().first == "--frontmost" {
     print(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none")
+    exit(0)
+}
+if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--activate-office" {
+    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).first else { exit(2) }
+    let ax = AXUIElementCreateApplication(app.processIdentifier)
+    guard let windows = attribute(ax, kAXWindowsAttribute) as? [AXUIElement] else { exit(2) }
+    let expected = CommandLine.arguments[3]
+    let matches = windows.filter { (attribute($0, kAXTitleAttribute) as? String) == expected }
+    guard matches.count == 1 else { exit(2) }
+    app.activate(options: [])
+    AXUIElementSetAttributeValue(matches[0], kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+    AXUIElementSetAttributeValue(matches[0], kAXMainAttribute as CFString, kCFBooleanTrue)
+    guard AXUIElementPerformAction(matches[0], kAXRaiseAction as CFString) == .success else { exit(2) }
+    print("activated")
     exit(0)
 }
 if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--capture" {
