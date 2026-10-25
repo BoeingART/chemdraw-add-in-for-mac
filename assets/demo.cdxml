@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CDXML CreationProgram="ChemOffice for Mac prototype" Name="ChemOffice Close Test" BoundingBox="0 0 300 150" BondLength="30" LabelFont="3" LabelSize="12" CaptionFont="3" CaptionSize="12">
+<fonttable><font id="3" charset="iso-8859-1" name="Arial"/></fonttable>
+<page id="1" BoundingBox="0 0 300 150" Width="300" Height="150">
+<fragment id="2" BoundingBox="70 45 140 80">
+<n id="3" p="70 70" Element="6"/>
+<n id="4" p="100 52.68" Element="6"/>
+<n id="5" p="130 70" Element="8"><t p="125 75"><s font="3" size="12" face="96">OH</s></t></n>
+<b id="6" B="3" E="4" Order="1"/><b id="7" B="4" E="5" Order="1"/>
+</fragment>
+<t id="8" p="60 115"><s font="3" size="12">Close test: 01</s></t>
+</page></CDXML>
