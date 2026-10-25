@@ -67,6 +67,24 @@ on run argv
             save d
             return "updated"
         else if actionName is "activate" then
+            repeat with documentIndex from 1 to (count of documents)
+                set d to document documentIndex
+                try
+                    set pathText to POSIX path of ((full name of d) as alias)
+                on error
+                    set pathText to ""
+                end try
+                if pathText is (item 2 of argv) then
+                    activate object d
+                    repeat with pictureIndex from 1 to (count of inline shapes of d)
+                        if alternative text of inline shape pictureIndex of d starts with "CFM1:" & (item 3 of argv) & ":" then
+                            select text object of inline shape pictureIndex of d
+                            exit repeat
+                        end if
+                    end repeat
+                    exit repeat
+                end if
+            end repeat
             activate
             return "activated"
         end if

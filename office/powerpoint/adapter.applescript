@@ -71,6 +71,23 @@ on run argv
             save p
             return "updated"
         else if actionName is "activate" then
+            repeat with documentIndex from 1 to (count of presentations)
+                set p to presentation documentIndex
+                if full name of p is (item 2 of argv) then
+                    set index of window (name of p) to 1
+                    repeat with slideIndex from 1 to (count of slides of p)
+                        set s to slide slideIndex of p
+                        repeat with pictureIndex from 1 to (count of shapes of s)
+                            if name of shape pictureIndex of s is "CFM1_" & (item 3 of argv) then
+                                set slide of view of active window to s
+                                select shape pictureIndex of s
+                                exit repeat
+                            end if
+                        end repeat
+                    end repeat
+                    exit repeat
+                end if
+            end repeat
             activate
             return "activated"
         end if

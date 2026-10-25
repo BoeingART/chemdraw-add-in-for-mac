@@ -92,9 +92,10 @@ class Bridge:
             evidence = verify_saved_figure(session["document"], session["host"], session["id"], source, image)
             # A second dirty check inside chem_close refuses to discard a newer edit.
             chem_close(path)
-            office("activate", session["host"], session["document"])
+            office("activate", session["host"], session["document"], session["id"])
+            front = subprocess.check_output([str(ROOT / "build/event-monitor"), "--frontmost"], text=True).strip()
             record("committed", host=session["host"], drawing_id=session["id"], gesture=gesture,
-                   source_sha256=hashlib.sha256(source).hexdigest(), bytes=len(source))
+                   source_sha256=hashlib.sha256(source).hexdigest(), bytes=len(source), frontmost_app=front)
             (path.parent / "verification.json").write_text(json.dumps(evidence, indent=2))
             session["originalTag"] = new_tag
             (path.parent / "committed.cdxml").write_bytes(source)
