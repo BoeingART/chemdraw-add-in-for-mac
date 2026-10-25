@@ -18,11 +18,14 @@ class PasteTransactionTests(unittest.TestCase):
             (root/'source.cdx').write_bytes(source)
             Image.new('RGB', (20, 10), 'black').save(root/'preview.png')
             inserted = []
+            def vector_export(_, output):
+                output.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10" fill="black"/></svg>')
             def office(action, host, *args):
                 if action == 'context': return str(document)
                 inserted.append(decode(args[1])); return 'inserted'
             bridge = chemoffice.Bridge()
             with patch.object(chemoffice, 'STATE', root/'state.json'), \
+                 patch.object(chemoffice, 'chem_render_vector', side_effect=vector_export), \
                  patch.object(chemoffice, 'office', side_effect=office), \
                  patch.object(chemoffice, 'office_preview', side_effect=lambda _, p: p), \
                  patch.object(chemoffice, 'verify_saved_figure', return_value={}), \

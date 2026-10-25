@@ -2,6 +2,8 @@
 """Application object-model calls; no keystroke or clipboard automation."""
 import subprocess
 import shutil
+import json
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,8 +42,43 @@ def chem_open(path: Path) -> None:
     script(f'''set drawingFile to (POSIX file (item 1 of argv)) as alias
     tell application id "{CHEM_ID}"
         open drawingFile
+        set targetPath to item 1 of argv
+        set targetFound to false
+        repeat 20 times
+            repeat with d in documents
+                try
+                    if POSIX path of ((file of d) as alias) is targetPath then
+                        set index of window of d to 1
+                        set targetFound to true
+                    end if
+                end try
+            end repeat
+            if targetFound then exit repeat
+            delay 0.05
+        end repeat
+        if not targetFound then error "ChemDraw did not open the managed source"
         activate
     end tell''', path)
+    monitor = str(ROOT / "build/event-monitor")
+    for _ in range(10):
+        result = subprocess.run([monitor, "--activate-window", CHEM_ID, path.name], capture_output=True)
+        if result.returncode == 0:
+            focused = json.loads(subprocess.check_output([monitor, "--focused"], text=True))
+            if focused.get("bundle") == CHEM_ID and focused.get("title") == path.name:
+                return
+        time.sleep(0.1)
+    raise RuntimeError("The drawing opened, but macOS did not bring its ChemDraw window forward; double-click again to resume")
+
+
+def chem_is_open(path: Path) -> bool:
+    return script(f'''tell application id "{CHEM_ID}"
+        repeat with d in documents
+            try
+                if POSIX path of ((file of d) as alias) is (item 1 of argv) then return "open"
+            end try
+        end repeat
+        return "closed"
+    end tell''', path) == "open"
 
 
 def chem_snapshot(path: Path, png: Path) -> None:
@@ -80,9 +117,32 @@ def chem_snapshot(path: Path, png: Path) -> None:
             end if
         end repeat
         if not sourceSaved then error "ChemDraw still reports unsaved changes"
-        save d in outputFile as "PNG"
+        save d in outputFile as "Scalable Vector Graphics (SVG)"
         if modified of d then error "Drawing changed during snapshot; close again to retry"
-    end tell''', path, png)
+    end tell''', path, png.with_suffix(".svg"))
+    from carrier import render_svg
+    png.write_bytes(render_svg(png.with_suffix(".svg").read_bytes()))
+
+
+def chem_render_vector(source: Path, vector: Path) -> None:
+    """Export a captured selection without activating an unrelated editor window."""
+    script(f'''set drawingFile to (POSIX file (item 1 of argv)) as alias
+    set outputFile to POSIX file (item 2 of argv)
+    tell application id "{CHEM_ID}"
+        open drawingFile
+        set matches to {{}}
+        repeat with d in documents
+            try
+                if POSIX path of ((file of d) as alias) is (item 1 of argv) then set end of matches to d
+            end try
+        end repeat
+        if (count matches) is not 1 then error "Cannot identify captured chemistry for vector export"
+        set d to item 1 of matches
+        if modified of d then error "Captured source unexpectedly has pending edits"
+        save d in outputFile as "Scalable Vector Graphics (SVG)"
+        if modified of d then error "Captured drawing changed during vector export; kept open"
+        close d saving no
+    end tell''', source, vector)
 
 
 def chem_close(path: Path) -> None:

@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: Apache-2.0
 on matchesSource(tagText, drawingID)
-    return tagText starts with "CFM1:" & drawingID & ":" or tagText starts with "CFM2:" & drawingID & ":"
+    return tagText is "ChemOffice Drawing:" & drawingID or tagText starts with "CFM1:" & drawingID & ":" or tagText starts with "CFM2:" & drawingID & ":"
 end matchesSource
 
 on documentPath(d)
@@ -21,7 +21,7 @@ on run argv
             set content of text object of d to "ChemOffice for Mac" & return & "Double-click the structure. Edit in ChemDraw. Close to return." & return & return
             make new inline picture at end of text object of d with properties {file name:item 2 of argv, link to file:false, save with document:true}
             set pic to inline shape (count of inline shapes of d) of d
-            set alternative text of pic to item 3 of argv
+            set alternative text of pic to "ChemOffice Drawing:" & (item 5 of argv)
             set originalWidth to width of pic
             set originalHeight to height of pic
             set width of pic to 320
@@ -43,7 +43,7 @@ on run argv
             if (count of inline shapes of d) is not originalCount + 1 then error "Unexpected Word paste result; kept the captured source"
             -- SVG insertion returns an unusable inline-picture specifier in Word.
             set pic to inline shape insertedIndex of d
-            set alternative text of pic to item 3 of argv
+            set alternative text of pic to "ChemOffice Drawing:" & (item 4 of argv)
             set originalWidth to width of pic
             set originalHeight to height of pic
             set width of pic to 320
@@ -57,6 +57,15 @@ on run argv
             return alternative text of inline shape 1 of selection
         else if actionName is "context" then
             return my documentPath(active document)
+        else if actionName is "persist" then
+            repeat with documentIndex from 1 to (count of documents)
+                set d to document documentIndex
+                if my documentPath(d) is (item 2 of argv) then
+                    save d
+                    return "saved"
+                end if
+            end repeat
+            error "Original Word document is not open"
         else if actionName is "payload" then
             set prefixText to "CFM1:" & (item 3 of argv) & ":"
             set matchingPayloads to {}
@@ -91,12 +100,13 @@ on run argv
             set oldTag to alternative text of oldPic
             set w to width of oldPic
             set h to height of oldPic
+            if (count of argv) >= 6 then set h to w * ((item 6 of argv) as real)
             make new inline picture at text object of oldPic with properties {file name:item 4 of argv, link to file:false, save with document:true}
             if (count of inline shapes of d) is not originalCount + 1 then error "Unexpected Word insertion result; retained both versions"
             -- Word's returned inline-picture reference can resolve to the old image.
             -- Insertion at its range places the new image immediately after it.
             set newPic to inline shape (originalIndex + 1) of d
-            set alternative text of newPic to item 5 of argv
+            set alternative text of newPic to "ChemOffice Drawing:" & (item 3 of argv)
             set width of newPic to w
             set height of newPic to h
             if alternative text of inline shape originalIndex of d is not oldTag then error "Original image identity changed; retained both versions"

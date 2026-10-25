@@ -34,6 +34,7 @@ class CloseTransactionTests(unittest.TestCase):
     def snapshot(self, path, preview):
         path.write_bytes(self.final)
         Image.new('RGB', (8, 8), 'black').save(preview)
+        preview.with_suffix('.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="black"/></svg>')
 
     def test_save_failure_never_closes_or_updates_office(self):
         with patch.object(chemoffice, 'chem_snapshot', side_effect=RuntimeError('save failed')), \

@@ -9,12 +9,14 @@ import subprocess
 import sys
 import time
 import uuid
+import shutil
+from PIL import Image
 from pathlib import Path
 
-from automation import CHEM_ID, ROOT, chem_open, chem_snapshot, chem_close, office, office_preview
-from metadata import encode, decode, validate_source
+from automation import CHEM_ID, ROOT, chem_open, chem_is_open, chem_snapshot, chem_render_vector, chem_close, office, office_preview
+from metadata import encode, decode, validate_source, object_id
 from verification import verify_saved_figure, read_saved_figure
-from carrier import create_carrier, read_carrier
+from carrier import create_carrier, read_carrier, render_svg, has_vectors
 
 WORK = ROOT / "work"
 STATE = WORK / "monitor-state.json"
@@ -40,7 +42,8 @@ class Bridge:
 
     def payload(self, host, document, drawing_id):
         if host == "word":
-            return office("payload", host, document, drawing_id)
+            tag = office("payload", host, document, drawing_id)
+            if tag.startswith(("CFM1:", "CFM2:")): return tag
         office("persist", host, document)
         return read_saved_figure(document, host, drawing_id)["tag"]
 
@@ -63,7 +66,16 @@ class Bridge:
             drawing_id = str(uuid.uuid4())  # Every paste is an independent editable instance.
             image = snapshot / "preview.png"
             carrier = snapshot / "figure.svg"
-            tag = create_carrier(source, image, drawing_id, carrier)
+            vector = snapshot / "native.svg"
+            captured_svg = snapshot / "carrier.svg"
+            if captured_svg.exists() and has_vectors(captured_svg.read_bytes()):
+                vector.write_bytes(captured_svg.read_bytes())
+            else:
+                source_file = snapshot / ("render.cdx" if source.startswith(b"VjCD0100") else "render.cdxml")
+                source_file.write_bytes(source)
+                chem_render_vector(source_file, vector)
+            image.write_bytes(render_svg(vector.read_bytes()))
+            tag = create_carrier(source, image, drawing_id, carrier, vector=vector)
             office("insert", host, office_preview(host, carrier), tag, drawing_id, document)
             evidence = verify_saved_figure(document, host, drawing_id, source, image)
             (snapshot / "verification.json").write_text(json.dumps(evidence, indent=2))
@@ -73,12 +85,28 @@ class Bridge:
             write_state({})
 
     def begin(self, host, tag):
-        if self.session:
-            raise RuntimeError("Finish the currently managed drawing before opening another")
         document = office("context", host)
-        if host == "powerpoint":
-            drawing_id = tag.removeprefix("CFM1_")
-            tag = self.payload(host, document, drawing_id)
+        requested_id = object_id(tag)
+        if self.session:
+            previous = self.session
+            if (host, document, requested_id) == (previous["host"], previous["document"], previous["id"]):
+                # The window may have been hidden or closed outside our intercepted path.
+                # Resume its retained draft; never overwrite it with the embedded old source.
+                chem_open(Path(previous["path"]))
+                record("edit_resumed", host=host, drawing_id=requested_id, document=document)
+                return
+            if chem_is_open(Path(previous["path"])):
+                chem_open(Path(previous["path"]))
+                raise RuntimeError("Finish the visible ChemDraw edit before opening another drawing")
+            recovery = WORK / "recovery" / f'{previous["id"]}-{time.time_ns()}'
+            recovery.mkdir(parents=True)
+            shutil.copy2(previous["path"], recovery / Path(previous["path"]).name)
+            (recovery / "session.json").write_text(json.dumps(previous, indent=2))
+            record("closed_session_retained", drawing_id=previous["id"], recovery=str(recovery))
+            self.session = None
+            write_state({})
+        if not tag.startswith(("CFM1:", "CFM2:")):
+            tag = self.payload(host, document, requested_id)
         drawing_id, source = decode(tag)
         session_dir = WORK / "sessions" / drawing_id
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -94,8 +122,8 @@ class Bridge:
         try:
             chem_open(path)
         except Exception:
-            self.session = None
-            write_state({})
+            # A failed activation must remain resumable, with its draft intact.
+            write_state(self.session)
             raise
         record("opened", host=host, drawing_id=drawing_id, document=document)
 
@@ -121,7 +149,9 @@ class Bridge:
             carrier = path.parent / f"figure-{time.time_ns()}.svg"
             create_carrier(source, image, session["id"], carrier)
             safe_preview = office_preview(session["host"], carrier)
-            office("update", session["host"], session["document"], session["id"], safe_preview, new_tag)
+            with Image.open(image) as preview_image:
+                aspect = preview_image.height / preview_image.width
+            office("update", session["host"], session["document"], session["id"], safe_preview, new_tag, str(aspect))
             recovered_tag = self.payload(session["host"], session["document"], session["id"])
             _, recovered = decode(recovered_tag)
             if recovered != source:

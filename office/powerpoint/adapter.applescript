@@ -5,8 +5,12 @@ on run argv
         if actionName is "demo" then
             set p to make new presentation
             set s to make new slide at end of p with properties {layout:slide layout blank}
-            set pic to make new picture at end of s with properties {file name:item 2 of argv, left position:160, top:160, width:400, height:180}
-            set name of pic to "CFM1_" & (item 5 of argv)
+            set pic to make new picture at end of s with properties {file name:item 2 of argv, left position:160, top:160}
+            set name of pic to "ChemOffice Drawing:" & (item 5 of argv)
+            set originalWidth to width of pic
+            set originalHeight to height of pic
+            set width of pic to 400
+            set height of pic to originalHeight * 400 / originalWidth
             save p in POSIX file (item 4 of argv) as save as Open XML presentation
             activate
             return item 4 of argv
@@ -15,7 +19,7 @@ on run argv
             if full name of p is not (item 5 of argv) then error "The target PowerPoint document changed before paste"
             set s to slide of view of active window
             set pic to make new picture at end of s with properties {file name:item 2 of argv, left position:120, top:120}
-            set name of pic to "CFM1_" & (item 4 of argv)
+            set name of pic to "ChemOffice Drawing:" & (item 4 of argv)
             set originalWidth to width of pic
             set originalHeight to height of pic
             set width of pic to 400
@@ -50,14 +54,15 @@ on run argv
             end repeat
             if (count docs) is not 1 then error "Original PowerPoint presentation is not open"
             set p to item 1 of docs
-            set pictureName to "CFM1_" & (item 3 of argv)
+            set pictureName to "ChemOffice Drawing:" & (item 3 of argv)
+            set legacyName to "CFM1_" & (item 3 of argv)
             set dataName to "CFM_DATA_" & (item 3 of argv)
             set matches to {}
             repeat with slideIndex from 1 to (count of slides of p)
                 set s to slide slideIndex of p
                 repeat with pictureIndex from 1 to (count of shapes of s)
                     set pic to shape pictureIndex of s
-                    if name of pic is pictureName or name of pic is pictureName & "_pending" then set end of matches to {s, pic}
+                    if name of pic is pictureName or name of pic is pictureName & "_pending" or name of pic is legacyName or name of pic is legacyName & "_pending" then set end of matches to {s, pic}
                 end repeat
             end repeat
             if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
@@ -77,6 +82,7 @@ on run argv
             set pictureTop to top of oldPic
             set pictureWidth to width of oldPic
             set pictureHeight to height of oldPic
+            if (count of argv) >= 6 then set pictureHeight to pictureWidth * ((item 6 of argv) as real)
             set newPic to make new picture at end of s with properties {file name:item 4 of argv, left position:pictureLeft, top:pictureTop, width:pictureWidth, height:pictureHeight}
             set name of newPic to pictureName & "_pending"
             delete oldPic
@@ -98,7 +104,7 @@ on run argv
                     repeat with slideIndex from 1 to (count of slides of p)
                         set s to slide slideIndex of p
                         repeat with pictureIndex from 1 to (count of shapes of s)
-                            if name of shape pictureIndex of s is "CFM1_" & (item 3 of argv) then
+                            if name of shape pictureIndex of s is "ChemOffice Drawing:" & (item 3 of argv) or name of shape pictureIndex of s is "CFM1_" & (item 3 of argv) then
                                 set slide of view of active window to s
                                 select shape pictureIndex of s
                                 exit repeat

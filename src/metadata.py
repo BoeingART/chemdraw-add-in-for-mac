@@ -7,6 +7,15 @@ import zlib
 import xml.etree.ElementTree as ET
 
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
+OBJECT_PREFIX = "ChemOffice Drawing:"
+
+
+def object_id(tag: str) -> str:
+    if tag.startswith(OBJECT_PREFIX):
+        return str(uuid.UUID(tag[len(OBJECT_PREFIX):]))
+    if tag.startswith("CFM1_"):
+        return str(uuid.UUID(tag[5:]))
+    return decode(tag)[0]
 
 
 def validate_source(source: bytes) -> None:

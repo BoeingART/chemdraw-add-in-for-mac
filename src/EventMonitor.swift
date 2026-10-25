@@ -55,7 +55,7 @@ if CommandLine.arguments.dropFirst().first == "--frontmost" {
     print(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none")
     exit(0)
 }
-if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--activate-office" {
+if CommandLine.arguments.count == 4 && ["--activate-office", "--activate-window"].contains(CommandLine.arguments[1]) {
     guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).first else { exit(2) }
     let ax = AXUIElementCreateApplication(app.processIdentifier)
     guard let windows = attribute(ax, kAXWindowsAttribute) as? [AXUIElement] else { exit(2) }
@@ -67,6 +67,13 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--activate-o
     AXUIElementSetAttributeValue(matches[0], kAXMainAttribute as CFString, kCFBooleanTrue)
     guard AXUIElementPerformAction(matches[0], kAXRaiseAction as CFString) == .success else { exit(2) }
     print("activated")
+    exit(0)
+}
+if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--focused" {
+    let app = NSWorkspace.shared.frontmostApplication
+    let ax = app.map { AXUIElementCreateApplication($0.processIdentifier) }
+    let window = ax.flatMap { attribute($0, kAXFocusedWindowAttribute) } as! AXUIElement?
+    emit(["bundle": app?.bundleIdentifier ?? "none", "title": window.flatMap { attribute($0, kAXTitleAttribute) as? String } ?? "none"])
     exit(0)
 }
 if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--capture" {
@@ -175,7 +182,8 @@ func selectedManagedTag(_ host: String) -> String? {
     var error: NSDictionary?
     guard let script = NSAppleScript(source: source),
           let value = script.executeAndReturnError(&error).stringValue,
-          (host == "word" ? (value.hasPrefix("CFM1:") || value.hasPrefix("CFM2:")) : value.hasPrefix("CFM1_")) else { return nil }
+          (value.hasPrefix("ChemOffice Drawing:") ||
+           (host == "word" ? (value.hasPrefix("CFM1:") || value.hasPrefix("CFM2:")) : value.hasPrefix("CFM1_"))) else { return nil }
     return value
 }
 

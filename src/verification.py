@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 from metadata import decode
-from carrier import read_carrier
+from carrier import read_carrier, has_vectors
 from PIL import Image, ImageChops, ImageFilter, ImageStat
 
 NS = {
@@ -55,7 +55,7 @@ def read_saved_figure(document: str, host: str, drawing_id: str) -> dict:
                 for drawing in drawings:
                     props = drawing.find(".//wp:docPr", NS)
                     tag = props.get("descr", "") if props is not None else ""
-                    if tag.startswith((f"CFM1:{drawing_id}:", f"CFM2:{drawing_id}:")):
+                    if tag == f"ChemOffice Drawing:{drawing_id}" or tag.startswith((f"CFM1:{drawing_id}:", f"CFM2:{drawing_id}:")):
                         candidates.append((part, drawing, tag))
             else:
                 tag = None
@@ -65,7 +65,7 @@ def read_saved_figure(document: str, host: str, drawing_id: str) -> dict:
                         tag = "".join(shape.itertext())
                 for picture in root.findall(".//p:pic", NS):
                     props = picture.find("p:nvPicPr/p:cNvPr", NS)
-                    if props is not None and props.get("name") == f"CFM1_{drawing_id}":
+                    if props is not None and props.get("name") in (f"CFM1_{drawing_id}", f"ChemOffice Drawing:{drawing_id}"):
                         candidates.append((part, picture, tag))
         if len(candidates) != 1:
             raise RuntimeError("Saved document has an ambiguous or missing managed figure")
@@ -85,7 +85,7 @@ def read_saved_figure(document: str, host: str, drawing_id: str) -> dict:
         portable = svg_blip is not None
         if portable:
             carrier_tag, preview = read_carrier(preview)
-            if tag and decode(tag)[1] != decode(carrier_tag)[1]:
+            if tag and tag.startswith(("CFM1:", "CFM2:")) and decode(tag)[1] != decode(carrier_tag)[1]:
                 raise RuntimeError("Office metadata and graphic source disagree")
             tag = carrier_tag
         embedded_id, source = decode(tag or "")
@@ -93,7 +93,8 @@ def read_saved_figure(document: str, host: str, drawing_id: str) -> dict:
             raise RuntimeError("Graphic source identity differs from its Office figure")
         return {"tag": tag, "source": source, "preview": preview,
                 "source_bytes": len(source), "preview_part": target,
-                "verified_part": part, "portable_carrier": portable}
+                "verified_part": part, "portable_carrier": portable,
+                "vector_artwork": portable and has_vectors(archive.read(target))}
 
 
 def verify_saved_figure(document: str, host: str, drawing_id: str,
