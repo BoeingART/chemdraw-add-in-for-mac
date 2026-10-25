@@ -42,7 +42,7 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 
 | Experience | Current preview |
 | :--- | :--- |
-| Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Passed in the earlier carrier; fresh clipboard rerun of the new vector export is pending |
+| Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Fresh native clipboard and vector export passed in both applications |
 | Open a managed figure by double-clicking in Word | Verified on the test Mac |
 | Open a managed figure by double-clicking in PowerPoint | Verified on the test Mac |
 | Close with ⌘W, update the figure, and return to Office | Verified in both applications |
@@ -51,8 +51,9 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 | Keep editable source inside the saved document | Verified in `.docx` and `.pptx` |
 | Sharp vector artwork when enlarging a figure | Verified native SVG paths and text in both saved applications |
 | Recognize a figure as a ChemOffice drawing | Explicit drawing identity, with source checked inside the graphic |
-| Copy a single figure to another document with its source | Four directions passed with the earlier carrier; the new vector Word→PowerPoint path also passed |
+| Copy a single figure to another document with its source | New vector Word→PowerPoint and PowerPoint→Word passed; earlier carrier also passed both same-application directions |
 | Edit a copied figure without changing its original | Verified with separate drawing identities |
+| Keep drawing proportions in PowerPoint | Verified at paste and write-back; stretched saved figures are rejected |
 | Reopen an editing window after it was closed outside the helper | Retained draft reopened successfully in Word |
 | Close with the red window button | Implemented; end-to-end verification is still pending |
 | Edit arbitrary pasted pictures or existing Windows OLE objects | Not included in this preview |

@@ -4,9 +4,11 @@ Start **Start ChemOffice.command**, then open an example and double-click the dr
 
 | Example | What is inside |
 | --- | --- |
+| [Native clipboard Word test](Native%20clipboard%20Word.docx) | Two independently editable drawings: a fresh ChemDraw paste and a copy from PowerPoint; final text survived immediate closing in each |
+| [Native clipboard PowerPoint test](Native%20clipboard%20PowerPoint.pptx) | Slide 1 is a fresh ChemDraw paste; slide 2 is the independently edited Word copy brought back to PowerPoint; both retain vector proportions |
 | [Word drawing](Vector%20Word.docx) | Genuine vector bonds and labels; `WORD-VECTOR-FINAL-Z` survived immediate closing |
 | [PowerPoint drawing](Vector%20PowerPoint.pptx) | Genuine vectors; `PPT-VECTOR-FINAL-Z` survived immediate closing; the extra bond from the earlier chemical edit remains |
-| [Word drawing copied to PowerPoint](Word%20to%20PowerPoint.pptx) | A normal single-figure copy preserves the exact Word source and receives an independent drawing identity |
+| [Word drawing copied to PowerPoint](Word%20to%20PowerPoint.pptx) | Earlier exact-source portability evidence; its display dimensions have been corrected from the SVG canvas |
 
 The helper recognizes these figures as **ChemOffice Drawings**. Office itself still calls their appearance a graphic. A true SVG illustration supplies the visible artwork; native ChemDraw source travels invisibly inside that same graphic. Enlarging it does not enlarge a PNG preview.
 

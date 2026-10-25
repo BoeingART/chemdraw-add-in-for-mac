@@ -1,6 +1,6 @@
 {
   "date": "2026-10-25",
-  "code_commit": "01d05a1",
+  "code_commit": "78faed2",
   "cases": [
     {
       "document": "Vector Word.docx",
@@ -28,6 +28,11 @@
         "verified_part": "word/document.xml",
         "portable_carrier": true,
         "vector_artwork": true,
+        "svg_aspect": 0.4689655172413793,
+        "display_size_emu": [
+          4064000,
+          1908969
+        ],
         "mean_pixel_error": 0.0,
         "ink_coverage": [
           1.0,
@@ -135,6 +140,11 @@
         "verified_part": "ppt/slides/slide1.xml",
         "portable_carrier": true,
         "vector_artwork": true,
+        "svg_aspect": 0.8846153846153846,
+        "display_size_emu": [
+          5080000,
+          4494609
+        ],
         "mean_pixel_error": 0.0,
         "ink_coverage": [
           1.0,
@@ -191,6 +201,11 @@
         "verified_part": "ppt/slides/slide1.xml",
         "portable_carrier": true,
         "vector_artwork": true,
+        "svg_aspect": 0.4689655172413793,
+        "display_size_emu": [
+          5080000,
+          2382345
+        ],
         "mean_pixel_error": 0.0,
         "ink_coverage": [
           1.0,
@@ -211,12 +226,266 @@
           "source_sha256": "61083c12e1e903ff5a0e26f371330b97284b007b84733d7e419725be30fcf3a3",
           "portable_carrier": true
         }
+      ],
+      "geometry_note": "Display dimensions repaired from the saved SVG viewBox after discovering PowerPoint square import; chemical source and SVG unchanged."
+    },
+    {
+      "document": "Native clipboard Word.docx",
+      "host": "word",
+      "drawing_id": "80646112-da5b-419a-a220-eaa386eced21",
+      "scenario": "Fresh native ChemDraw clipboard to Word; final character retained",
+      "source_sha256": "c30829f104313632dd844334be0c19447669777ec502b3af742a39eca8c1164b",
+      "final_caption": "WORD-NATIVE-VECTOR-FINAL-Z",
+      "svg_elements": {
+        "path": 2,
+        "text": 2,
+        "image": 1
+      },
+      "reference": "Independent ChemDraw committed native draft and SVG export",
+      "verification": {
+        "source_bytes": 1437,
+        "preview_part": "word/media/image2.svg",
+        "verified_part": "word/document.xml",
+        "portable_carrier": true,
+        "vector_artwork": true,
+        "svg_aspect": 0.3541666666666667,
+        "display_size_emu": [
+          4064000,
+          1440656
+        ],
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          1024,
+          363
+        ]
+      },
+      "events": [
+        {
+          "time": 1792931685.535109,
+          "event": "pasted",
+          "host": "word",
+          "document": "vector-direct-paste.docx",
+          "drawing_id": "80646112-da5b-419a-a220-eaa386eced21",
+          "source_sha256": "bc701d5ef147fa402fa62374f934544cc007ae6514b59e3215f7c28bcdf0a664",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792931698.621307,
+          "event": "opened",
+          "host": "word",
+          "drawing_id": "80646112-da5b-419a-a220-eaa386eced21",
+          "document": "vector-direct-paste.docx"
+        },
+        {
+          "time": 1792931728.336097,
+          "event": "committed",
+          "host": "word",
+          "drawing_id": "80646112-da5b-419a-a220-eaa386eced21",
+          "gesture": "command-w",
+          "source_sha256": "c30829f104313632dd844334be0c19447669777ec502b3af742a39eca8c1164b",
+          "bytes": 1437,
+          "frontmost_app": "com.microsoft.Word"
+        }
+      ]
+    },
+    {
+      "document": "Native clipboard PowerPoint.pptx",
+      "host": "powerpoint",
+      "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+      "scenario": "Fresh native ChemDraw clipboard to PowerPoint; proportions preserved; final character retained",
+      "source_sha256": "110421d983ee459b589923b820e81d50b7cbe95f56fc8e0434c5a2d3f25ed34d",
+      "final_caption": "PPT-NATIVE-VECTOR-FINAL-Z",
+      "svg_elements": {
+        "path": 2,
+        "text": 2,
+        "image": 1
+      },
+      "reference": "Independent ChemDraw committed native draft and SVG export",
+      "verification": {
+        "source_bytes": 1435,
+        "preview_part": "ppt/media/image1.svg",
+        "verified_part": "ppt/slides/slide1.xml",
+        "portable_carrier": true,
+        "vector_artwork": true,
+        "svg_aspect": 0.38636363636363635,
+        "display_size_emu": [
+          5080000,
+          1962727
+        ],
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          1024,
+          396
+        ]
+      },
+      "events": [
+        {
+          "time": 1792931867.5728629,
+          "event": "pasted",
+          "host": "powerpoint",
+          "document": "vector-native-paste.pptx",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+          "source_sha256": "bc701d5ef147fa402fa62374f934544cc007ae6514b59e3215f7c28bcdf0a664",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792931886.2230961,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+          "document": "vector-native-paste.pptx"
+        },
+        {
+          "time": 1792931904.027932,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+          "gesture": "command-w",
+          "source_sha256": "110421d983ee459b589923b820e81d50b7cbe95f56fc8e0434c5a2d3f25ed34d",
+          "bytes": 1435,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        }
+      ]
+    },
+    {
+      "document": "Native clipboard Word.docx",
+      "host": "word",
+      "drawing_id": "802640b9-ccc8-4d56-adc3-57da9e90357b",
+      "scenario": "PPT to Word; exact source at paste; independently edited without changing either original",
+      "source_sha256": "c844ed3a5e44608d7eb47b63e5dfb6e171cef5cc933e249076d5270cf7981e46",
+      "final_caption": "COPIED-IN-WORD-FINAL-Z",
+      "svg_elements": {
+        "path": 2,
+        "text": 2,
+        "image": 1
+      },
+      "reference": "Independent ChemDraw committed native draft and SVG export",
+      "verification": {
+        "source_bytes": 1429,
+        "preview_part": "word/media/image4.svg",
+        "verified_part": "word/document.xml",
+        "portable_carrier": true,
+        "vector_artwork": true,
+        "svg_aspect": 0.43037974683544306,
+        "display_size_emu": [
+          4064000,
+          1749063
+        ],
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          1024,
+          441
+        ]
+      },
+      "events": [
+        {
+          "time": 1792931946.895231,
+          "event": "pasted",
+          "host": "word",
+          "document": "vector-direct-paste.docx",
+          "drawing_id": "802640b9-ccc8-4d56-adc3-57da9e90357b",
+          "source_sha256": "110421d983ee459b589923b820e81d50b7cbe95f56fc8e0434c5a2d3f25ed34d",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792931963.526609,
+          "event": "opened",
+          "host": "word",
+          "drawing_id": "802640b9-ccc8-4d56-adc3-57da9e90357b",
+          "document": "vector-direct-paste.docx"
+        },
+        {
+          "time": 1792931981.752994,
+          "event": "committed",
+          "host": "word",
+          "drawing_id": "802640b9-ccc8-4d56-adc3-57da9e90357b",
+          "gesture": "command-w",
+          "source_sha256": "c844ed3a5e44608d7eb47b63e5dfb6e171cef5cc933e249076d5270cf7981e46",
+          "bytes": 1429,
+          "frontmost_app": "com.microsoft.Word"
+        }
+      ]
+    },
+    {
+      "document": "Native clipboard PowerPoint.pptx",
+      "host": "powerpoint",
+      "drawing_id": "a779bcea-68e4-4a76-9dca-b8b97312a1cc",
+      "scenario": "Word copy back to PPT; exact source at paste; double-click reopen and verified close",
+      "source_sha256": "3972b073c55d2ac200a4d0d8ac60ecc24b229c32ee8ee79a57ca3740d6719115",
+      "final_caption": "COPIED-IN-WORD-FINAL-Z",
+      "svg_elements": {
+        "path": 2,
+        "text": 2,
+        "image": 1
+      },
+      "reference": "Independent ChemDraw committed native draft and SVG export",
+      "verification": {
+        "source_bytes": 1429,
+        "preview_part": "ppt/media/image2.svg",
+        "verified_part": "ppt/slides/slide2.xml",
+        "portable_carrier": true,
+        "vector_artwork": true,
+        "svg_aspect": 0.43037974683544306,
+        "display_size_emu": [
+          5080000,
+          2186329
+        ],
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          1024,
+          441
+        ]
+      },
+      "events": [
+        {
+          "time": 1792932028.643326,
+          "event": "pasted",
+          "host": "powerpoint",
+          "document": "vector-native-paste.pptx",
+          "drawing_id": "a779bcea-68e4-4a76-9dca-b8b97312a1cc",
+          "source_sha256": "c844ed3a5e44608d7eb47b63e5dfb6e171cef5cc933e249076d5270cf7981e46",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792932143.469517,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "a779bcea-68e4-4a76-9dca-b8b97312a1cc",
+          "document": "vector-native-paste.pptx"
+        },
+        {
+          "time": 1792932151.0702322,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "a779bcea-68e4-4a76-9dca-b8b97312a1cc",
+          "gesture": "command-w",
+          "source_sha256": "3972b073c55d2ac200a4d0d8ac60ecc24b229c32ee8ee79a57ca3740d6719115",
+          "bytes": 1429,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        }
       ]
     }
   ],
   "limitations": [
     "Red close button is unverified; use Command-W.",
-    "Four-direction copy was tested in the earlier raster format. Current vector rerun: Word to PowerPoint.",
-    "Fresh native ChemDraw clipboard to vector Word test paused when Mac locked."
-  ]
+    "Fresh vector copy acceptance covers Word to PowerPoint and PowerPoint to Word; same-host directions were tested in the earlier raster carrier.",
+    "ChemDraw can update CDX document metadata when reopening and saving without chemical edits. Exact source at paste is recorded separately from the final post-edit source hash."
+  ],
+  "automated_tests": 18
 }
