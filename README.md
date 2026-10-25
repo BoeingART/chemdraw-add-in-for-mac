@@ -4,9 +4,9 @@
 
 **Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
 
-[Download v0.1.0-beta.1](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
+[Download v0.1.0-beta.2](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
 
-[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/launch-and-installation-results.md)
+[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/unsaved-powerpoint-paste-results.md)
 
 </div>
 
@@ -14,7 +14,7 @@ ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and Po
 
 > **Early preview, real applications.** This independent local helper has been tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
-**First release: v0.1.0-beta.1.** Download the versioned source ZIP from [Releases](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1), extract it to a permanent folder, and follow the setup steps below. This release builds the helper on your Mac; it is not a signed `.app` or `.pkg` installer. Python 3.10 or later and Apple's command-line tools are required. Installation on a fresh Mac and compatibility beyond the tested application versions have not yet been verified.
+**Current release: v0.1.0-beta.2.** Download the versioned source ZIP from [Releases](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2), extract it to a permanent folder, and follow the setup steps below. This release builds the helper on your Mac; it is not a signed `.app` or `.pkg` installer. Python 3.10 or later and Apple's command-line tools are required. Installation on a fresh Mac and compatibility beyond the tested application versions have not yet been verified.
 
 **Looking for ChemOffice inside Office?** A separate local Office add-in supplies the blue C entry, a right-hand panel, and a **ChemOffice** ribbon tab. Follow the [installation and viewing guide](docs/installation.md). The panels and their **Edit selected drawing** buttons have been verified in both Word and PowerPoint on the test Mac's existing App Store builds. The double-click workflow also works independently of the panel.
 
@@ -34,7 +34,7 @@ For the optional visible Office entry, open **Install Office Add-ins.command**, 
 
 ### 3 · Copy, paste, and keep drawing
 
-Save your target Word or PowerPoint document **once before the first paste**. In ChemDraw, select your structure and press **⌘C**. Switch to Office and press **⌘V**. If Office asks to access the generated preview file, approve that specific file once.
+Save your target Word document **once before the first paste**. In PowerPoint, the first paste into an unsaved deck now asks where to save it and continues automatically after saving. Canceling leaves the deck unchanged and keeps the captured drawing locally. In ChemDraw, select your structure and press **⌘C**, switch to Office, and press **⌘V**. If Office asks to access the generated preview file, approve that specific file once.
 
 Double-click the pasted drawing. Edit it in ChemDraw, then close its editing window with **⌘W**. The helper saves the drawing, checks the source and preview in the saved Office document, and brings you back to your figure.
 
@@ -51,6 +51,7 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 | Experience | Current preview |
 | :--- | :--- |
 | Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Fresh native clipboard and vector export passed in both applications |
+| First paste into an unsaved PowerPoint deck | Prompts for a save location and resumes the same captured paste; saving and cancellation verified |
 | Open a managed figure by double-clicking in Word | Verified on the test Mac |
 | Open a managed figure by double-clicking in PowerPoint | Verified on the test Mac |
 | Start ChemDraw when it is fully quit | Verified from both Word and PowerPoint after adding a macOS launch and readiness check |
@@ -86,7 +87,7 @@ If a managed window disappears outside that closing path, double-click the same 
 - **A drawing the helper recognizes.** A `ChemOffice Drawing` identity connects the Office figure to the source carried inside it. Office's own ribbon still calls it a graphic; double-click editing is supplied by the running helper.
 - **Clear limits.** This is a custom Mac integration, with its own saved source, rather than native Windows OLE compatibility.
 
-Use **⌘V** to create or copy editable figures, and **⌘W** for the verified closing path. Menu Paste, drag-and-drop, Paste Special, unsaved target documents, grouped objects, cloud collaboration, File-menu Close, quitting ChemDraw, and crashes are outside the verified workflow. Flattening a drawing into a screenshot, PNG, or JPEG can remove its source. A recipient needs this helper and ChemDraw to use double-click editing.
+Use **⌘V** to create or copy editable figures, and **⌘W** for the verified closing path. Menu Paste, drag-and-drop, Paste Special, unsaved Word documents, grouped objects, cloud collaboration, File-menu Close, quitting ChemDraw, and crashes are outside the verified workflow. PowerPoint's first-paste save prompt is covered in the [paste fix results](docs/unsaved-powerpoint-paste-results.md). Flattening a drawing into a screenshot, PNG, or JPEG can remove its source. A recipient needs this helper and ChemDraw to use double-click editing.
 
 Edit one managed drawing at a time and keep its original Office document open. Word inserts after the current selection; PowerPoint places the new figure on the current slide, where you can move it. Pasting and write-back save the target document, including its other pending edits.
 

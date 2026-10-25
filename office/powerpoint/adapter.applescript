@@ -45,6 +45,22 @@ on run argv
             end try
         else if actionName is "context" then
             return full name of active presentation
+        else if actionName is "save-for-paste" then
+            set p to active presentation
+            set currentPath to full name of p
+            if currentPath starts with "/" then return currentPath
+            set suggestedName to name of p
+            if suggestedName does not end with ".pptx" then set suggestedName to suggestedName & ".pptx"
+            activate
+            try
+                with timeout of 600 seconds
+                    set destination to choose file name with prompt "Save this presentation to paste an editable ChemDraw drawing. The captured drawing will be inserted after saving." default name suggestedName
+                end timeout
+            on error number -128
+                return ""
+            end try
+            save p in destination as save as Open XML presentation
+            return full name of p
         else if actionName is "payload" or actionName is "update" then
             set docs to {}
             repeat with documentIndex from 1 to (count of presentations)

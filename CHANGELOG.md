@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.0-beta.2 — 2026-10-26
+
+### Paste into a new PowerPoint deck
+
+Previously, pasting chemical clipboard data into an unsaved presentation consumed ⌘V and recorded a save-first error only in the helper log. The slide appeared unchanged with no actionable explanation.
+
+PowerPoint now asks for a save location and automatically continues the original paste after saving. The original captured source is retained while the dialog is open. Canceling inserts nothing and leaves the captured source available locally. Normal keyboard and mouse input reaches the save dialog; cancellation and save errors clear the temporary dialog state.
+
+Live checks covered save-and-resume, cancellation, a complex colored drawing in the user's current deck, and double-click/⌘W write-back. All 28 automated tests passed, including four new transaction checks. The helper and updated PowerPoint adapter compiled. See [paste fix results](docs/unsaved-powerpoint-paste-results.md).
+
+Word still requires saving its target document before pasting. This release remains a source preview; signed macOS installers are not included.
+
 ## v0.1.0-beta.1 — 2026-10-25
 
 First public source preview for ChemDraw 22, Word for Mac, and PowerPoint for Mac. Released under Apache-2.0.

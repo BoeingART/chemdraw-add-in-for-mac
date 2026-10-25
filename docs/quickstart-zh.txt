@@ -1,8 +1,8 @@
 ChemOffice for Mac · 安装与使用
 
-首个版本：v0.1.0-beta.1（源码测试版）
-下载地址：https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1
-下载 chemoffice-for-mac-v0.1.0-beta.1-source.zip，解压到固定位置。
+当前版本：v0.1.0-beta.2（源码测试版）
+下载地址：https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2
+下载 chemoffice-for-mac-v0.1.0-beta.2-source.zip，解压到固定位置。
 本版本需要本机准备运行环境并编译助手，尚未提供签名、公证的 .app 或 .pkg 安装包。
 目前已在开发者的测试 Mac 上完成 Word/PPT 实测；全新 Mac 的安装及其他应用版本尚未验证。
 
@@ -10,7 +10,7 @@ ChemOffice for Mac · 安装与使用
 
 1. 在项目文件夹中双击 Start ChemOffice.command，保留它打开的窗口。
    使用解压后的项目文件夹；请在首次安装完成后再启动。
-2. 在 Word 或 PowerPoint 中打开一个已保存的文档。
+2. 在 Word 中打开一个已保存的文档。PPT 若尚未保存，首次粘贴时会提示保存位置，保存后自动继续粘贴；取消则不插入。
 3. 查看插件：开始 → 加载项 → 开发人员加载项 → ChemOffice for Mac（蓝色 C 图标）。
    激活后也可以通过 ChemOffice → Open ChemOffice 打开右侧面板。
 4. 在 ChemDraw 中复制结构，在 Office 中用 ⌘V 粘贴。
@@ -47,6 +47,7 @@ ChemOffice for Mac · 安装与使用
 
 当前验证范围
 
+beta.2 修复了未保存 PPT 首次粘贴没有界面反馈的问题，保存后无需重新复制即可完成同一次粘贴。
 Word 和 PPT 的冷启动 ChemDraw、面板编辑入口、⌘W 回写和返回均已实测。
 保存文件中的原生源数据与最终 ChemDraw 文件一致，显示为真正的 SVG 矢量。
 源数据随单个绘图一起复制；接收方也需要 ChemDraw 和本助手才能双击编辑。

@@ -52,6 +52,18 @@ class Bridge:
         if self.session:
             raise RuntimeError("Close the current managed ChemDraw edit before pasting another drawing")
         document = office("context", host)
+        if host == "powerpoint" and (not document or not Path(document).is_absolute()):
+            # The native clipboard capture is already on disk. Let the user name
+            # the deck, then paste those same bytes even if the clipboard changes.
+            write_state({"saveDialogBundle": "com.microsoft.Powerpoint"})
+            try:
+                record("paste_needs_save", host=host)
+                document = office("save-for-paste", host)
+                if not document:
+                    record("paste_cancelled", host=host, reason="save-dialog-cancelled")
+                    return
+            finally:
+                write_state({})
         if not document or not Path(document).is_file():
             raise RuntimeError("Save the target Office document once before using editable paste")
         snapshot = Path(snapshot)

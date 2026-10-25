@@ -32,7 +32,7 @@ def script(body: str, *args: str, timeout: int = 30) -> str:
 def office(action: str, host: str, *args: str) -> str:
     path = ROOT / "office" / host / "adapter.applescript"
     result = subprocess.run(["/usr/bin/osascript", str(path), action, *map(str, args)],
-                            capture_output=True, text=True, timeout=45)
+                            capture_output=True, text=True, timeout=610 if action == "save-for-paste" else 45)
     if result.returncode:
         raise RuntimeError(result.stderr.strip())
     return result.stdout.strip()

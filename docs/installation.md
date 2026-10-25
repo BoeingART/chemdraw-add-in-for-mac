@@ -2,7 +2,9 @@
 
 ChemOffice has two parts. The **local helper** opens ChemDraw and saves your edits back to Office. The **Office add-in** provides a visible ChemOffice entry, a status panel, instructions, and an Edit selected drawing button. The helper's double-click workflow works independently of the panel.
 
-Download **chemoffice-for-mac-v0.1.0-beta.1-source.zip** from the [first release](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.1), then extract it to a permanent folder. This is a source preview that builds on your Mac, not a signed macOS application or installer. It requires Python 3.10 or later and Apple's command-line tools as well as your licensed Office and ChemDraw applications. The release includes SHA256SUMS for its downloadable files.
+Download **chemoffice-for-mac-v0.1.0-beta.2-source.zip** from the [current release](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2), then extract it to a permanent folder. This is a source preview that builds on your Mac, not a signed macOS application or installer. It requires Python 3.10 or later and Apple's command-line tools as well as your licensed Office and ChemDraw applications. The release includes SHA256SUMS for its downloadable files.
+
+To upgrade from beta.1, stop the old helper with Control-C, extract the new source to a permanent folder, and repeat setup and Office panel installation for that folder. Each folder creates its own localhost certificate; review the new fingerprint before trusting it. Reopen any Office panels after restarting the helper. Existing drawings carry their source and do not need reinsertion.
 
 ## Before you install the Office panel
 
@@ -47,6 +49,7 @@ Open **Check Installation.command**. It checks the helper connection, localhost 
 - **Clicking the entry does nothing:** try an actual foreground click, confirm the helper is running, and check any organization add-in policy. Automated accessibility labels can be misleading; the Word entry worked despite being reported as disabled.
 - **Panel does not connect:** keep Start ChemOffice open and complete the scoped certificate trust step. Office.js is loaded from Microsoft's official CDN, so the Office panel also needs access to that service.
 - **No drawing selected:** select just one ChemOffice graphic in your document before using the panel's edit button. Ordinary PNG/JPEG pictures do not contain editable chemistry.
+- **First paste into a new PowerPoint deck:** choose a save location in the dialog. ChemOffice keeps the captured clipboard source and continues that paste automatically. Canceling leaves the deck unchanged. Word still requires saving once before pasting.
 
 ## Stop or remove the preview
 
