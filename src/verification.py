@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 from metadata import decode
-from carrier import read_carrier, has_vectors
+from carrier import read_carrier, has_vectors, svg_aspect
 from PIL import Image, ImageChops, ImageFilter, ImageStat
 
 NS = {
@@ -83,6 +83,10 @@ def read_saved_figure(document: str, host: str, drawing_id: str) -> dict:
         target = posixpath.normpath(posixpath.join(directory, targets[0]))
         preview = archive.read(target)
         portable = svg_blip is not None
+        vector = portable and has_vectors(preview)
+        canvas_aspect = svg_aspect(preview) if vector else None
+        extent = drawing.find(".//wp:extent", NS) if host == "word" else drawing.find("p:spPr/a:xfrm/a:ext", NS)
+        display_size = [int(extent.get(key, "0")) for key in ("cx", "cy")] if extent is not None else None
         if portable:
             carrier_tag, preview = read_carrier(preview)
             if tag and tag.startswith(("CFM1:", "CFM2:")) and decode(tag)[1] != decode(carrier_tag)[1]:
@@ -94,7 +98,8 @@ def read_saved_figure(document: str, host: str, drawing_id: str) -> dict:
         return {"tag": tag, "source": source, "preview": preview,
                 "source_bytes": len(source), "preview_part": target,
                 "verified_part": part, "portable_carrier": portable,
-                "vector_artwork": portable and has_vectors(archive.read(target))}
+                "vector_artwork": vector, "svg_aspect": canvas_aspect,
+                "display_size_emu": display_size}
 
 
 def verify_saved_figure(document: str, host: str, drawing_id: str,
@@ -102,5 +107,9 @@ def verify_saved_figure(document: str, host: str, drawing_id: str,
     saved = read_saved_figure(document, host, drawing_id)
     if saved["source"] != expected_source:
         raise RuntimeError("Saved Office source differs from the final ChemDraw source")
+    if saved["vector_artwork"]:
+        size = saved["display_size_emu"]
+        if not size or min(size) <= 0 or abs((size[1] / size[0]) / saved["svg_aspect"] - 1) > 0.005:
+            raise RuntimeError("Office figure proportions differ from the native vector canvas")
     agreement = preview_agreement(saved["preview"], expected_image.read_bytes())
     return {key: value for key, value in saved.items() if key not in ("tag", "source", "preview")} | agreement
