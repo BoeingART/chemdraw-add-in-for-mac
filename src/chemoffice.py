@@ -10,8 +10,9 @@ import sys
 import time
 from pathlib import Path
 
-from automation import CHEM_ID, ROOT, chem_open, chem_snapshot, chem_close, office
+from automation import CHEM_ID, ROOT, chem_open, chem_snapshot, chem_close, office, office_preview
 from metadata import encode, decode, validate_source
+from verification import verify_saved_figure
 
 WORK = ROOT / "work"
 STATE = WORK / "monitor-state.json"
@@ -80,16 +81,21 @@ class Bridge:
             old_tag = office("payload", session["host"], session["document"], session["id"])
             if old_tag != session["originalTag"]:
                 raise RuntimeError("The Office figure changed during editing; kept both versions")
-            office("update", session["host"], session["document"], session["id"], image, new_tag)
+            safe_preview = office_preview(session["host"], image)
+            office("update", session["host"], session["document"], session["id"], safe_preview, new_tag)
             recovered_tag = office("payload", session["host"], session["document"], session["id"])
             _, recovered = decode(recovered_tag)
             if recovered != source:
                 raise RuntimeError("Write-back verification failed; ChemDraw remains open")
+            session["originalTag"] = new_tag
+            write_state(session)
+            evidence = verify_saved_figure(session["document"], session["host"], session["id"], source, image)
             # A second dirty check inside chem_close refuses to discard a newer edit.
             chem_close(path)
             office("activate", session["host"], session["document"])
             record("committed", host=session["host"], drawing_id=session["id"], gesture=gesture,
                    source_sha256=hashlib.sha256(source).hexdigest(), bytes=len(source))
+            (path.parent / "verification.json").write_text(json.dumps(evidence, indent=2))
             session["originalTag"] = new_tag
             (path.parent / "committed.cdxml").write_bytes(source)
             self.session = None
@@ -154,7 +160,7 @@ def create_demo(host):
     chem_snapshot(render_path, png)
     chem_close(render_path)
     output = WORK / f"ChemOffice-{host}-{drawing_id[:8]}.{'docx' if host == 'word' else 'pptx'}"
-    office("demo", host, png, tag, output, drawing_id)
+    office("demo", host, office_preview(host, png), tag, output, drawing_id)
     record("demo_created", host=host, path=str(output), drawing_id=drawing_id)
 
 

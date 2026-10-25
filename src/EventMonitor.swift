@@ -105,6 +105,8 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     guard bundle == current["chemBundle"] as? String,
           let title = current["windowTitle"] as? String,
           let window = managedWindow(front, title) else { return Unmanaged.passUnretained(event) }
+    // Freeze edits during the short save/render/write-back transaction.
+    if current["busy"] as? Bool == true { return nil }
     let closeKey = type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 13
         && event.flags.contains(.maskCommand) && !event.flags.contains(.maskShift)
     let closeClick = type == .leftMouseDown && closeButtonContains(window, event.location)

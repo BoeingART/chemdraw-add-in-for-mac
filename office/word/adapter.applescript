@@ -44,21 +44,26 @@ on run argv
             set matches to {}
             repeat with pictureIndex from 1 to (count of inline shapes of d)
                 set pic to inline shape pictureIndex of d
-                if alternative text of pic starts with prefixText then set end of matches to pic
+                if alternative text of pic starts with prefixText then set end of matches to pictureIndex as integer
             end repeat
             if (count matches) is not 1 then error "Ambiguous or missing original Word figure"
-            set oldPic to item 1 of matches
+            set originalIndex to item 1 of matches
+            set originalCount to count of inline shapes of d
+            set oldPic to inline shape originalIndex of d
             set oldTag to alternative text of oldPic
             set w to width of oldPic
             set h to height of oldPic
-            set newPic to make new inline picture at text object of oldPic with properties {file name:item 4 of argv, link to file:false, save with document:true}
+            make new inline picture at text object of oldPic with properties {file name:item 4 of argv, link to file:false, save with document:true}
+            if (count of inline shapes of d) is not originalCount + 1 then error "Unexpected Word insertion result; retained both versions"
+            -- Word's returned inline-picture reference can resolve to the old image.
+            -- Insertion at its range places the new image immediately after it.
+            set newPic to inline shape (originalIndex + 1) of d
             set alternative text of newPic to item 5 of argv
             set width of newPic to w
             set height of newPic to h
-            -- Identify the old object by its complete previous payload, never by a shifted index.
-            repeat with i from (count inline shapes of d) to 1 by -1
-                if alternative text of inline shape i of d is oldTag and oldTag is not (item 5 of argv) then delete inline shape i of d
-            end repeat
+            if alternative text of inline shape originalIndex of d is not oldTag then error "Original image identity changed; retained both versions"
+            delete inline shape originalIndex of d
+            if (count of inline shapes of d) is not originalCount then error "Word picture count changed unexpectedly"
             save d
             return "updated"
         else if actionName is "activate" then

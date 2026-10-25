@@ -1,10 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 """Application object-model calls; no keystroke or clipboard automation."""
 import subprocess
+import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CHEM_ID = "com.perkinelmer.ChemDraw.22"
+
+
+def office_preview(host: str, image: Path) -> Path:
+    # A stable, explicitly granted file avoids asking Office for a new file on each edit.
+    # Do not reach into another application's protected container.
+    directory = ROOT / "work"
+    directory.mkdir(exist_ok=True)
+    destination = directory / f"office-preview-{host}.png"
+    shutil.copy2(image, destination)
+    return destination
 
 
 def script(body: str, *args: str, timeout: int = 30) -> str:
@@ -46,6 +57,10 @@ def chem_snapshot(path: Path, png: Path) -> None:
         end repeat
         if (count matches) is not 1 then error "Expected exactly one managed ChemDraw document"
         set d to item 1 of matches
+        if POSIX path of ((file of document 1) as alias) is not targetPath then error "Managed drawing is not active"
+        -- Finish the live label/caption editor before serializing the document.
+        -- The generic AppleScript save event alone can miss an in-progress text edit.
+        do command "chooseSelectionTool_Marquee"
         save d
         if modified of d then error "ChemDraw still reports unsaved changes"
         save d in outputFile as "PNG"
