@@ -1,5 +1,9 @@
 # Try a drawing that has already made the trip
 
+**For the current copy/paste workflow, start with the [portable drawing examples](portable/README.md).** Their source travels with the individual graphic between Word and PowerPoint documents.
+
+The earlier examples below preserve the original close-test evidence. They predate the portable format; their copy behavior is not the current workflow.
+
 Start **Start ChemOffice.command**, then open one of these documents and double-click its figure. The editable source is stored inside the document. Edit in ChemDraw and use **⌘W** to return.
 
 | Example | Word | PowerPoint |

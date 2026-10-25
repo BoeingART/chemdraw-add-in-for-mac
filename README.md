@@ -2,15 +2,15 @@
 
 ![ChemOffice for Mac — Draw. Close. Carry on.](assets/banner.svg)
 
-**Double-click a figure. Edit in your own ChemDraw. Close the editing window to return.**
+**Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
 
 [Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Test results](docs/live-test-results.md)
 
 </div>
 
-ChemOffice for Mac is an independent, local-first preview of a more familiar chemistry workflow in Microsoft Word and PowerPoint. It pairs an ordinary figure with its editable ChemDraw source, so you can return to the chemistry behind the picture.
+ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and PowerPoint. Use ordinary **⌘C / ⌘V**, double-click your drawing to edit it in the installed ChemDraw, and close the editing window to update Office. Copy just that drawing to another document and its editable source goes with it.
 
-> **Early preview, real applications.** This prototype is being tested with the installed Mac versions of Word, PowerPoint, and ChemDraw. It currently recognizes its own demo figures. Keep using copies of your work while the integration develops.
+> **Early preview, real applications.** This independent local helper has been tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
 ## Your first drawing
 
@@ -24,26 +24,33 @@ This preview needs an activated **ChemDraw 22**, **Word for Mac**, and **PowerPo
 
 Open **Start ChemOffice.command** and leave its window open. If macOS asks for Accessibility or application-control access, the launcher needs that access to recognize the managed figure and handle its editing window. The helper does not record what you type.
 
-### 3 · Try it in Office
+### 3 · Copy, paste, and keep drawing
 
-Open **Try Word.command** or **Try PowerPoint.command**. A fresh, separate test document opens automatically. If Office asks to access the preview file, approve that specific generated file once.
+Save your target Word or PowerPoint document **once before the first paste**. In ChemDraw, select your structure and press **⌘C**. Switch to Office and press **⌘V**. If Office asks to access the generated preview file, approve that specific file once.
 
-Now double-click the structure. Edit it in ChemDraw, then close that editing window with **⌘W**. The helper saves the drawing, checks the source and preview in the Office document, and brings you back to your figure.
+Double-click the pasted drawing. Edit it in ChemDraw, then close its editing window with **⌘W**. The helper saves the drawing, checks the source and preview in the saved Office document, and brings you back to your figure.
+
+Want the same drawing in another document? Select just the figure, press **⌘C**, switch to another saved Word document or PowerPoint deck, and press **⌘V**. The new copy keeps its source and can be edited independently. Keep the helper running during these steps.
+
+For a separate practice document, open **Try Word.command** or **Try PowerPoint.command**. A fresh example opens automatically.
 
 **Finished for the day?** Press **Control-C** in the helper's window. No background service or automatic startup item is installed.
 
-Prefer a ready-made example? Start the helper, then open one of the [saved Word and PowerPoint examples](examples/README.md). Their final text and chemical edits have already made the round trip.
+Prefer a ready-made example? Start the helper, then open one of the [saved Word and PowerPoint examples](examples/README.md). They include actual copied drawings, final-keystroke checks, and independent chemical edits.
 
 ## What works today
 
 | Experience | Current preview |
 | :--- | :--- |
+| Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Verified in both applications |
 | Open a managed figure by double-clicking in Word | Verified on the test Mac |
 | Open a managed figure by double-clicking in PowerPoint | Verified on the test Mac |
 | Close with ⌘W, update the figure, and return to Office | Verified in both applications |
 | Preserve an unfinished text edit when closing | Verified; the final source is checked before closure |
 | Add a chemical bond and immediately close | Verified in both applications; the new atoms and bond survived |
 | Keep editable source inside the saved document | Verified in `.docx` and `.pptx` |
+| Copy a single figure to another document with its source | Verified: Word→Word, Word→PowerPoint, PowerPoint→Word, PowerPoint→PowerPoint |
+| Edit a copied figure without changing its original | Verified with separate drawing identities |
 | Close with the red window button | Implemented; end-to-end verification is still pending |
 | Edit arbitrary pasted pictures or existing Windows OLE objects | Not included in this preview |
 
@@ -59,12 +66,16 @@ If a check fails, the drawing stays open and the temporary source remains availa
 
 - **Your existing ChemDraw.** No replacement editor, remote sketcher, or bundled commercial software.
 - **Local editing.** Drawings and previews stay on your Mac; the editing workflow sends them to no external service.
-- **Portable source.** The demo documents contain the editable drawing as well as the picture. Viewing the picture does not require the helper.
+- **Portable source.** Each new graphic contains the editable drawing as well as its preview. There is no separate hidden source box or external drawing link to copy along with it. Viewing the graphic does not require the helper.
 - **Clear limits.** This is a custom Mac integration, with its own saved source, rather than native Windows OLE compatibility.
 
-For now, edit one managed figure at a time and keep its original Office document open. Use **⌘W** for the verified closing path. File-menu Close, quitting ChemDraw, crashes, cloud collaboration, grouped objects, and copy-pasting a single PowerPoint picture into another deck have not passed the same end-to-end tests. Copy the whole test document when sharing an early example.
+Use **⌘V** to create or copy editable figures, and **⌘W** for the verified closing path. Menu Paste, drag-and-drop, Paste Special, unsaved target documents, grouped objects, cloud collaboration, File-menu Close, quitting ChemDraw, and crashes are outside the verified workflow. Flattening a drawing into a screenshot, PNG, or JPEG can remove its source. A recipient needs this helper and ChemDraw to use double-click editing.
 
-The preview replaces a figure at its existing size. Complex wrapping, effects, animations, and layer order are still compatibility work. Word's experimental source storage also uses picture alternative text; accessible, production-quality storage remains to be completed.
+Edit one managed drawing at a time and keep its original Office document open. Word inserts after the current selection; PowerPoint places the new figure on the current slide, where you can move it. Pasting and write-back save the target document, including its other pending edits.
+
+The helper reads ChemDraw and Office graphic clipboard formats only when you press **⌘V in Office**. It does not keep a general clipboard history. Local captured chemistry and recovery drafts remain in this project's `work/pastes` and `work/sessions` folders.
+
+The source stays at full chemical fidelity in its native CDX or CDXML form; the visible preview is raster artwork carried inside an SVG graphic. The preview replaces a figure at its existing size. Complex wrapping, effects, animations, and layer order are still compatibility work. Word also keeps source metadata in picture alternative text; accessible, production-quality descriptions remain to be completed.
 
 ## Independent, open, and yours to explore
 

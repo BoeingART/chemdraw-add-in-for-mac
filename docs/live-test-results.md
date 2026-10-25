@@ -1,66 +1,51 @@
-# Live test results
+# Copy, paste, and editable-object test results
 
-Tested locally on **25 October 2026**, using the installed applications and separate, newly created documents. This is a working prototype of the managed-figure workflow, not a claim of complete Windows OLE compatibility.
+Tested on **25 October 2026** with macOS 27.0 (26A428), ChemDraw 22.0.0.22, and Word / PowerPoint 16.114. Python 3.13.1 runs the local bridge.
 
-## Test Mac
+## What now works
 
-| Component | Version |
+| User action | Result |
 | --- | --- |
-| macOS | 27.0, build 26A428 |
-| ChemDraw | 22.0.0.22 |
-| Microsoft Word | 16.114 |
-| Microsoft PowerPoint | 16.114 |
-| Python | 3.13.1 |
+| ChemDraw ⌘C → Word ⌘V | Passed; native CDX source embedded in one graphic |
+| ChemDraw ⌘C → PowerPoint ⌘V | Passed; no companion hidden source box |
+| Double-click either pasted figure | Passed; opens the installed ChemDraw with editable chemistry |
+| Type the final `Z`, then immediately close with ⌘W | Passed in both applications; exact source and preview checked in saved Office file |
+| Copy one figure from Word to another Word document | Passed; same source bytes, new independent identity |
+| Copy one figure from Word to PowerPoint | Passed; copied figure edited without changing the Word original |
+| Copy one figure from PowerPoint to another PowerPoint deck | Passed; source retained, double-click reopened it, new bond persisted |
+| Copy one figure from PowerPoint to Word | Passed; source retained, double-click reopened it, new bond persisted |
+| Reopen the two chemically edited copies | ChemDraw reported **5 atoms / 3 bonds**, up from **3 atoms / 2 bonds** |
+| Return with another PowerPoint document active | Passed after adding exact-window activation; original deck and figure selected |
 
-## Final acceptance runs
+All copy/paste tests used ordinary keyboard shortcuts and separate saved documents. Only the individual figure was selected for copying. Both old originals remained byte-for-byte unchanged after edits to their copies. Word→PowerPoint was also tested with another managed figure already on the destination slide, verifying that editing one identity did not overwrite the other.
 
-The four runs below used the final save-wait implementation. Each began with a real Office figure double-click. No manual save was inserted between the final edit and **⌘W**.
+## Evidence you can open
 
-| Scenario | Word | PowerPoint |
-| --- | --- | --- |
-| Double-click opens the editable drawing in installed ChemDraw | Passed | Passed |
-| Type a final text marker, then immediately press ⌘W | Passed: `WORD-IMMEDIATE-FINAL-Z` | Passed: `PPT-IMMEDIATE-FINAL-Z` |
-| Last `Z` recovered from the saved Office source | Passed | Passed |
-| Double-click again to reopen the saved drawing | Passed | Passed |
-| Add a single bond, then immediately press ⌘W | Passed: 3 atoms / 2 bonds → 5 atoms / 3 bonds | Passed: 3 atoms / 2 bonds → 5 atoms / 3 bonds |
-| Earlier final text survives the subsequent bond edit | Passed | Passed |
-| Saved Office preview agrees with final ChemDraw PNG | Passed | Passed |
-| Return to original application, document, and selected figure | Passed | Passed |
-| Duplicate picture introduced | No | No |
+Six actual documents, native CDX sources, preview images, source hashes, and operation records are in [the portable examples](../examples/portable/README.md). Their [evidence manifest](../examples/portable/evidence.json) records every figure identity and the checks against the actual saved OOXML file.
 
-The saved examples and their evidence are in [examples](../examples/README.md). They include the actual `.docx` / `.pptx`, the exact CDXML recovered during each commit, verification measurements, and the recorded close event.
+The original direct-paste runs captured ChemDraw's `com.perkinelmer.chemdraw.cdx-clipboard` data together with its PDF preview. Office-copy runs captured `com.microsoft.image-svg-xml`. Each paste received a new drawing identity while preserving the exact source bytes. On subsequent editing, the saved Office source was compared against ChemDraw's committed native draft, and the referenced preview against the final render before closure was allowed.
 
-### Persistent evidence
+The final PDF capture retains its parent PDF document while rendering and checks the pasteboard generation before and after capture. This prevents using source from one copy operation with a preview from another. Both CDX and portable-SVG capture paths were exercised; the final direct PowerPoint paste also passed saved-source and preview verification.
 
-| Run | Source bytes | SHA-256 of the embedded final source |
-| --- | ---: | --- |
-| Word final text | 3,045 | `de961a918aef05b9ee8d1d252b48714f6dd9e9b37786639c10375294e30555de` |
-| PowerPoint final text | 3,275 | `6cea3347cfd2de3bba078f4d75e569ca27c0cd5e004f25fe2b0fc88083f49e48` |
-| Word final bond | 3,344 | `76ebc463ce2fe8fbdb96345fc5d2b8a6ad37b6740f1b4f4ef4d365b817c8e4fe` |
-| PowerPoint final bond | 3,577 | `7e6f4bf900c94ad3aedccc0bc4219392bc54ecbb5710d647a8b039d994081bbe` |
+The new PowerPoint drawings contain their source inside their own image data. They do not rely on a linked external source, a companion text box, a document-wide source registry, or an existing editing-session folder to reopen.
 
-For all four runs, the embedded preview had mean normalized pixel error **0.0** and symmetric ink coverage **1.0 / 1.0**. The source comparison is byte-for-byte. Preview comparison permits Office resizing/re-encoding; it is a visual comparison, not a PNG byte comparison. Application focus was recorded immediately after activation; the final bond runs also independently checked the active document and selected figure through Office's object model.
+## What “object” means here
 
-## Problems found and corrected
+This is a self-contained graphic with local editing behavior supplied by the helper. It is **not a native Windows OLE object**, and it does not add a third-party OLE server to Mac Office. ChemDraw's own published guide identifies its built-in double-click editing as Windows-only. [Revvity's ChemDraw guide](https://revvitysignals.com/sites/default/files/2024-11/rs-e-book-every-chemist-can-draw-with-chemdraw%20-%20.pdf)
 
-- An active ChemDraw caption editor can outlive a generic save event. Closing now allows earlier input to reach ChemDraw, finishes the caption, and waits for two clean saved-state observations before exporting. The brief settling interval is a practical workaround, not a formal guarantee that every future ChemDraw event queue is drained.
-- A Word trial reported unsaved changes after save. The helper held the window open instead of discarding it. Bounded save/recheck handling was added, followed by the clean acceptance runs above.
-- Word can resize or re-encode an imported PNG. Source and preview verification were separated so a harmless encoding change does not masquerade as lost chemistry.
-- Word insertion and PowerPoint deletion can invalidate indexed picture references. The adapters now identify the replacement explicitly, preserving the managed figure count in the tested documents.
-- PowerPoint initially did not persist a fixture when given a plain path string. The adapter now uses a file URL and the Open XML presentation format.
+The visible artwork is a raster preview inside an SVG; full native CDX or CDXML source is retained separately within that same graphic. Office sanitizes ordinary SVG metadata, so the source is stored as a standard PNG iTXt entry inside the SVG's data-URI image. The tests checked its survival through save, copy, paste, editing, and reopening in the installed Office versions.
 
-Earlier exploratory failures remain in the ignored local `work/events.jsonl`; they are not counted as successful acceptance runs.
+## Limits and failures
 
-## Red close button and other limits
+- **Save the target document once before editable paste.** Unsaved targets are refused before insertion. The captured source stays available locally.
+- **Keep the helper running and use ⌘C / ⌘V.** Menu Paste, drag-and-drop, Paste Special, and helper-off copy behavior are not covered by this acceptance run. Other Macs need the helper and ChemDraw for double-click editing.
+- **Use ⌘W to close.** The red button remains implemented but unverified, as explained in the [initial close-test report](initial-live-test-results.md). Quit, File-menu Close, crashes, and Force Quit are untested.
+- Edit one managed drawing at a time. Grouped objects, arbitrary ChemDraw content, large drawings, cloud collaboration, complex wrapping, animations, effects, and layer order require more compatibility work.
+- Word inserts after the selected range; PowerPoint uses a default position on the current slide. Paste and write-back save other pending edits in the target document too.
+- Flattening to an ordinary PNG/JPEG or screenshot can remove source data. Existing Windows OLE objects and unrelated pictures are not converted.
 
-**The red window button has not passed an end-to-end foreground test.** Handling is implemented, including the separate AppKit traffic-light process in this macOS version. The automation system delivered its red-button clicks to that separate process while Codex was foreground; those attempts did not establish a real ChemDraw close. A later successful close was logged as `command-w`, so it is counted only as ⌘W. Use ⌘W for the verified path.
+One exploratory Word SVG insertion returned an unusable inline-picture reference. The adapter was corrected to identify the new inline shape by document position; the clean direct-paste and copy tests above passed afterward. Failed transactions and captured source remain under ignored `work/` folders. No user documents were used for these tests.
 
-This preview recognizes figures it created. Arbitrary pasted pictures, existing Windows OLE objects, File-menu Close, Quit, crashes, Force Quit, grouped objects, complex wrapping, effects, animations, layering, cloud collaboration, and arbitrary ChemDraw content have not received these acceptance tests. Copying just the PowerPoint picture omits its separate source box. Copy the entire example document instead.
+**13 automated tests passed**, covering exact source envelopes, native CDX carriage, corruption rejection, ordinary-SVG rejection, distinct identities for repeated pastes, unsaved-target refusal, preview comparison, and retaining drafts on save, conflict, or verification failure. The native helper compiled successfully. Both demo launchers were rerun with the new portable format and verified their saved documents.
 
-The helper operates on one managed drawing at a time. It saves the original Office document as part of write-back, including any other pending document edits. Use the separate examples or copies of your work. Local drafts remain in `work/sessions`; a failed transaction can leave Office partially updated, so this is not an atomic cross-application transaction.
-
-## Automated checks
-
-**8 tests passed**: metadata round-trip and corruption rejection; valid and visibly different preview comparison; save failure, independent Office-source conflict, and saved-preview failure. The failure tests check that the managed drawing is not closed and its final draft is retained. These are unit tests with mocked application failures, not simulations of an actual application crash.
-
-Both demo launchers were run on this Mac. The native monitor compiled successfully, and the launch scripts passed shell syntax checks. Accessibility and application-control access were already available to the test process. Fresh Terminal permission prompts and a clean-machine installation are not covered by this run.
+The earlier close-only prototype's results are retained in [the initial report](initial-live-test-results.md); its hidden-box and demo-only limitations describe that earlier version.

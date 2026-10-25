@@ -1,0 +1,322 @@
+{
+  "date": "2026-10-25",
+  "cases": [
+    {
+      "document": "direct-word.docx",
+      "host": "word",
+      "drawing_id": "89ea59fa-3860-4875-9e14-c1ba6f458f77",
+      "scenario": "ChemDraw to Word; last text retained",
+      "source_sha256": "63a42e6fda1a268fa07c9ca72248153de277ea90a2c2757223e8a81a3c883f22",
+      "verification": {
+        "source_bytes": 1421,
+        "preview_part": "word/media/image2.svg",
+        "verified_part": "word/document.xml",
+        "portable_carrier": true,
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          890,
+          448
+        ]
+      },
+      "events": [
+        {
+          "time": 1792919464.9368708,
+          "event": "pasted",
+          "host": "word",
+          "document": "paste-word-A.docx",
+          "drawing_id": "89ea59fa-3860-4875-9e14-c1ba6f458f77",
+          "source_sha256": "bc701d5ef147fa402fa62374f934544cc007ae6514b59e3215f7c28bcdf0a664",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792919538.6025999,
+          "event": "opened",
+          "host": "word",
+          "drawing_id": "89ea59fa-3860-4875-9e14-c1ba6f458f77",
+          "document": "paste-word-A.docx"
+        },
+        {
+          "time": 1792919556.5292768,
+          "event": "committed",
+          "host": "word",
+          "drawing_id": "89ea59fa-3860-4875-9e14-c1ba6f458f77",
+          "gesture": "command-w",
+          "source_sha256": "63a42e6fda1a268fa07c9ca72248153de277ea90a2c2757223e8a81a3c883f22",
+          "bytes": 1421,
+          "frontmost_app": "com.microsoft.Word"
+        }
+      ],
+      "reference": "ChemDraw committed draft and render"
+    },
+    {
+      "document": "direct-powerpoint.pptx",
+      "host": "powerpoint",
+      "drawing_id": "a8d6eb8b-1ea8-47af-a52c-6bcd5d08740f",
+      "scenario": "ChemDraw to PowerPoint; final PDF preview capture",
+      "source_sha256": "bc701d5ef147fa402fa62374f934544cc007ae6514b59e3215f7c28bcdf0a664",
+      "verification": {
+        "source_bytes": 1379,
+        "preview_part": "ppt/media/image1.svg",
+        "verified_part": "ppt/slides/slide1.xml",
+        "portable_carrier": true,
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          261,
+          204
+        ]
+      },
+      "events": [
+        {
+          "time": 1792920087.636307,
+          "event": "pasted",
+          "host": "powerpoint",
+          "document": "paste-powerpoint-A.pptx",
+          "drawing_id": "a8d6eb8b-1ea8-47af-a52c-6bcd5d08740f",
+          "source_sha256": "bc701d5ef147fa402fa62374f934544cc007ae6514b59e3215f7c28bcdf0a664",
+          "portable_carrier": true
+        }
+      ],
+      "reference": "Captured clipboard source and preview"
+    },
+    {
+      "document": "word-to-word.docx",
+      "host": "word",
+      "drawing_id": "754ea742-abed-4987-9e00-9fe634685426",
+      "scenario": "Word to another Word document",
+      "source_sha256": "63a42e6fda1a268fa07c9ca72248153de277ea90a2c2757223e8a81a3c883f22",
+      "verification": {
+        "source_bytes": 1421,
+        "preview_part": "word/media/image2.svg",
+        "verified_part": "word/document.xml",
+        "portable_carrier": true,
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          890,
+          448
+        ]
+      },
+      "events": [
+        {
+          "time": 1792919589.236156,
+          "event": "pasted",
+          "host": "word",
+          "document": "copy-word-to-word.docx",
+          "drawing_id": "754ea742-abed-4987-9e00-9fe634685426",
+          "source_sha256": "63a42e6fda1a268fa07c9ca72248153de277ea90a2c2757223e8a81a3c883f22",
+          "portable_carrier": true
+        }
+      ],
+      "reference": "Captured clipboard source and preview"
+    },
+    {
+      "document": "copied-word.docx",
+      "host": "word",
+      "drawing_id": "1f974078-3b2a-47a9-8bd8-2e40585935ca",
+      "scenario": "PowerPoint to Word; independent bond edit",
+      "source_sha256": "8f37028e5dda068a0c389c168cd554d7a48b8b7c0fe4cee0cbe9c1d56110f113",
+      "verification": {
+        "source_bytes": 1630,
+        "preview_part": "word/media/image2.svg",
+        "verified_part": "word/document.xml",
+        "portable_carrier": true,
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          813,
+          764
+        ]
+      },
+      "events": [
+        {
+          "time": 1792919713.013261,
+          "event": "pasted",
+          "host": "word",
+          "document": "copy-powerpoint-to-word.docx",
+          "drawing_id": "1f974078-3b2a-47a9-8bd8-2e40585935ca",
+          "source_sha256": "c33a63c13f3c6cdedd402ae29a98bdaff5f04d7d981f879062f84b284a39e28c",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792919765.7316248,
+          "event": "opened",
+          "host": "word",
+          "drawing_id": "1f974078-3b2a-47a9-8bd8-2e40585935ca",
+          "document": "copy-powerpoint-to-word.docx"
+        },
+        {
+          "time": 1792919789.371222,
+          "event": "committed",
+          "host": "word",
+          "drawing_id": "1f974078-3b2a-47a9-8bd8-2e40585935ca",
+          "gesture": "command-w",
+          "source_sha256": "ff8144dc7f720277423ba33935614de33a20c747b2066eeb2b4ab39d5913e7dd",
+          "bytes": 1630,
+          "frontmost_app": "com.microsoft.Word"
+        },
+        {
+          "time": 1792919792.583574,
+          "event": "opened",
+          "host": "word",
+          "drawing_id": "1f974078-3b2a-47a9-8bd8-2e40585935ca",
+          "document": "copy-powerpoint-to-word.docx"
+        },
+        {
+          "time": 1792919803.864813,
+          "event": "committed",
+          "host": "word",
+          "drawing_id": "1f974078-3b2a-47a9-8bd8-2e40585935ca",
+          "gesture": "command-w",
+          "source_sha256": "8f37028e5dda068a0c389c168cd554d7a48b8b7c0fe4cee0cbe9c1d56110f113",
+          "bytes": 1630,
+          "frontmost_app": "com.microsoft.Word"
+        }
+      ],
+      "reference": "ChemDraw committed draft and render"
+    },
+    {
+      "document": "copied-powerpoint.pptx",
+      "host": "powerpoint",
+      "drawing_id": "c5fa4db0-ce34-471d-9cb2-fe418aad77ee",
+      "scenario": "PowerPoint to another PowerPoint; independent bond edit",
+      "source_sha256": "3171fa0ca46e7b1f3d1876f52e15585f10a7bcea64831ab5925adfcb6003376f",
+      "verification": {
+        "source_bytes": 1630,
+        "preview_part": "ppt/media/image1.svg",
+        "verified_part": "ppt/slides/slide1.xml",
+        "portable_carrier": true,
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          813,
+          764
+        ]
+      },
+      "events": [
+        {
+          "time": 1792919707.863899,
+          "event": "pasted",
+          "host": "powerpoint",
+          "document": "copy-powerpoint-to-powerpoint.pptx",
+          "drawing_id": "c5fa4db0-ce34-471d-9cb2-fe418aad77ee",
+          "source_sha256": "c33a63c13f3c6cdedd402ae29a98bdaff5f04d7d981f879062f84b284a39e28c",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792919805.3937228,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "c5fa4db0-ce34-471d-9cb2-fe418aad77ee",
+          "document": "copy-powerpoint-to-powerpoint.pptx"
+        },
+        {
+          "time": 1792919824.06312,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "c5fa4db0-ce34-471d-9cb2-fe418aad77ee",
+          "gesture": "command-w",
+          "source_sha256": "33f0fd4b6f1874bcbb518743cd58be6d709b05007c7b35bba3993fd549849aab",
+          "bytes": 1630,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        },
+        {
+          "time": 1792920002.244073,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "c5fa4db0-ce34-471d-9cb2-fe418aad77ee",
+          "document": "copy-powerpoint-to-powerpoint.pptx"
+        },
+        {
+          "time": 1792920014.097038,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "c5fa4db0-ce34-471d-9cb2-fe418aad77ee",
+          "gesture": "command-w",
+          "source_sha256": "3171fa0ca46e7b1f3d1876f52e15585f10a7bcea64831ab5925adfcb6003376f",
+          "bytes": 1630,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        }
+      ],
+      "reference": "ChemDraw committed draft and render"
+    },
+    {
+      "document": "independent-copies.pptx",
+      "host": "powerpoint",
+      "drawing_id": "e256994b-4ccf-4c2f-a764-5f56bc964f14",
+      "scenario": "Word to PowerPoint; edited independently beside original ChemDraw paste",
+      "source_sha256": "c33a63c13f3c6cdedd402ae29a98bdaff5f04d7d981f879062f84b284a39e28c",
+      "verification": {
+        "source_bytes": 1419,
+        "preview_part": "ppt/media/image2.svg",
+        "verified_part": "ppt/slides/slide1.xml",
+        "portable_carrier": true,
+        "mean_pixel_error": 0.0,
+        "ink_coverage": [
+          1.0,
+          1.0
+        ],
+        "saved_preview_size": [
+          813,
+          448
+        ]
+      },
+      "events": [
+        {
+          "time": 1792919596.7906308,
+          "event": "pasted",
+          "host": "powerpoint",
+          "document": "paste-powerpoint-B.pptx",
+          "drawing_id": "e256994b-4ccf-4c2f-a764-5f56bc964f14",
+          "source_sha256": "63a42e6fda1a268fa07c9ca72248153de277ea90a2c2757223e8a81a3c883f22",
+          "portable_carrier": true
+        },
+        {
+          "time": 1792919633.172914,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "e256994b-4ccf-4c2f-a764-5f56bc964f14",
+          "document": "paste-powerpoint-B.pptx"
+        },
+        {
+          "time": 1792919672.379086,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "e256994b-4ccf-4c2f-a764-5f56bc964f14",
+          "gesture": "command-w",
+          "source_sha256": "c33a63c13f3c6cdedd402ae29a98bdaff5f04d7d981f879062f84b284a39e28c",
+          "bytes": 1419,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        }
+      ],
+      "reference": "ChemDraw committed draft and render"
+    }
+  ],
+  "copied_drawing_vendor_counts": {
+    "word": {
+      "atoms": 5,
+      "bonds": 3
+    },
+    "powerpoint": {
+      "atoms": 5,
+      "bonds": 3
+    }
+  },
+  "original_sources_unchanged": true
+}
