@@ -39,12 +39,13 @@ on run argv
                 set s to slide slideIndex of p
                 repeat with pictureIndex from 1 to (count of shapes of s)
                     set pic to shape pictureIndex of s
-                    if name of pic is pictureName then set end of matches to {s, pic}
+                    if name of pic is pictureName or name of pic is pictureName & "_pending" then set end of matches to {s, pic}
                 end repeat
             end repeat
             if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to item 1 of item 1 of matches
             set oldPic to item 2 of item 1 of matches
+            if actionName is "update" then set name of oldPic to pictureName
             set dataBoxes to {}
             repeat with pictureIndex from 1 to (count of shapes of s)
                 if name of shape pictureIndex of s is dataName then set end of dataBoxes to shape pictureIndex of s
@@ -60,7 +61,13 @@ on run argv
             set name of newPic to pictureName & "_pending"
             set content of text range of text frame of dataBox to item 5 of argv
             delete oldPic
-            set name of newPic to pictureName
+            -- Deleting an earlier shape invalidates PowerPoint's indexed object reference.
+            set pendingMatches to {}
+            repeat with pictureIndex from 1 to (count of shapes of s)
+                if name of shape pictureIndex of s is pictureName & "_pending" then set end of pendingMatches to pictureIndex as integer
+            end repeat
+            if (count pendingMatches) is not 1 then error "Cannot uniquely identify the inserted preview; source retained"
+            set name of shape (item 1 of pendingMatches) of s to pictureName
             save p
             return "updated"
         else if actionName is "activate" then

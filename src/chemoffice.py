@@ -79,7 +79,7 @@ class Bridge:
                 raise RuntimeError("ChemDraw did not produce a valid PNG preview")
             new_tag = encode(source, session["id"])
             old_tag = office("payload", session["host"], session["document"], session["id"])
-            if old_tag != session["originalTag"]:
+            if old_tag not in (session["originalTag"], new_tag):
                 raise RuntimeError("The Office figure changed during editing; kept both versions")
             safe_preview = office_preview(session["host"], image)
             office("update", session["host"], session["document"], session["id"], safe_preview, new_tag)
