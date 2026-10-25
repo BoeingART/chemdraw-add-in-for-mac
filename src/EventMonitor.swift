@@ -7,10 +7,11 @@ import PDFKit
 
 let cdxClipboardType = NSPasteboard.PasteboardType("com.perkinelmer.chemdraw.cdx-clipboard")
 
-func chemicalClipboard() -> (String, Data)? {
+func chemicalClipboard() -> (String, Data, Int)? {
     let board = NSPasteboard.general
+    let generation = board.changeCount
     if let data = board.data(forType: cdxClipboardType), data.count <= 8 * 1024 * 1024,
-       data.starts(with: Data("VjCD0100".utf8)) { return ("cdx", data) }
+       data.starts(with: Data("VjCD0100".utf8)), board.changeCount == generation { return ("cdx", data, generation) }
     for name in ["com.microsoft.image-svg-xml", "public.svg-image"] {
         guard let data = board.data(forType: NSPasteboard.PasteboardType(name)), data.count <= 48 * 1024 * 1024,
               let svg = String(data: data, encoding: .utf8),
@@ -19,13 +20,15 @@ func chemicalClipboard() -> (String, Data)? {
             guard let range = Range(match.range(at: 1), in: svg),
                   let png = Data(base64Encoded: String(svg[range])),
                   png.range(of: Data("ChemOffice.Source\0".utf8)) != nil else { continue }
-            return ("svg", data)
+            guard board.changeCount == generation else { return nil }
+            return ("svg", data, generation)
         }
     }
     return nil
 }
 
-func captureChemicalClipboard(_ directory: URL, _ item: (String, Data)) throws {
+func captureChemicalClipboard(_ directory: URL, _ item: (String, Data, Int)) throws {
+    guard NSPasteboard.general.changeCount == item.2 else { throw NSError(domain: "ChemOffice", code: 4) }
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     if item.0 == "svg" {
         try item.1.write(to: directory.appendingPathComponent("carrier.svg"))
@@ -45,6 +48,7 @@ func captureChemicalClipboard(_ directory: URL, _ item: (String, Data)) throws {
         try item.1.write(to: directory.appendingPathComponent("source.cdx"))
         try png.write(to: directory.appendingPathComponent("preview.png"))
     }
+    guard NSPasteboard.general.changeCount == item.2 else { throw NSError(domain: "ChemOffice", code: 4) }
 }
 
 if CommandLine.arguments.dropFirst().first == "--frontmost" {
