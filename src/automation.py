@@ -26,27 +26,29 @@ def office(action: str, host: str, *args: str) -> str:
 
 
 def chem_open(path: Path) -> None:
-    script(f'''tell application id "{CHEM_ID}"
-        open POSIX file (item 1 of argv)
+    script(f'''set drawingFile to (POSIX file (item 1 of argv)) as alias
+    tell application id "{CHEM_ID}"
+        open drawingFile
         activate
     end tell''', path)
 
 
 def chem_snapshot(path: Path, png: Path) -> None:
     # Matching a unique session path prevents touching any unrelated ChemDraw document.
-    script(f'''tell application id "{CHEM_ID}"
+    script(f'''set outputFile to POSIX file (item 2 of argv)
+    tell application id "{CHEM_ID}"
         set targetPath to item 1 of argv
         set matches to {{}}
         repeat with candidate in documents
             try
-                if POSIX path of (file of candidate) is targetPath then set end of matches to candidate
+                if POSIX path of ((file of candidate) as alias) is targetPath then set end of matches to candidate
             end try
         end repeat
         if (count matches) is not 1 then error "Expected exactly one managed ChemDraw document"
         set d to item 1 of matches
         save d
         if modified of d then error "ChemDraw still reports unsaved changes"
-        save d in POSIX file (item 2 of argv) as "PNG"
+        save d in outputFile as "PNG"
         if modified of d then error "Drawing changed during snapshot; close again to retry"
     end tell''', path, png)
 
@@ -55,7 +57,7 @@ def chem_close(path: Path) -> None:
     script(f'''tell application id "{CHEM_ID}"
         repeat with d in documents
             try
-                if POSIX path of (file of d) is (item 1 of argv) then
+                if POSIX path of ((file of d) as alias) is (item 1 of argv) then
                     if modified of d then error "Drawing changed before close; kept open"
                     close d saving no
                     return "closed"
