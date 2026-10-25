@@ -12,7 +12,7 @@ on run argv
             set name of dataBox to "CFM_DATA_" & (item 5 of argv)
             set content of text range of text frame of dataBox to item 3 of argv
             set visible of dataBox to false
-            save p in (item 4 of argv) as save as Open XML presentation
+            save p in POSIX file (item 4 of argv) as save as Open XML presentation
             activate
             return item 4 of argv
         else if actionName is "selected" then
@@ -24,11 +24,11 @@ on run argv
                 return ""
             end try
         else if actionName is "context" then
-            return POSIX path of ((full name of active presentation) as file)
+            return full name of active presentation
         else if actionName is "payload" or actionName is "update" then
             set docs to {}
             repeat with documentIndex from 1 to (count of presentations)
-                if POSIX path of ((full name of presentation documentIndex) as file) is (item 2 of argv) then set end of docs to presentation documentIndex
+                if full name of presentation documentIndex is (item 2 of argv) then set end of docs to presentation documentIndex
             end repeat
             if (count docs) is not 1 then error "Original PowerPoint presentation is not open"
             set p to item 1 of docs
@@ -45,7 +45,10 @@ on run argv
             if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to item 1 of item 1 of matches
             set oldPic to item 2 of item 1 of matches
-            set dataBoxes to shapes of s whose name is dataName
+            set dataBoxes to {}
+            repeat with pictureIndex from 1 to (count of shapes of s)
+                if name of shape pictureIndex of s is dataName then set end of dataBoxes to shape pictureIndex of s
+            end repeat
             if (count dataBoxes) is not 1 then error "Missing embedded ChemDraw source"
             set dataBox to item 1 of dataBoxes
             if actionName is "payload" then return content of text range of text frame of dataBox
