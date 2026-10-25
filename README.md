@@ -4,11 +4,11 @@
 
 **Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
 
-[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Test results](docs/live-test-results.md)
+[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/vector-and-recovery-results.md)
 
 </div>
 
-ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and PowerPoint. Use ordinary **⌘C / ⌘V**, double-click your drawing to edit it in the installed ChemDraw, and close the editing window to update Office. Copy just that drawing to another document and its editable source goes with it.
+ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and PowerPoint. Use ordinary **⌘C / ⌘V**, double-click your drawing to edit it in the installed ChemDraw, and close the editing window to update Office. Copy just that drawing to another document and its editable source goes with it. Bonds and labels use **ChemDraw's native SVG vectors**, so enlarging the figure preserves their sharp edges.
 
 > **Early preview, real applications.** This independent local helper has been tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
@@ -42,19 +42,22 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 
 | Experience | Current preview |
 | :--- | :--- |
-| Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Verified in both applications |
+| Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Passed in the earlier carrier; fresh clipboard rerun of the new vector export is pending |
 | Open a managed figure by double-clicking in Word | Verified on the test Mac |
 | Open a managed figure by double-clicking in PowerPoint | Verified on the test Mac |
 | Close with ⌘W, update the figure, and return to Office | Verified in both applications |
 | Preserve an unfinished text edit when closing | Verified; the final source is checked before closure |
 | Add a chemical bond and immediately close | Verified in both applications; the new atoms and bond survived |
 | Keep editable source inside the saved document | Verified in `.docx` and `.pptx` |
-| Copy a single figure to another document with its source | Verified: Word→Word, Word→PowerPoint, PowerPoint→Word, PowerPoint→PowerPoint |
+| Sharp vector artwork when enlarging a figure | Verified native SVG paths and text in both saved applications |
+| Recognize a figure as a ChemOffice drawing | Explicit drawing identity, with source checked inside the graphic |
+| Copy a single figure to another document with its source | Four directions passed with the earlier carrier; the new vector Word→PowerPoint path also passed |
 | Edit a copied figure without changing its original | Verified with separate drawing identities |
+| Reopen an editing window after it was closed outside the helper | Retained draft reopened successfully in Word |
 | Close with the red window button | Implemented; end-to-end verification is still pending |
 | Edit arbitrary pasted pictures or existing Windows OLE objects | Not included in this preview |
 
-Exact application versions, successful scenarios, and remaining gaps are recorded in [Live test results](docs/live-test-results.md). “Verified” describes those tests, not every document, ChemDraw feature, or Office release.
+Exact application versions, successful scenarios, and remaining gaps are recorded in [the current vector and recovery results](docs/vector-and-recovery-results.md) and the [earlier copy/paste results](docs/live-test-results.md). “Verified” describes those tests, not every document, ChemDraw feature, or Office release.
 
 ## A close button should never cost you your last edit
 
@@ -62,11 +65,14 @@ ChemDraw can still have a label or caption open when you close its window. This 
 
 If a check fails, the drawing stays open and the temporary source remains available in this project's `work/sessions` folder. The helper also refuses to overwrite a figure that has changed independently in Office during the editing session.
 
+If a managed window disappears outside that closing path, double-click the same Office figure again. The helper reopens the retained draft. When another figure is opened after a stale session, its saved draft is preserved in `work/recovery`.
+
 ## Your work stays yours
 
 - **Your existing ChemDraw.** No replacement editor, remote sketcher, or bundled commercial software.
 - **Local editing.** Drawings and previews stay on your Mac; the editing workflow sends them to no external service.
 - **Portable source.** Each new graphic contains the editable drawing as well as its preview. There is no separate hidden source box or external drawing link to copy along with it. Viewing the graphic does not require the helper.
+- **A drawing the helper recognizes.** A `ChemOffice Drawing` identity connects the Office figure to the source carried inside it. Office's own ribbon still calls it a graphic; double-click editing is supplied by the running helper.
 - **Clear limits.** This is a custom Mac integration, with its own saved source, rather than native Windows OLE compatibility.
 
 Use **⌘V** to create or copy editable figures, and **⌘W** for the verified closing path. Menu Paste, drag-and-drop, Paste Special, unsaved target documents, grouped objects, cloud collaboration, File-menu Close, quitting ChemDraw, and crashes are outside the verified workflow. Flattening a drawing into a screenshot, PNG, or JPEG can remove its source. A recipient needs this helper and ChemDraw to use double-click editing.
@@ -75,7 +81,7 @@ Edit one managed drawing at a time and keep its original Office document open. W
 
 The helper reads ChemDraw and Office graphic clipboard formats only when you press **⌘V in Office**. It does not keep a general clipboard history. Local captured chemistry and recovery drafts remain in this project's `work/pastes` and `work/sessions` folders.
 
-The source stays at full chemical fidelity in its native CDX or CDXML form; the visible preview is raster artwork carried inside an SVG graphic. The preview replaces a figure at its existing size. Complex wrapping, effects, animations, and layer order are still compatibility work. Word also keeps source metadata in picture alternative text; accessible, production-quality descriptions remain to be completed.
+The source stays at full chemical fidelity in its native CDX or CDXML form. Visible bonds and labels come from ChemDraw's SVG export, with a white vector canvas that remains readable on dark Office pages. An invisible, transparent one-pixel PNG carries source metadata only; it does not draw the chemical structure. Office may also save a fallback thumbnail for older viewers. The helper preserves figure width and adjusts height to the updated drawing's proportions. Complex wrapping, effects, animations, and layer order are still compatibility work. Word alternative text currently holds a short drawing identity; production-quality accessible descriptions remain to be completed.
 
 ## Independent, open, and yours to explore
 

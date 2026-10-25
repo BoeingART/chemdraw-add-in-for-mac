@@ -1,5 +1,7 @@
 # Copy, paste, and editable-object test results
 
+> Historical acceptance run for the earlier raster carrier. The current implementation uses native vector artwork and short object identities. See [the vector and recovery results](vector-and-recovery-results.md) for current evidence and examples. The four-direction copy results below must not be read as a four-direction retest of the newer vector format.
+
 Tested on **25 October 2026** with macOS 27.0 (26A428), ChemDraw 22.0.0.22, and Word / PowerPoint 16.114. Python 3.13.1 runs the local bridge.
 
 ## What now works

@@ -1,6 +1,8 @@
 # Try a drawing that has already made the trip
 
-**For the current copy/paste workflow, start with the [portable drawing examples](portable/README.md).** Their source travels with the individual graphic between Word and PowerPoint documents.
+**Start with the [current vector drawing examples](vector/README.md).** They contain genuine vector bonds and labels, a recognizable ChemOffice identity, and portable native source.
+
+The [earlier portable examples](portable/README.md) preserve the first four-direction copy/paste run. Those older files have raster artwork inside their carrier and are retained as historical evidence.
 
 The earlier examples below preserve the original close-test evidence. They predate the portable format; their copy behavior is not the current workflow.
 
