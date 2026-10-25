@@ -4,7 +4,7 @@
 
 **Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
 
-[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/vector-and-recovery-results.md)
+[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/launch-and-installation-results.md)
 
 </div>
 
@@ -12,7 +12,7 @@ ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and Po
 
 > **Early preview, real applications.** This independent local helper has been tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
-**Looking for ChemOffice inside Office?** A separate local Office add-in now supplies the visible entry and panel. Follow the [installation and viewing guide](docs/installation.md). On the test Mac's App Store Word build, the entry is visible but activation remains unverified; the working double-click helper does not depend on that panel. Microsoft's documented development setup uses Office.com builds.
+**Looking for ChemOffice inside Office?** A separate local Office add-in supplies the blue C entry, a right-hand panel, and a **ChemOffice** ribbon tab. Follow the [installation and viewing guide](docs/installation.md). The panels and their **Edit selected drawing** buttons have been verified in both Word and PowerPoint on the test Mac's existing App Store builds. The double-click workflow also works independently of the panel.
 
 ## Your first drawing
 
@@ -50,7 +50,7 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 | Open a managed figure by double-clicking in Word | Verified on the test Mac |
 | Open a managed figure by double-clicking in PowerPoint | Verified on the test Mac |
 | Start ChemDraw when it is fully quit | Verified from both Word and PowerPoint after adding a macOS launch and readiness check |
-| Find a visible ChemOffice Office add-in entry | Installed; Word lists it under Developer Add-ins; panel activation is still pending |
+| Find ChemOffice inside Office | Panel, ribbon tab, and Edit selected drawing verified in both Word and PowerPoint |
 | Close with ⌘W, update the figure, and return to Office | Verified in both applications |
 | Preserve an unfinished text edit when closing | Verified; the final source is checked before closure |
 | Add a chemical bond and immediately close | Verified in both applications; the new atoms and bond survived |
@@ -64,7 +64,7 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 | Close with the red window button | Implemented; end-to-end verification is still pending |
 | Edit arbitrary pasted pictures or existing Windows OLE objects | Not included in this preview |
 
-Exact application versions, successful scenarios, and remaining gaps are recorded in [the current vector and recovery results](docs/vector-and-recovery-results.md) and the [earlier copy/paste results](docs/live-test-results.md). “Verified” describes those tests, not every document, ChemDraw feature, or Office release.
+Exact application versions, successful scenarios, and remaining gaps are recorded in [the launch and installation results](docs/launch-and-installation-results.md), [vector and recovery results](docs/vector-and-recovery-results.md), and [earlier copy/paste results](docs/live-test-results.md). “Verified” describes those tests, not every document, ChemDraw feature, or Office release.
 
 ## A close button should never cost you your last edit
 

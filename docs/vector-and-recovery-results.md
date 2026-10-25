@@ -2,6 +2,8 @@
 
 Tested on 25 October 2026 with macOS 27.0, ChemDraw 22.0.0.22, Word 16.114, and PowerPoint 16.114. Implementation commits: `01d05a1`, `ee0a8b1`, and `78faed2`.
 
+The later [launch and installation results](launch-and-installation-results.md) add verified cold starts and a working Office add-in panel in both applications. This report records the preceding vector and recovery tests.
+
 ## What was fixed
 
 The reported Word failure was reproduced as a stale editing session: its managed ChemDraw window had disappeared, while the helper still considered that edit active. Subsequent double-clicks were rejected. The helper now reopens the same retained draft, confirms the exact ChemDraw window is focused, and leaves an activation failure resumable. Opening another figure after a stale session archives the previous saved draft. An unrelated user ChemDraw document is never treated as the managed window.
@@ -10,7 +12,7 @@ The earlier SVG carrier displayed PNG artwork. It now preserves ChemDraw's real 
 
 The fresh PowerPoint clipboard run found an additional problem: Office imported a rectangular SVG as a square picture. The artwork was vector, but visibly stretched. Paste and demo insertion now receive the actual SVG viewBox ratio explicitly. Verification also checks the saved Office shape dimensions; correct SVG bytes alone no longer pass when their displayed shape is stretched. Before editing, the corrected test picture's height/width was 0.781609252, matching its SVG ratio 0.781609195 within Office's rounding.
 
-Both host adapters assign `ChemOffice Drawing:<UUID>` to the figure. The helper resolves that identity to checksum-checked source inside the actual saved SVG. Word stores the short identity in alternative text; PowerPoint uses its shape name. Office still exposes a graphic in its own object model. This implementation is a local helper, not a native OLE server or an installed Office JavaScript add-in.
+Both host adapters assign `ChemOffice Drawing:<UUID>` to the figure. The helper resolves that identity to checksum-checked source inside the actual saved SVG. Word stores the short identity in alternative text; PowerPoint uses its shape name. Office still exposes a graphic in its own object model. At the time of these vector tests, editing used the local helper; the visible Office JavaScript add-in was added in the later installation work. Neither component supplies a native Windows OLE server.
 
 ## Current live evidence
 

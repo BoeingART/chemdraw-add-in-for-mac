@@ -4,9 +4,9 @@ ChemOffice has two parts. The **local helper** opens ChemDraw and saves your edi
 
 ## Before you install the Office panel
 
-Use the Office.com distribution of Word and PowerPoint for the documented development setup. Microsoft's [Mac add-in debugging requirements](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/debug-office-add-ins-on-ipad-and-mac) explicitly require Office.com rather than the Mac App Store. This preview is installed locally and has not been published in Microsoft AppSource.
+This preview is installed locally and has not been published in Microsoft AppSource. Keep your existing Office installation. Both Word and PowerPoint panels have been opened and used successfully on this test Mac's App Store builds.
 
-On the test Mac, both applications are Mac App Store builds. The manifest can be installed and appears in Word's Developer Add-ins list, but the entry was marked disabled and automated activation did not open its panel. This is an observed limitation; the distribution is a possible cause, not proof that all App Store add-ins are unsupported. Do not treat a visible name as a working panel. The external double-click editing workflow remains usable. Changing your Office installation requires a separate decision; the installer does not replace it.
+An earlier automated inspection described the entries as disabled. The user then opened both successfully, and their actual edit actions passed complete ChemDraw open/close transactions. That inspection was not reliable evidence of an Office distribution restriction. Microsoft's separate Office.com requirement concerns its documented debugging setup and should not be used to infer that this Mac's runtime cannot load the panel.
 
 ## One-time setup
 
@@ -33,16 +33,16 @@ In Word or PowerPoint, open **Home → Add-ins → Developer Add-ins → ChemOff
 
 Once Office activates the add-in, its **ChemOffice** ribbon tab opens the panel with **Open ChemOffice**. Select one managed drawing in your document, then use **Edit selected drawing**, or double-click the drawing itself. ChemDraw can start from a fully quit state. Use **⌘W** in ChemDraw for the verified save-back path.
 
-The ribbon and panel are activation-dependent. They have not yet been verified inside the test Mac's App Store Office builds. Do not look for this web add-in in Word's Templates and Add-ins or PowerPoint's VBA add-in manager; those are different types of integration.
+Both applications' panels, **ChemOffice** ribbon tabs, and edit actions are verified on the test Mac. Do not look for this web add-in in Word's Templates and Add-ins or PowerPoint's VBA add-in manager; those are different types of integration.
 
-For a standalone view of helper status and instructions, open **Open ChemOffice Panel.command**. This opens the local panel in your browser; the Edit selected drawing button requires an Office-hosted panel. It is not a substitute for verification inside Office.
+**Open ChemOffice Panel.command** opens a standalone view of status and instructions in your default browser; editing requires the panel inside Office. Browser certificate stores differ: the Codex in-app browser rejected the scoped certificate even though Word loaded the panel successfully. Use the Office entry for the tested workflow.
 
 ## Check your installation
 
 Open **Check Installation.command**. It checks the helper connection, localhost certificate trust, manifest locations when macOS permits the check, and the detected Office distribution. A protected folder is reported as unverified, not missing.
 
 - **No entry in Office:** confirm both XML copies, restart the applications, and check the Developer Add-ins section.
-- **Entry is disabled:** confirm the Office distribution and any organization policy. The test Mac's App Store entry is still awaiting successful activation. Do not weaken security settings to force it to load.
+- **Clicking the entry does nothing:** try an actual foreground click, confirm the helper is running, and check any organization add-in policy. Automated accessibility labels can be misleading; the Word entry worked despite being reported as disabled.
 - **Panel does not connect:** keep Start ChemOffice open and complete the scoped certificate trust step. Office.js is loaded from Microsoft's official CDN, so the Office panel also needs access to that service.
 - **No drawing selected:** select just one ChemOffice graphic in your document before using the panel's edit button. Ordinary PNG/JPEG pictures do not contain editable chemistry.
 

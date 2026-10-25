@@ -1,0 +1,52 @@
+ChemOffice for Mac · 安装与使用
+
+你的这台 Mac 已安装完成。Word 和 PowerPoint 的右侧面板均已打开并通过编辑入口验证，无需重新安装 Office。
+
+每次开始使用
+
+1. 在项目文件夹中双击 Start ChemOffice.command，保留它打开的窗口。
+   当前项目位于 /Users/BoeingART_1/AIChem/AIChem_tools/chemoffice-for-mac
+2. 在 Word 或 PowerPoint 中打开一个已保存的文档。
+3. 查看插件：开始 → 加载项 → 开发人员加载项 → ChemOffice for Mac（蓝色 C 图标）。
+   激活后也可以通过 ChemOffice → Open ChemOffice 打开右侧面板。
+4. 在 ChemDraw 中复制结构，在 Office 中用 ⌘V 粘贴。
+5. 双击结构，或选中结构后点击面板中的 Edit selected drawing。
+   ChemDraw 完全退出时也会自动启动。
+6. 编辑完用 ⌘W 关闭 ChemDraw 的当前绘图窗口。
+   助手保存并检查源数据、预览和显示比例，完成后返回原 Office 文档。
+
+首次安装或迁移到另一台 Mac
+
+1. 解压源代码并将项目文件夹放在固定位置。
+2. 双击 Setup.command，完成本地依赖和助手的准备。
+   需要已激活的 ChemDraw 22、Word、PowerPoint、Python 3.10 或更新版本及 Apple 命令行工具。
+3. 双击 Install Office Add-ins.command。
+4. 如果提示 macOS 阻止自动复制，按安装器说明在 Finder 中复制文件。
+   在 Finder 按 ⌘⇧G，分别打开：
+   ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
+   ~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef
+   若 wef 不存在，在其父级 Documents 内创建该文件夹。
+   将项目中的 work/install/chemoffice-for-mac.xml 复制到这两个文件夹。
+   只替换同名 ChemOffice 文件，保留其他加载项。
+5. 双击 Trust Local Connection.command，阅读证书指纹后输入 TRUST。
+   系统密码由你在 macOS 提示中输入。信任用于本机 localhost 连接。
+6. 启动 Start ChemOffice.command，保存文档后重启 Word 和 PowerPoint。
+   按上方菜单路径找到蓝色 C 图标。
+
+检查与退出
+
+双击 Check Installation.command，可以检查安装文件、本机连接证书和助手是否正在运行。
+如果面板打不开，先确认助手窗口仍在运行，再检查首次安装步骤。
+此插件位于“开始 → 加载项”，不在 Word 的模板管理器或 PPT 的 VBA 加载项列表中。
+结束使用时，在助手窗口按 Control-C；目前不会自动随登录启动。
+独立浏览器的证书识别可能与 Office 不同，请优先使用已验证的 Office 内面板。
+
+当前验证范围
+
+Word 和 PPT 的冷启动 ChemDraw、面板编辑入口、⌘W 回写和返回均已实测。
+保存文件中的原生源数据与最终 ChemDraw 文件一致，显示为真正的 SVG 矢量。
+源数据随单个绘图一起复制；接收方也需要 ChemDraw 和本助手才能双击编辑。
+Office 自身仍将其显示为图形，运行中的助手提供 ChemOffice 识别和编辑行为。
+这不是 Windows 原生 OLE 对象。普通 PNG、JPEG 或截图无法直接恢复化学源数据。
+请用 ⌘W 完成关闭；红色关闭按钮、退出整个 ChemDraw 和崩溃恢复不属于此次新增验证范围。
+回写会保存目标 Office 文档，包括文档内其他尚未保存的修改。

@@ -1,0 +1,179 @@
+{
+  "tested_on": "2026-10-25",
+  "applications": {
+    "macOS": "27.0",
+    "ChemDraw": "22.0.0.22",
+    "Word": "16.114",
+    "PowerPoint": "16.114"
+  },
+  "office_distribution": "Mac App Store on this test Mac",
+  "panel_activation": {
+    "word": "User opened panel; actual Office-hosted UI and edit action verified",
+    "powerpoint": "User opened panel; actual Office-hosted UI, ribbon reopen, and edit action verified"
+  },
+  "cold_start_precondition": "Native running-application check returned no before each cold-start double-click",
+  "transactions": [
+    {
+      "scenario": "powerpoint-cold-start",
+      "events": [
+        {
+          "time": 1792935416.875691,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5"
+        },
+        {
+          "time": 1792935430.151283,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+          "gesture": "command-w",
+          "source_sha256": "c2412039a3e1907fb4a3e23430979560c919463349631da87b204edd3bcd7115",
+          "bytes": 1395,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        }
+      ]
+    },
+    {
+      "scenario": "word-cold-start",
+      "events": [
+        {
+          "time": 1792936150.142431,
+          "event": "opened",
+          "host": "word",
+          "drawing_id": "80646112-da5b-419a-a220-eaa386eced21"
+        },
+        {
+          "time": 1792936199.159876,
+          "event": "committed",
+          "host": "word",
+          "drawing_id": "80646112-da5b-419a-a220-eaa386eced21",
+          "gesture": "command-w",
+          "source_sha256": "2a483fdbe4620a87402398ac8c732d629c3143c4bbe856b431111f40a8f8d414",
+          "bytes": 1437,
+          "frontmost_app": "com.microsoft.Word"
+        }
+      ]
+    },
+    {
+      "scenario": "word-panel",
+      "events": [
+        {
+          "time": 1792936783.904474,
+          "event": "opened",
+          "host": "word",
+          "drawing_id": "80646112-da5b-419a-a220-eaa386eced21"
+        },
+        {
+          "time": 1792936878.4330618,
+          "event": "committed",
+          "host": "word",
+          "drawing_id": "80646112-da5b-419a-a220-eaa386eced21",
+          "gesture": "command-w",
+          "source_sha256": "feeed3df8ff9248ef1a76225c2e6a70a3afa9263829426bd5e15da0c106f26a8",
+          "bytes": 1437,
+          "frontmost_app": "com.microsoft.Word"
+        }
+      ]
+    },
+    {
+      "scenario": "powerpoint-panel",
+      "events": [
+        {
+          "time": 1792937206.0115871,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5"
+        },
+        {
+          "time": 1792937219.752026,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+          "gesture": "command-w",
+          "source_sha256": "707d243b554ce2ad4b6ec25a6fda3df3185c4ad79fb41b30478875d9d07c3de1",
+          "bytes": 1395,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        }
+      ]
+    },
+    {
+      "scenario": "powerpoint-ribbon-reopen",
+      "events": [
+        {
+          "time": 1792937290.423409,
+          "event": "opened",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5"
+        },
+        {
+          "time": 1792937301.938842,
+          "event": "committed",
+          "host": "powerpoint",
+          "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+          "gesture": "command-w",
+          "source_sha256": "a7317aae27266ddb6b3984c7b7226851368cf926abefc8ebac2ef86838c7fa4c",
+          "bytes": 1395,
+          "frontmost_app": "com.microsoft.Powerpoint"
+        }
+      ]
+    }
+  ],
+  "saved_figures": [
+    {
+      "host": "word",
+      "drawing_id": "80646112-da5b-419a-a220-eaa386eced21",
+      "source_sha256": "feeed3df8ff9248ef1a76225c2e6a70a3afa9263829426bd5e15da0c106f26a8",
+      "source_bytes": 1437,
+      "preview_part": "word/media/image2.svg",
+      "verified_part": "word/document.xml",
+      "portable_carrier": true,
+      "vector_artwork": true,
+      "svg_aspect": 0.3541666666666667,
+      "display_size_emu": [
+        4064000,
+        1439333
+      ],
+      "mean_pixel_error": 0.0,
+      "ink_coverage": [
+        1.0,
+        1.0
+      ],
+      "saved_preview_size": [
+        1024,
+        363
+      ]
+    },
+    {
+      "host": "powerpoint",
+      "drawing_id": "d4573ef5-5970-41c3-bed4-e032353da2f5",
+      "source_sha256": "a7317aae27266ddb6b3984c7b7226851368cf926abefc8ebac2ef86838c7fa4c",
+      "source_bytes": 1395,
+      "preview_part": "ppt/media/image1.svg",
+      "verified_part": "ppt/slides/slide1.xml",
+      "portable_carrier": true,
+      "vector_artwork": true,
+      "svg_aspect": 0.7058823529411765,
+      "display_size_emu": [
+        974651,
+        687989
+      ],
+      "mean_pixel_error": 0.0,
+      "ink_coverage": [
+        1.0,
+        1.0
+      ],
+      "saved_preview_size": [
+        1024,
+        723
+      ]
+    }
+  ],
+  "final_active_session": {},
+  "limits": [
+    "No semantic chemical changes were added in these launch/panel rechecks.",
+    "Final-keystroke chemistry edits were verified in the preceding vector tests.",
+    "Command-W is verified; red-button close, quitting ChemDraw, and crashes are not additional acceptance claims.",
+    "Codex in-app Chromium did not accept the scoped certificate; both Office panels did."
+  ]
+}

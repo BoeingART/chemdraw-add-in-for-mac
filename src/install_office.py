@@ -59,7 +59,7 @@ def check_installation():
     stored = app_store_apps()
     if stored:
         print('Mac App Store build detected: '+', '.join(stored))
-        print('Microsoft documents Office.com builds for local add-in development. A listed entry may still be disabled; see docs/installation.md.')
+        print('Open the blue C entry inside each Office app to confirm panel activation; the distribution alone does not determine its status.')
     cert=ROOT/'work/tls/localhost.pem'
     if cert.exists():
         trusted=subprocess.run(['/usr/bin/security','verify-cert','-q','-c',str(cert),'-p','ssl','-s','localhost'],capture_output=True)
@@ -106,7 +106,5 @@ if __name__ == '__main__':
     parser.add_argument('action',choices=['install','check'])
     args=parser.parse_args()
     if args.action=='install':
-        if app_store_apps():
-            print('Mac App Store Office detected. A local developer entry may be disabled. See docs/installation.md before continuing.')
         if not install(): raise SystemExit(1)
     else: check_installation()

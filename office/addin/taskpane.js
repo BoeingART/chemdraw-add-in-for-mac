@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 let host = null;
 let busy = false;
+let awaitingClose = false;
 const byId = id => document.getElementById(id);
 const token = document.querySelector('meta[name="cfm-token"]').content;
 if (typeof Office !== 'undefined') Office.onReady(info => {
@@ -17,6 +18,10 @@ async function refresh() {
     byId('dot').className = 'ready';
     byId('status').textContent = data.editing ? 'ChemDraw edit in progress' : 'Ready to keep drawing';
     byId('detail').textContent = data.editing ? 'Close with ⌘W to update Office.' : 'Double-click a ChemOffice drawing, or use the button below.';
+    if (awaitingClose && !data.editing) {
+      byId('message').textContent = '';
+      awaitingClose = false;
+    }
     byId('edit').disabled = !host || busy;
   } catch (_) {
     byId('dot').className = '';
@@ -32,6 +37,7 @@ byId('edit').addEventListener('click', async () => {
     const response = await fetch('/api/edit', {method:'POST', headers:{'Content-Type':'application/json','X-ChemOffice-Token':token}, body:JSON.stringify({host})});
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'The drawing could not be opened.');
+    awaitingClose = true;
     byId('message').textContent = 'Your drawing is open in ChemDraw. Close with ⌘W to return.';
   } catch (error) { byId('message').textContent = error.message; }
   finally { busy = false; refresh(); }
