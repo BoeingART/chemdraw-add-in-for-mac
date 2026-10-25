@@ -8,11 +8,13 @@ import signal
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 
 from automation import CHEM_ID, ROOT, chem_open, chem_snapshot, chem_close, office, office_preview
 from metadata import encode, decode, validate_source
-from verification import verify_saved_figure
+from verification import verify_saved_figure, read_saved_figure
+from carrier import create_carrier, read_carrier
 
 WORK = ROOT / "work"
 STATE = WORK / "monitor-state.json"
@@ -36,19 +38,54 @@ class Bridge:
     def __init__(self):
         self.session = None
 
+    def payload(self, host, document, drawing_id):
+        if host == "word":
+            return office("payload", host, document, drawing_id)
+        office("persist", host, document)
+        return read_saved_figure(document, host, drawing_id)["tag"]
+
+    def paste(self, host, snapshot):
+        if self.session:
+            raise RuntimeError("Close the current managed ChemDraw edit before pasting another drawing")
+        document = office("context", host)
+        if not document or not Path(document).is_file():
+            raise RuntimeError("Save the target Office document once before using editable paste")
+        snapshot = Path(snapshot)
+        write_state({"pasteBusyBundle": "com.microsoft.Word" if host == "word" else "com.microsoft.Powerpoint"})
+        try:
+            if (snapshot / "source.cdx").exists():
+                source = (snapshot / "source.cdx").read_bytes()
+                validate_source(source)
+            else:
+                original_tag, png = read_carrier((snapshot / "carrier.svg").read_bytes())
+                _, source = decode(original_tag)
+                (snapshot / "preview.png").write_bytes(png)
+            drawing_id = str(uuid.uuid4())  # Every paste is an independent editable instance.
+            image = snapshot / "preview.png"
+            carrier = snapshot / "figure.svg"
+            tag = create_carrier(source, image, drawing_id, carrier)
+            office("insert", host, office_preview(host, carrier), tag, drawing_id, document)
+            evidence = verify_saved_figure(document, host, drawing_id, source, image)
+            (snapshot / "verification.json").write_text(json.dumps(evidence, indent=2))
+            record("pasted", host=host, document=document, drawing_id=drawing_id,
+                   source_sha256=hashlib.sha256(source).hexdigest(), portable_carrier=True)
+        finally:
+            write_state({})
+
     def begin(self, host, tag):
         if self.session:
             raise RuntimeError("Finish the currently managed drawing before opening another")
         document = office("context", host)
         if host == "powerpoint":
             drawing_id = tag.removeprefix("CFM1_")
-            tag = office("payload", host, document, drawing_id)
+            tag = self.payload(host, document, drawing_id)
         drawing_id, source = decode(tag)
         session_dir = WORK / "sessions" / drawing_id
         session_dir.mkdir(parents=True, exist_ok=True)
-        path = session_dir / f"CFM-{drawing_id}.cdxml"
+        extension = "cdx" if source.startswith(b"VjCD0100") else "cdxml"
+        path = session_dir / f"CFM-{drawing_id}.{extension}"
         path.write_bytes(source)
-        (session_dir / "original.cdxml").write_bytes(source)
+        (session_dir / f"original.{extension}").write_bytes(source)
         self.session = {"host": host, "document": document, "id": drawing_id,
                         "path": str(path), "originalTag": tag,
                         "windowTitle": path.name, "chemBundle": CHEM_ID, "busy": False}
@@ -78,12 +115,14 @@ class Bridge:
             if not image.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"):
                 raise RuntimeError("ChemDraw did not produce a valid PNG preview")
             new_tag = encode(source, session["id"])
-            old_tag = office("payload", session["host"], session["document"], session["id"])
+            old_tag = self.payload(session["host"], session["document"], session["id"])
             if old_tag not in (session["originalTag"], new_tag):
                 raise RuntimeError("The Office figure changed during editing; kept both versions")
-            safe_preview = office_preview(session["host"], image)
+            carrier = path.parent / f"figure-{time.time_ns()}.svg"
+            create_carrier(source, image, session["id"], carrier)
+            safe_preview = office_preview(session["host"], carrier)
             office("update", session["host"], session["document"], session["id"], safe_preview, new_tag)
-            recovered_tag = office("payload", session["host"], session["document"], session["id"])
+            recovered_tag = self.payload(session["host"], session["document"], session["id"])
             _, recovered = decode(recovered_tag)
             if recovered != source:
                 raise RuntimeError("Write-back verification failed; ChemDraw remains open")
@@ -98,7 +137,7 @@ class Bridge:
                    source_sha256=hashlib.sha256(source).hexdigest(), bytes=len(source), frontmost_app=front)
             (path.parent / "verification.json").write_text(json.dumps(evidence, indent=2))
             session["originalTag"] = new_tag
-            (path.parent / "committed.cdxml").write_bytes(source)
+            (path.parent / ("committed.cdx" if source.startswith(b"VjCD0100") else "committed.cdxml")).write_bytes(source)
             self.session = None
             write_state({})
         except Exception:
@@ -134,6 +173,7 @@ def run_monitor():
             kind = event["event"]
             try:
                 if kind == "open": bridge.begin(event["host"], event["tag"])
+                elif kind == "paste": bridge.paste(event["host"], event["snapshot"])
                 elif kind == "close": bridge.finish(event["gesture"])
                 else: record(kind, **{k: v for k, v in event.items() if k != "event"})
             except Exception as error:
@@ -161,7 +201,9 @@ def create_demo(host):
     chem_snapshot(render_path, png)
     chem_close(render_path)
     output = WORK / f"ChemOffice-{host}-{drawing_id[:8]}.{'docx' if host == 'word' else 'pptx'}"
-    office("demo", host, office_preview(host, png), tag, output, drawing_id)
+    carrier = png.with_suffix(".svg")
+    create_carrier(source, png, drawing_id, carrier)
+    office("demo", host, office_preview(host, carrier), tag, output, drawing_id)
     record("demo_created", host=host, path=str(output), drawing_id=drawing_id)
 
 

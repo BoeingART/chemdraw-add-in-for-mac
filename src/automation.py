@@ -13,7 +13,7 @@ def office_preview(host: str, image: Path) -> Path:
     # Do not reach into another application's protected container.
     directory = ROOT / "work"
     directory.mkdir(exist_ok=True)
-    destination = directory / f"office-preview-{host}.png"
+    destination = directory / f"office-preview-{host}{image.suffix}"
     shutil.copy2(image, destination)
     return destination
 

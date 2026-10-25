@@ -7,14 +7,32 @@ on run argv
             set s to make new slide at end of p with properties {layout:slide layout blank}
             set pic to make new picture at end of s with properties {file name:item 2 of argv, left position:160, top:160, width:400, height:180}
             set name of pic to "CFM1_" & (item 5 of argv)
-            -- Prototype storage: source travels in a hidden text box on the same slide.
-            set dataBox to make new text box at end of s with properties {left position:-1000, top:0, width:1, height:1}
-            set name of dataBox to "CFM_DATA_" & (item 5 of argv)
-            set content of text range of text frame of dataBox to item 3 of argv
-            set visible of dataBox to false
             save p in POSIX file (item 4 of argv) as save as Open XML presentation
             activate
             return item 4 of argv
+        else if actionName is "insert" then
+            set p to active presentation
+            if full name of p is not (item 5 of argv) then error "The target PowerPoint document changed before paste"
+            set s to slide of view of active window
+            set pic to make new picture at end of s with properties {file name:item 2 of argv, left position:120, top:120}
+            set name of pic to "CFM1_" & (item 4 of argv)
+            set originalWidth to width of pic
+            set originalHeight to height of pic
+            set width of pic to 400
+            set height of pic to originalHeight * 400 / originalWidth
+            save p
+            select pic
+            activate
+            return "inserted"
+        else if actionName is "persist" then
+            repeat with documentIndex from 1 to (count of presentations)
+                set p to presentation documentIndex
+                if full name of p is (item 2 of argv) then
+                    save p
+                    return "saved"
+                end if
+            end repeat
+            error "Original PowerPoint presentation is not open"
         else if actionName is "selected" then
             try
                 set selectedShapes to shape range of selection of active window
@@ -50,16 +68,17 @@ on run argv
             repeat with pictureIndex from 1 to (count of shapes of s)
                 if name of shape pictureIndex of s is dataName then set end of dataBoxes to shape pictureIndex of s
             end repeat
-            if (count dataBoxes) is not 1 then error "Missing embedded ChemDraw source"
-            set dataBox to item 1 of dataBoxes
-            if actionName is "payload" then return content of text range of text frame of dataBox
+            if (count dataBoxes) > 1 then error "Ambiguous legacy ChemDraw source"
+            if actionName is "payload" then
+                if (count dataBoxes) is not 1 then error "Portable source is read from the saved graphic"
+                return content of text range of text frame of item 1 of dataBoxes
+            end if
             set pictureLeft to left position of oldPic
             set pictureTop to top of oldPic
             set pictureWidth to width of oldPic
             set pictureHeight to height of oldPic
             set newPic to make new picture at end of s with properties {file name:item 4 of argv, left position:pictureLeft, top:pictureTop, width:pictureWidth, height:pictureHeight}
             set name of newPic to pictureName & "_pending"
-            set content of text range of text frame of dataBox to item 5 of argv
             delete oldPic
             -- Deleting an earlier shape invalidates PowerPoint's indexed object reference.
             set pendingMatches to {}
@@ -68,6 +87,7 @@ on run argv
             end repeat
             if (count pendingMatches) is not 1 then error "Cannot uniquely identify the inserted preview; source retained"
             set name of shape (item 1 of pendingMatches) of s to pictureName
+            if (count dataBoxes) is 1 then delete shape dataName of s
             save p
             return "updated"
         else if actionName is "activate" then

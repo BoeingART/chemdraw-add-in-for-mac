@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 import chemoffice
 from metadata import encode
@@ -32,7 +33,7 @@ class CloseTransactionTests(unittest.TestCase):
 
     def snapshot(self, path, preview):
         path.write_bytes(self.final)
-        preview.write_bytes(b'\x89PNG\r\n\x1a\nfixture')
+        Image.new('RGB', (8, 8), 'black').save(preview)
 
     def test_save_failure_never_closes_or_updates_office(self):
         with patch.object(chemoffice, 'chem_snapshot', side_effect=RuntimeError('save failed')), \

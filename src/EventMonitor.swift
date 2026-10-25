@@ -1,12 +1,58 @@
 // SPDX-License-Identifier: Apache-2.0
 // Only managed-figure double clicks and managed ChemDraw window-close gestures are intercepted.
-// No typed text, clipboard contents, or unrelated input is recorded.
+// Clipboard access is scoped to an explicit Office paste of recognized chemical data.
 import Cocoa
 import ApplicationServices
+import PDFKit
+
+let cdxClipboardType = NSPasteboard.PasteboardType("com.perkinelmer.chemdraw.cdx-clipboard")
+
+func chemicalClipboard() -> (String, Data)? {
+    let board = NSPasteboard.general
+    if let data = board.data(forType: cdxClipboardType), data.count <= 8 * 1024 * 1024,
+       data.starts(with: Data("VjCD0100".utf8)) { return ("cdx", data) }
+    for name in ["com.microsoft.image-svg-xml", "public.svg-image"] {
+        guard let data = board.data(forType: NSPasteboard.PasteboardType(name)), data.count <= 48 * 1024 * 1024,
+              let svg = String(data: data, encoding: .utf8),
+              let regex = try? NSRegularExpression(pattern: #"(?:xlink:)?href\s*=\s*["']data:image/png;base64,([^"']+)"#) else { continue }
+        for match in regex.matches(in: svg, range: NSRange(svg.startIndex..., in: svg)) {
+            guard let range = Range(match.range(at: 1), in: svg),
+                  let png = Data(base64Encoded: String(svg[range])),
+                  png.range(of: Data("ChemOffice.Source\0".utf8)) != nil else { continue }
+            return ("svg", data)
+        }
+    }
+    return nil
+}
+
+func captureChemicalClipboard(_ directory: URL, _ item: (String, Data)) throws {
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    if item.0 == "svg" {
+        try item.1.write(to: directory.appendingPathComponent("carrier.svg"))
+    } else {
+        guard let pdf = NSPasteboard.general.data(forType: .pdf),
+              let page = PDFDocument(data: pdf)?.page(at: 0) else {
+            throw NSError(domain: "ChemOffice", code: 1, userInfo: [NSLocalizedDescriptionKey: "ChemDraw clipboard has no PDF preview"])
+        }
+        let bounds = page.bounds(for: .mediaBox)
+        guard bounds.width > 0, bounds.height > 0 else { throw NSError(domain: "ChemOffice", code: 2) }
+        let scale = min(3, 3200 / max(bounds.width, bounds.height))
+        let image = page.thumbnail(of: NSSize(width: bounds.width * scale, height: bounds.height * scale), for: .mediaBox)
+        guard let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff),
+              let png = bitmap.representation(using: .png, properties: [:]) else { throw NSError(domain: "ChemOffice", code: 3) }
+        try item.1.write(to: directory.appendingPathComponent("source.cdx"))
+        try png.write(to: directory.appendingPathComponent("preview.png"))
+    }
+}
 
 if CommandLine.arguments.dropFirst().first == "--frontmost" {
     print(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none")
     exit(0)
+}
+if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--capture" {
+    guard let item = chemicalClipboard() else { print("none"); exit(1) }
+    do { try captureChemicalClipboard(URL(fileURLWithPath: CommandLine.arguments[2]), item); print(item.0); exit(0) }
+    catch { fputs("\(error)\n", stderr); exit(2) }
 }
 guard CommandLine.arguments.count == 2 else { exit(64) }
 let statePath = CommandLine.arguments[1]
@@ -109,7 +155,7 @@ func selectedManagedTag(_ host: String) -> String? {
     var error: NSDictionary?
     guard let script = NSAppleScript(source: source),
           let value = script.executeAndReturnError(&error).stringValue,
-          value.hasPrefix(host == "word" ? "CFM1:" : "CFM1_") else { return nil }
+          (host == "word" ? (value.hasPrefix("CFM1:") || value.hasPrefix("CFM2:")) : value.hasPrefix("CFM1_")) else { return nil }
     return value
 }
 
@@ -124,6 +170,26 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     guard let front = recipient ?? NSWorkspace.shared.frontmostApplication,
           let bundle = front.bundleIdentifier else { return Unmanaged.passUnretained(event) }
 
+    let current = state()
+    if current["pasteBusyBundle"] as? String == bundle { return nil }
+    if type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 9,
+       event.flags.contains(.maskCommand), !event.flags.contains(.maskShift),
+       !event.flags.contains(.maskAlternate), !event.flags.contains(.maskControl),
+       bundle == "com.microsoft.Word" || bundle == "com.microsoft.Powerpoint",
+       let item = chemicalClipboard() {
+        let directory = URL(fileURLWithPath: statePath).deletingLastPathComponent()
+            .appendingPathComponent("pastes/\(UUID().uuidString)")
+        do {
+            try captureChemicalClipboard(directory, item)
+            emit(["event": "paste", "host": bundle == "com.microsoft.Word" ? "word" : "powerpoint",
+                  "snapshot": directory.path])
+            return nil
+        } catch {
+            emit(["event": "pasteCaptureFailed", "message": error.localizedDescription])
+            return Unmanaged.passUnretained(event)
+        }
+    }
+
     if type == .leftMouseDown && event.getIntegerValueField(.mouseEventClickState) == 2,
        bundle == "com.microsoft.Word" || bundle == "com.microsoft.Powerpoint" {
         let host = bundle == "com.microsoft.Word" ? "word" : "powerpoint"
@@ -133,7 +199,6 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
         }
     }
 
-    let current = state()
     if type == .leftMouseDown && current["windowTitle"] != nil && ProcessInfo.processInfo.environment["CFM_DIAGNOSTICS"] == "1" {
         emit(["event": "pointer_target", "recipient": bundle,
               "front": NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none",
