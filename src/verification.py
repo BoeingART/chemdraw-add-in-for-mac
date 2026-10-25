@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 from metadata import decode
+from carrier import read_carrier
 from PIL import Image, ImageChops, ImageFilter, ImageStat
 
 NS = {
@@ -14,6 +15,7 @@ NS = {
     "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
     "p": "http://schemas.openxmlformats.org/presentationml/2006/main",
     "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+    "asvg": "http://schemas.microsoft.com/office/drawing/2016/SVG/main",
 }
 
 
@@ -41,8 +43,7 @@ def preview_agreement(saved: bytes, expected: bytes) -> dict:
             "saved_preview_size": list(actual.size)}
 
 
-def verify_saved_figure(document: str, host: str, drawing_id: str,
-                        expected_source: bytes, expected_image: Path) -> dict:
+def read_saved_figure(document: str, host: str, drawing_id: str) -> dict:
     with zipfile.ZipFile(document) as archive:
         candidates = []
         parts = ["word/document.xml"] if host == "word" else [
@@ -54,7 +55,7 @@ def verify_saved_figure(document: str, host: str, drawing_id: str,
                 for drawing in drawings:
                     props = drawing.find(".//wp:docPr", NS)
                     tag = props.get("descr", "") if props is not None else ""
-                    if tag.startswith(f"CFM1:{drawing_id}:"):
+                    if tag.startswith((f"CFM1:{drawing_id}:", f"CFM2:{drawing_id}:")):
                         candidates.append((part, drawing, tag))
             else:
                 tag = None
@@ -69,10 +70,8 @@ def verify_saved_figure(document: str, host: str, drawing_id: str,
         if len(candidates) != 1:
             raise RuntimeError("Saved document has an ambiguous or missing managed figure")
         part, drawing, tag = candidates[0]
-        _, source = decode(tag or "")
-        if source != expected_source:
-            raise RuntimeError("Saved Office source differs from the final ChemDraw source")
-        blip = drawing.find(".//a:blip", NS)
+        svg_blip = drawing.find(".//asvg:svgBlip", NS)
+        blip = svg_blip if svg_blip is not None else drawing.find(".//a:blip", NS)
         if blip is None:
             raise RuntimeError("Saved figure has no preview relationship")
         rel_id = blip.get("{" + NS["r"] + "}embed")
@@ -82,5 +81,25 @@ def verify_saved_figure(document: str, host: str, drawing_id: str,
         if len(targets) != 1:
             raise RuntimeError("Saved preview is missing or externally linked")
         target = posixpath.normpath(posixpath.join(directory, targets[0]))
-        agreement = preview_agreement(archive.read(target), expected_image.read_bytes())
-        return {"source_bytes": len(source), "preview_part": target, "verified_part": part, **agreement}
+        preview = archive.read(target)
+        portable = svg_blip is not None
+        if portable:
+            carrier_tag, preview = read_carrier(preview)
+            if tag and decode(tag)[1] != decode(carrier_tag)[1]:
+                raise RuntimeError("Office metadata and graphic source disagree")
+            tag = carrier_tag
+        embedded_id, source = decode(tag or "")
+        if embedded_id != drawing_id:
+            raise RuntimeError("Graphic source identity differs from its Office figure")
+        return {"tag": tag, "source": source, "preview": preview,
+                "source_bytes": len(source), "preview_part": target,
+                "verified_part": part, "portable_carrier": portable}
+
+
+def verify_saved_figure(document: str, host: str, drawing_id: str,
+                        expected_source: bytes, expected_image: Path) -> dict:
+    saved = read_saved_figure(document, host, drawing_id)
+    if saved["source"] != expected_source:
+        raise RuntimeError("Saved Office source differs from the final ChemDraw source")
+    agreement = preview_agreement(saved["preview"], expected_image.read_bytes())
+    return {key: value for key, value in saved.items() if key not in ("tag", "source", "preview")} | agreement
