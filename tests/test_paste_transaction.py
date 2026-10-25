@@ -19,9 +19,10 @@ class PasteTransactionTests(unittest.TestCase):
             Image.new('RGB', (20, 10), 'black').save(root/'preview.png')
             inserted = []
             def vector_export(_, output):
-                output.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10" fill="black"/></svg>')
+                output.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10" viewBox="0 0 20 10"><rect width="20" height="10" fill="black"/></svg>')
             def office(action, host, *args):
                 if action == 'context': return str(document)
+                self.assertAlmostEqual(float(args[4]), 0.5)
                 inserted.append(decode(args[1])); return 'inserted'
             bridge = chemoffice.Bridge()
             with patch.object(chemoffice, 'STATE', root/'state.json'), \

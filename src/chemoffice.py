@@ -10,13 +10,12 @@ import sys
 import time
 import uuid
 import shutil
-from PIL import Image
 from pathlib import Path
 
 from automation import CHEM_ID, ROOT, chem_open, chem_is_open, chem_snapshot, chem_render_vector, chem_close, office, office_preview
 from metadata import encode, decode, validate_source, object_id
 from verification import verify_saved_figure, read_saved_figure
-from carrier import create_carrier, read_carrier, render_svg, has_vectors
+from carrier import create_carrier, read_carrier, render_svg, has_vectors, svg_aspect
 
 WORK = ROOT / "work"
 STATE = WORK / "monitor-state.json"
@@ -76,7 +75,8 @@ class Bridge:
                 chem_render_vector(source_file, vector)
             image.write_bytes(render_svg(vector.read_bytes()))
             tag = create_carrier(source, image, drawing_id, carrier, vector=vector)
-            office("insert", host, office_preview(host, carrier), tag, drawing_id, document)
+            aspect = svg_aspect(carrier.read_bytes())
+            office("insert", host, office_preview(host, carrier), tag, drawing_id, document, str(aspect))
             evidence = verify_saved_figure(document, host, drawing_id, source, image)
             (snapshot / "verification.json").write_text(json.dumps(evidence, indent=2))
             record("pasted", host=host, document=document, drawing_id=drawing_id,
@@ -149,8 +149,7 @@ class Bridge:
             carrier = path.parent / f"figure-{time.time_ns()}.svg"
             create_carrier(source, image, session["id"], carrier)
             safe_preview = office_preview(session["host"], carrier)
-            with Image.open(image) as preview_image:
-                aspect = preview_image.height / preview_image.width
+            aspect = svg_aspect(carrier.read_bytes())
             office("update", session["host"], session["document"], session["id"], safe_preview, new_tag, str(aspect))
             recovered_tag = self.payload(session["host"], session["document"], session["id"])
             _, recovered = decode(recovered_tag)
@@ -236,7 +235,8 @@ def create_demo(host):
     output = WORK / f"ChemOffice-{host}-{drawing_id[:8]}.{'docx' if host == 'word' else 'pptx'}"
     carrier = png.with_suffix(".svg")
     create_carrier(source, png, drawing_id, carrier)
-    office("demo", host, office_preview(host, carrier), tag, output, drawing_id)
+    office("demo", host, office_preview(host, carrier), tag, output, drawing_id,
+           str(svg_aspect(carrier.read_bytes())))
     verify_saved_figure(str(output), host, drawing_id, source, png)
     record("demo_created", host=host, path=str(output), drawing_id=drawing_id)
 

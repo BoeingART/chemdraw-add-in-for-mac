@@ -3,27 +3,25 @@ on run argv
     set actionName to item 1 of argv
     tell application id "com.microsoft.Powerpoint"
         if actionName is "demo" then
+            if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
             set p to make new presentation
             set s to make new slide at end of p with properties {layout:slide layout blank}
             set pic to make new picture at end of s with properties {file name:item 2 of argv, left position:160, top:160}
             set name of pic to "ChemOffice Drawing:" & (item 5 of argv)
-            set originalWidth to width of pic
-            set originalHeight to height of pic
             set width of pic to 400
-            set height of pic to originalHeight * 400 / originalWidth
+            set height of pic to 400 * ((item 6 of argv) as real)
             save p in POSIX file (item 4 of argv) as save as Open XML presentation
             activate
             return item 4 of argv
         else if actionName is "insert" then
+            if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
             set p to active presentation
             if full name of p is not (item 5 of argv) then error "The target PowerPoint document changed before paste"
             set s to slide of view of active window
             set pic to make new picture at end of s with properties {file name:item 2 of argv, left position:120, top:120}
             set name of pic to "ChemOffice Drawing:" & (item 4 of argv)
-            set originalWidth to width of pic
-            set originalHeight to height of pic
             set width of pic to 400
-            set height of pic to originalHeight * 400 / originalWidth
+            set height of pic to 400 * ((item 6 of argv) as real)
             save p
             select pic
             activate

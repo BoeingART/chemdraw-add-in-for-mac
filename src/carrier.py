@@ -6,6 +6,7 @@ Legacy SVG-wrapped raster figures remain readable for upgrading.
 """
 import base64
 import io
+import math
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from PIL import Image, PngImagePlugin
@@ -27,6 +28,17 @@ def has_vectors(svg: bytes) -> bool:
     return any(element.tag in {f"{{{SVG}}}{name}" for name in
                               ("path", "text", "line", "polyline", "polygon", "rect", "circle", "ellipse")}
                for element in root.iter())
+
+
+def svg_aspect(svg: bytes) -> float:
+    """Use the actual SVG canvas; Office may import a non-square SVG as square."""
+    bounds = ET.fromstring(svg).get("viewBox", "").replace(",", " ").split()
+    if len(bounds) != 4:
+        raise ValueError("Native vector canvas has no usable viewBox")
+    _, _, width, height = map(float, bounds)
+    if not all(math.isfinite(n) and n > 0 for n in (width, height)):
+        raise ValueError("Native vector canvas dimensions must be positive and finite")
+    return height / width
 
 
 def create_carrier(source: bytes, preview: Path, drawing_id: str, output: Path,
