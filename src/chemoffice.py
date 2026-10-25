@@ -10,6 +10,8 @@ import sys
 import time
 import uuid
 import shutil
+import queue
+import threading
 from pathlib import Path
 
 from automation import CHEM_ID, ROOT, chem_open, chem_is_open, chem_snapshot, chem_render_vector, chem_close, office, office_preview
@@ -195,24 +197,49 @@ def run_monitor():
     write_state(bridge.session or {})
     process = subprocess.Popen([str(ROOT / "build/event-monitor"), str(STATE)],
                                stdout=subprocess.PIPE, text=True, bufsize=1)
+    events = queue.Queue()
+    def read_events():
+        try:
+            for line in process.stdout:
+                events.put((json.loads(line), None))
+        finally:
+            events.put((None, None))
+    threading.Thread(target=read_events, daemon=True).start()
+    from office_ui import start_office_ui
+    try:
+        panel = start_office_ui(ROOT, bridge, events)
+        if panel: record("office_panel_ready", url="https://localhost:17524/taskpane.html")
+    except Exception as error:
+        panel = None
+        record("office_panel_unavailable", message=str(error))
     def stop(*_):
         process.terminate()
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, stop)
     try:
-        for line in process.stdout:
-            event = json.loads(line)
+        while True:
+            event, future = events.get()
+            if event is None: break
+            if future is not None and not future.set_running_or_notify_cancel(): continue
             kind = event["event"]
             try:
                 if kind == "open": bridge.begin(event["host"], event["tag"])
+                elif kind == "edit-selection":
+                    tag = office("selected", event["host"])
+                    if not tag: raise RuntimeError("Select one ChemOffice drawing in your document, then choose Edit selected drawing")
+                    object_id(tag)
+                    bridge.begin(event["host"], tag)
                 elif kind == "paste": bridge.paste(event["host"], event["snapshot"])
                 elif kind == "close": bridge.finish(event["gesture"])
                 else: record(kind, **{k: v for k, v in event.items() if k != "event"})
+                if future is not None: future.set_result(True)
             except Exception as error:
+                if future is not None: future.set_exception(error)
                 record("error", operation=kind, message=str(error))
     except KeyboardInterrupt:
         pass
     finally:
+        if panel: panel.shutdown(); panel.server_close()
         process.terminate()
         process.wait(timeout=5)
         if bridge.session:

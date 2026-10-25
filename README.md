@@ -12,6 +12,8 @@ ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and Po
 
 > **Early preview, real applications.** This independent local helper has been tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
+**Looking for ChemOffice inside Office?** A separate local Office add-in now supplies the visible entry and panel. Follow the [installation and viewing guide](docs/installation.md). On the test Mac's App Store Word build, the entry is visible but activation remains unverified; the working double-click helper does not depend on that panel. Microsoft's documented development setup uses Office.com builds.
+
 ## Your first drawing
 
 ### 1 · Get ready
@@ -23,6 +25,8 @@ This preview needs an activated **ChemDraw 22**, **Word for Mac**, and **PowerPo
 ### 2 · Start the helper
 
 Open **Start ChemOffice.command** and leave its window open. If macOS asks for Accessibility or application-control access, the launcher needs that access to recognize the managed figure and handle its editing window. The helper does not record what you type.
+
+For the optional visible Office entry, open **Install Office Add-ins.command**, complete **Trust Local Connection.command**, and restart Office. If macOS protects its add-in folders, the installer provides a Finder copy step. Look under **Home → Add-ins → Developer Add-ins → ChemOffice for Mac**. The **ChemOffice** ribbon tab appears only after Office activates the add-in. **Check Installation.command** explains the current state; **Open ChemOffice Panel.command** opens a standalone browser view of status and instructions.
 
 ### 3 · Copy, paste, and keep drawing
 
@@ -45,6 +49,8 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 | Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Fresh native clipboard and vector export passed in both applications |
 | Open a managed figure by double-clicking in Word | Verified on the test Mac |
 | Open a managed figure by double-clicking in PowerPoint | Verified on the test Mac |
+| Start ChemDraw when it is fully quit | Verified from both Word and PowerPoint after adding a macOS launch and readiness check |
+| Find a visible ChemOffice Office add-in entry | Installed; Word lists it under Developer Add-ins; panel activation is still pending |
 | Close with ⌘W, update the figure, and return to Office | Verified in both applications |
 | Preserve an unfinished text edit when closing | Verified; the final source is checked before closure |
 | Add a chemical bond and immediately close | Verified in both applications; the new atoms and bond survived |
@@ -80,7 +86,7 @@ Use **⌘V** to create or copy editable figures, and **⌘W** for the verified c
 
 Edit one managed drawing at a time and keep its original Office document open. Word inserts after the current selection; PowerPoint places the new figure on the current slide, where you can move it. Pasting and write-back save the target document, including its other pending edits.
 
-The helper reads ChemDraw and Office graphic clipboard formats only when you press **⌘V in Office**. It does not keep a general clipboard history. Local captured chemistry and recovery drafts remain in this project's `work/pastes` and `work/sessions` folders.
+The helper reads ChemDraw and Office graphic clipboard formats only when you press **⌘V in Office**. It does not keep a general clipboard history. Local captured chemistry and recovery drafts remain in this project's `work/pastes` and `work/sessions` folders. The optional panel talks to a loopback-only HTTPS service on your Mac; its edit button joins the same single-edit queue as double-clicking. Office.js itself loads from Microsoft's official CDN. Your drawing source is not sent to that CDN.
 
 The source stays at full chemical fidelity in its native CDX or CDXML form. Visible bonds and labels come from ChemDraw's SVG export, with a white vector canvas that remains readable on dark Office pages. An invisible, transparent one-pixel PNG carries source metadata only; it does not draw the chemical structure. Office may also save a fallback thumbnail for older viewers. The helper preserves figure width and adjusts height to the updated drawing's proportions. Complex wrapping, effects, animations, and layer order are still compatibility work. Word alternative text currently holds a short drawing identity; production-quality accessible descriptions remain to be completed.
 

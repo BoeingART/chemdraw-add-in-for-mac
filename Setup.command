@@ -7,4 +7,5 @@ print 'Preparing your local ChemOffice preview…'
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 zsh scripts/build.sh
-print '\nReady. Open Start ChemOffice.command, then open either demo launcher.'
+print '\nReady. Open Start ChemOffice.command for double-click editing.'
+print 'For the optional Office panel, open Install Office Add-ins.command and read docs/installation.md.'

@@ -1,6 +1,6 @@
 # Prototype architecture
 
-This project implements custom managed pictures, not native OLE objects or an Office add-in. The installed ChemDraw remains the editor.
+This project implements custom managed drawings with a local helper and an optional Office task-pane add-in. It does not implement native OLE objects. The installed ChemDraw remains the editor; the helper's working double-click workflow does not depend on activation of the Office panel.
 
 1. On an explicit Office ⌘V, the Swift annotated-session event tap recognizes native ChemDraw CDX or a ChemOffice graphic on the clipboard. It snapshots source and preview from one pasteboard generation; unrelated pastes pass through. ⌘C remains the application's ordinary Copy operation.
 2. Each paste receives a fresh identity. ChemDraw exports the captured native source as `Scalable Vector Graphics (SVG)`. Its visible paths and text are preserved; no raster fallback is inserted if export fails. Python adds a white vector canvas and stores checksum-protected source in a PNG iTXt entry inside an **invisible transparent 1×1 image**. Office strips ordinary SVG metadata but preserves this payload in the tested versions. One graphic therefore carries its source without a companion shape or external registry. Word alternative text and PowerPoint shape names contain `ChemOffice Drawing:<UUID>`; legacy identities remain readable.
@@ -15,6 +15,12 @@ PowerPoint's initial SVG import can report square picture dimensions despite a r
 Failures retain the session and editable draft. They do not provide cross-application rollback or a guarantee against process crashes. A monitor restart reloads a retained session; the native helper watches its parent process so an abandoned event tap does not continue intercepting input.
 
 A repeated double-click on the same identity reopens or reveals the retained draft without overwriting it with older embedded source. If a different figure is requested while the previous window is absent, the stale draft and session record are archived under `work/recovery` before the new edit begins. If the previous drawing is still open, it is revealed and the second edit is refused. Activation failure leaves the session resumable.
+
+Cold opening uses NSWorkspace / Launch Services to start the installed ChemDraw with the exact document URL. An AppleScript readiness loop then waits for the matching file to appear, followed by exact-window focus confirmation. Checking whether a stale document is open first checks the running application list, so that diagnostic does not accidentally start ChemDraw.
+
+The optional panel is served over TLS on `127.0.0.1:17524`. It exposes local status and one explicit selected-drawing action. Host validation, same-origin checks, and a runtime request token protect edit requests. The HTTP handler never accepts an arbitrary file path or source payload. Panel edit requests and native events join the same serial queue, preventing concurrent save-back operations. Microsoft Office.js loads from its official CDN; chemistry stays local. No HTTP CORS access is granted.
+
+Installation creates a self-signed leaf certificate restricted to localhost and a private key with owner-only permissions. The separate trust launcher asks the user to approve SSL localhost trust; setup and manifest copying never silently change Keychain trust. Native Mac trust validation passed on the test Mac. The in-app browser's Chromium runtime still rejected that scoped certificate, so browser-panel compatibility must not be inferred from the native trust check alone. The manifests passed Microsoft's validator. Their Word entry is visible, but Office-hosted panel activation remains unverified on the installed App Store build.
 
 `src/carrier.py` constructs and reads portable graphics, `src/automation.py` owns application object-model calls, `office/*/adapter.applescript` owns host-specific behavior, and `src/verification.py` verifies the saved document. Stable `work/office-preview-*.svg` files allow a one-time Office grant to known previews without accessing another application's protected container.
 

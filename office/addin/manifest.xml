@@ -1,0 +1,117 @@
+<?xml version="1.0" ?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xsi:type="TaskPaneApp">
+  
+
+  <Id>1079b757-4a92-4997-9e74-514af3e78e2a</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>ChemOffice for Mac</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="ChemOffice for Mac"/>
+  <Description DefaultValue="Edit source-carrying vector chemistry with your installed ChemDraw."/>
+  <IconUrl DefaultValue="https://localhost:17524/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:17524/icon-80.png"/>
+  <SupportUrl DefaultValue="https://localhost:17524/help"/>
+  <AppDomains>
+    <AppDomain>https://localhost:17524</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Document"/>
+    <Host Name="Presentation"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:17524/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="ChemOffice.Tab">
+              <Group id="ChemOffice.Drawing">
+                <Label resid="GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon16"/>
+                  <bt:Image size="32" resid="Icon32"/>
+                  <bt:Image size="80" resid="Icon80"/>
+                </Icon>
+                <Control xsi:type="Button" id="ChemOffice.Open">
+                  <Label resid="ButtonLabel"/>
+                  <Supertip>
+                    <Title resid="ButtonLabel"/>
+                    <Description resid="ButtonHelp"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon16"/>
+                    <bt:Image size="32" resid="Icon32"/>
+                    <bt:Image size="80" resid="Icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ChemOffice.Panel</TaskpaneId>
+                    <SourceLocation resid="PanelUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="TabLabel"/>
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+      <Host xsi:type="Presentation">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="ChemOffice.Tab">
+              <Group id="ChemOffice.Drawing">
+                <Label resid="GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon16"/>
+                  <bt:Image size="32" resid="Icon32"/>
+                  <bt:Image size="80" resid="Icon80"/>
+                </Icon>
+                <Control xsi:type="Button" id="ChemOffice.Open">
+                  <Label resid="ButtonLabel"/>
+                  <Supertip>
+                    <Title resid="ButtonLabel"/>
+                    <Description resid="ButtonHelp"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon16"/>
+                    <bt:Image size="32" resid="Icon32"/>
+                    <bt:Image size="80" resid="Icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ChemOffice.Panel</TaskpaneId>
+                    <SourceLocation resid="PanelUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+              <Label resid="TabLabel"/>
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon16" DefaultValue="https://localhost:17524/icon-16.png"/>
+        <bt:Image id="Icon32" DefaultValue="https://localhost:17524/icon-32.png"/>
+        <bt:Image id="Icon80" DefaultValue="https://localhost:17524/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="PanelUrl" DefaultValue="https://localhost:17524/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="TabLabel" DefaultValue="ChemOffice"/>
+        <bt:String id="GroupLabel" DefaultValue="ChemDraw drawings"/>
+        <bt:String id="ButtonLabel" DefaultValue="Open ChemOffice"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="ButtonHelp" DefaultValue="Open the ChemOffice panel to edit the selected drawing, check connection status, and view instructions."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+  
+
+</OfficeApp>
