@@ -1,0 +1,14 @@
+{
+  "time": 1792918131.893604,
+  "event": "committed",
+  "host": "word",
+  "drawing_id": "1de162de-e154-48ae-90ce-7385022d9828",
+  "gesture": "command-w",
+  "source_sha256": "76ebc463ce2fe8fbdb96345fc5d2b8a6ad37b6740f1b4f4ef4d365b817c8e4fe",
+  "bytes": 3344,
+  "frontmost_app": "com.microsoft.Word",
+  "original_document_active": true,
+  "original_figure_selected": true,
+  "atoms": 5,
+  "bonds": 3
+}

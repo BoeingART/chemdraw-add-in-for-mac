@@ -1,0 +1,14 @@
+{
+  "source_bytes": 3344,
+  "preview_part": "word/media/image1.png",
+  "verified_part": "word/document.xml",
+  "mean_pixel_error": 0.0,
+  "ink_coverage": [
+    1.0,
+    1.0
+  ],
+  "saved_preview_size": [
+    1072,
+    764
+  ]
+}

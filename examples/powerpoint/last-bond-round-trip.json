@@ -1,0 +1,14 @@
+{
+  "time": 1792918106.0270422,
+  "event": "committed",
+  "host": "powerpoint",
+  "drawing_id": "76848881-cf8b-4a0f-9205-9d0abb055a9e",
+  "gesture": "command-w",
+  "source_sha256": "7e6f4bf900c94ad3aedccc0bc4219392bc54ecbb5710d647a8b039d994081bbe",
+  "bytes": 3577,
+  "frontmost_app": "com.microsoft.Powerpoint",
+  "original_document_active": true,
+  "original_figure_selected": true,
+  "atoms": 5,
+  "bonds": 3
+}

@@ -1,0 +1,14 @@
+{
+  "source_bytes": 3577,
+  "preview_part": "ppt/media/image1.png",
+  "verified_part": "ppt/slides/slide1.xml",
+  "mean_pixel_error": 0.0,
+  "ink_coverage": [
+    1.0,
+    1.0
+  ],
+  "saved_preview_size": [
+    3105,
+    1104
+  ]
+}

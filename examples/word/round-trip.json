@@ -1,0 +1,10 @@
+{
+  "time": 1792917994.202519,
+  "event": "committed",
+  "host": "word",
+  "drawing_id": "1de162de-e154-48ae-90ce-7385022d9828",
+  "gesture": "command-w",
+  "source_sha256": "de961a918aef05b9ee8d1d252b48714f6dd9e9b37786639c10375294e30555de",
+  "bytes": 3045,
+  "frontmost_app": "com.microsoft.Word"
+}
