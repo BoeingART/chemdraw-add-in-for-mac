@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.1.2 — 2026-10-26
+
+- Activate the original Office document through its adapter and full path after write-back, avoiding a failing AX lookup when Word hides the filename extension.
+- Complete live Word clipboard, unsaved-document save-and-resume, double-click, ⌘W write-back and return-to-Word checks on the installed app.
+
+## v0.1.1 — 2026-10-26 (local testing build, not published)
+
+- Recognize ChemDraw 26 Revvity CDX and legacy PerkinElmer/Carbon CDIF clipboard formats.
+- Deliver short native monitor events immediately, without waiting for a full pipe buffer or process exit.
+- Offer save-and-resume for the first paste into an unsaved Word document; preserve cancellation and the original capture.
+- Recheck localhost certificate trust after deferred setup and verify trust before reporting success. Keep local diagnostic requests outside proxy routing.
+- Add clipboard capture, live event-delivery, and Word save/cancel/failure regressions.
+
 ## v0.1.0 — 2026-10-26
 
 - Discover installed ChemDraw applications and prefer the newest numeric version; use exact application paths and pin active sessions.

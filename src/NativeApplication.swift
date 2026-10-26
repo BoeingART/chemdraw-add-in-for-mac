@@ -11,6 +11,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var quitting = false
     var preview = false
     var selfTest = false
+    var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development" }
 
     static func run(preview: Bool = false, selfTest: Bool = false) {
         let app = NSApplication.shared
@@ -42,13 +43,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             print(valid ? "PASS native app startup, menu actions, bundled resources and per-user data" : "FAIL native app startup self-test")
             exit(valid ? 0 : 1)
         }
-        if preview { status.title = "v0.1.0 — preview (helper stopped)"; return }
-        let version = Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.1.0"
+        if preview { status.title = "v\(version) — preview (helper stopped)"; return }
         if UserDefaults.standard.string(forKey:"installedVersion") != version {
             installAddins()
-            trustConnection()
             UserDefaults.standard.set(version,forKey:"installedVersion")
         }
+        // Installing a manifest does not establish certificate trust. Retry this
+        // check on launch even when setup was deferred or cancelled previously.
+        trustConnection()
         startHelper()
     }
     @discardableResult func alert(_ title:String, _ message:String, confirm:String = "OK", cancel:Bool = false) -> Bool {
@@ -71,11 +73,13 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     @objc func trustConnection() {
         do {
-            let cert = try NativeInstaller(root:root).prepareTLS()
-            if (try? command("/usr/bin/security",["verify-cert","-q","-c",cert.path,"-p","ssl","-s","localhost"])) != nil { return }
+            let installer = NativeInstaller(root:root)
+            let cert = try installer.prepareTLS()
+            if installer.certificateTrusted(cert) { return }
             let fingerprint = String(decoding:try command("/usr/bin/openssl",["x509","-in",cert.path,"-noout","-fingerprint","-sha256"]),as:UTF8.self)
             guard alert("Enable the local Office panel?", "The panel needs SSL trust for this Mac’s localhost certificate. macOS may ask you to authenticate. Drawings stay on this Mac. Double-click editing can also run without the panel.\n\n"+fingerprint,confirm:"Trust Localhost",cancel:true) else { return }
-            try command("/usr/bin/security",["add-trusted-cert","-r","trustRoot","-p","ssl","-s","localhost","-k",FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Keychains/login.keychain-db").path,cert.path])
+            try installer.trustCertificate(cert)
+            alert("Local Office connection enabled", "The localhost certificate is now trusted. Save your documents and restart Word and PowerPoint to clear any cached certificate error.")
         } catch { alert("Local panel trust was not completed",error.localizedDescription+"\nChoose Trust Local Connection from the ChemOffice menu to try again.") }
     }
     @objc func startHelper() {
@@ -105,7 +109,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                     else if child.terminationStatus != 0 { self.alert("ChemOffice helper stopped", "Choose Check Installation for details. Confirm ChemDraw is installed, Accessibility is enabled, and an older helper is stopped.") }
                 }
             }
-            try process.run(); helper = process; status.title = "Helper running · v0.1.0"
+            try process.run(); helper = process; status.title = "Helper running · v\(version)"
         } catch { status.title = "Helper failed to start"; alert("Could not start ChemOffice",error.localizedDescription) }
     }
     @objc func stopHelper() {

@@ -9,6 +9,13 @@ class NativeInstaller {
         try Data(contentsOf:source).write(to:target,options:.atomic)
     }
     init(root:URL,home:URL = FileManager.default.homeDirectoryForCurrentUser) { self.root = root; self.home = home }
+    func certificateTrusted(_ cert:URL) -> Bool {
+        (try? command("/usr/bin/security",["verify-cert","-q","-c",cert.path,"-p","ssl","-s","localhost"])) != nil
+    }
+    func trustCertificate(_ cert:URL) throws {
+        try command("/usr/bin/security",["add-trusted-cert","-r","trustRoot","-p","ssl","-s","localhost","-k",home.appendingPathComponent("Library/Keychains/login.keychain-db").path,cert.path],timeout:300)
+        try require(certificateTrusted(cert),"macOS has not trusted the localhost certificate. Choose Trust Local Connection again and complete the macOS authentication prompt, then restart Office.")
+    }
     func prepareTLS() throws -> URL {
         let directory = NativePaths.work(root:root).appendingPathComponent("tls"), fm = FileManager.default
         try fm.createDirectory(at:directory,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
@@ -66,8 +73,8 @@ class NativeInstaller {
         else { print("ChemDraw: no installed application found") }
         let cert = NativePaths.work(root:root).appendingPathComponent("tls/localhost.pem")
         if FileManager.default.fileExists(atPath:cert.path) {
-            print("Local certificate: " + ((try? command("/usr/bin/security",["verify-cert","-q","-c",cert.path,"-p","ssl","-s","localhost"])) != nil ? "trusted for localhost" : "choose Trust Local Connection in ChemOffice"))
-            print("Local helper: " + ((try? command("/usr/bin/curl",["--silent","--fail","--max-time","3","--cacert",cert.path,"https://localhost:17524/api/status"])) != nil ? "running" : "open ChemOffice from Applications"))
+            print("Local certificate: " + (certificateTrusted(cert) ? "trusted for localhost" : "NOT TRUSTED — choose Trust Local Connection in ChemOffice, authenticate, then restart Office"))
+            print("Local helper: " + ((try? command("/usr/bin/curl",["--noproxy","*","--silent","--fail","--max-time","3","--cacert",cert.path,"https://localhost:17524/api/status"])) != nil ? "running" : "open ChemOffice from Applications"))
         }
         print("Find the entry: Home → Add-ins → Developer Add-ins → ChemOffice for Mac.")
     }

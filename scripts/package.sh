@@ -3,7 +3,7 @@
 set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 CFM_VERSION="$(<"$PROJECT_DIR/VERSION")"
-[[ "$CFM_VERSION" == 0.1.0 ]] || { print 'Update packaging metadata for the new version first.'; exit 1; }
+[[ "$CFM_VERSION" == "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PROJECT_DIR/packaging/Info.plist")" ]] || { print 'Update packaging metadata for the new version first.'; exit 1; }
 zsh "$PROJECT_DIR/scripts/build.sh" --universal
 CFM_STAGE="$PROJECT_DIR/build/package"
 CFM_APP="$CFM_STAGE/root/Applications/ChemOffice.app"

@@ -187,8 +187,8 @@ class NativeAutomation: ChemistryAutomation {
         """,[path.path])
     }
     func activateOffice(_ host:String, _ document:String, _ id:String) throws -> String {
-        let bundle = host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"
-        try command(monitor,["--activate-office",bundle,URL(fileURLWithPath:document).lastPathComponent])
+        // The adapter identifies the document by its full path. Office window
+        // titles may hide extensions, so a basename-based AX lookup is unreliable.
         _ = try office("activate",host,[document,id])
         return String(decoding:try command(monitor,["--frontmost"]),as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }

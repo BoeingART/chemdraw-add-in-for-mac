@@ -67,8 +67,8 @@ class NativeBridge {
     func paste(_ host:String, snapshot:URL) throws {
         try require(session == nil,"Close the current managed ChemDraw edit before pasting another drawing")
         var document = try automation.office("context",host,[])
-        if host == "powerpoint" && !document.hasPrefix("/") {
-            try writeState(["saveDialogBundle":"com.microsoft.Powerpoint"])
+        if !document.hasPrefix("/") {
+            try writeState(["saveDialogBundle":host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"])
             defer { try? writeState() }
             record("paste_needs_save",["host":host])
             document = try automation.office("save-for-paste",host,[])

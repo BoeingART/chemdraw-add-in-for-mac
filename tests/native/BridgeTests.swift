@@ -104,30 +104,49 @@ class TestAutomation: ChemistryAutomation {
             try rejects { try bridge.paste("powerpoint",snapshot:root) }
             try require(!driver.calls.contains("save-for-paste") && !driver.calls.contains("insert"),"Unexpected Save As")
         }
-        try check("Canceling PowerPoint's save prompt clears temporary state") {
+        for host in ["word", "powerpoint"] {
+        try check("Canceling \(host)'s save prompt clears temporary state") {
             let (bridge,driver) = try fixture(); driver.document = "Presentation1"; driver.cancel = true
-            try bridge.paste("powerpoint",snapshot:root)
+            try bridge.paste(host,snapshot:root)
             let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
             try require(state.isEmpty && !driver.calls.contains("insert"),"Cancellation left state or inserted artwork")
         }
-        try check("PowerPoint saves and resumes the exact captured chemistry") {
+        try check("\(host) saves and resumes the exact captured chemistry") {
             let (bridge,driver) = try fixture(); driver.savedDocument = driver.document; driver.document = "Presentation1"
             let snapshot = bridge.work.appendingPathComponent("capture")
             try fm.createDirectory(at:snapshot,withIntermediateDirectories:true)
             let cdx = try Data(contentsOf:URL(fileURLWithPath:"tests/fixtures/clipboard-ethanol.cdx"))
             try cdx.write(to:snapshot.appendingPathComponent("source.cdx"))
             var verified = false
-            bridge.verify = { _,host,_,source,_ in try require(host == "powerpoint" && source == cdx,"Captured chemistry changed"); verified = true; return [:] }
-            try bridge.paste("powerpoint",snapshot:snapshot)
+            bridge.verify = { _,actualHost,_,source,_ in try require(actualHost == host && source == cdx,"Captured chemistry changed"); verified = true; return [:] }
+            try bridge.paste(host,snapshot:snapshot)
             try require(verified && driver.calls.contains("save-for-paste") && driver.calls.contains("insert"),"Save did not resume paste")
             let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
             try require(state.isEmpty,"Paste remained busy")
         }
-        try check("PowerPoint save failures clear temporary state") {
+        try check("\(host) save failures clear temporary state") {
             let (bridge,driver) = try fixture(); driver.document = "Presentation1"; driver.failure = "save-for-paste"
-            try rejects { try bridge.paste("powerpoint",snapshot:root) }
+            try rejects { try bridge.paste(host,snapshot:root) }
             let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
             try require(state.isEmpty,"Save dialog state was not cleared")
+        }
+        }
+        try check("Office return activates the full document path when its title hides the extension") {
+            class ActivationProbe: NativeAutomation {
+                var activation = [String]()
+                override func office(_ action:String, _ host:String, _ arguments:[String]) throws -> String {
+                    try require(action == "activate" && host == "word","Unexpected Office action")
+                    activation = arguments; return "activated"
+                }
+            }
+            let base = root.appendingPathComponent("activation"), monitor = base.appendingPathComponent("build/event-monitor")
+            try fm.createDirectory(at:monitor.deletingLastPathComponent(),withIntermediateDirectories:true)
+            // A basename-only AX lookup cannot find the hidden-extension window.
+            try Data("#!/bin/sh\nif [ \"$1\" = --frontmost ]; then echo com.microsoft.Word; else exit 2; fi\n".utf8).write(to:monitor)
+            try fm.setAttributes([.posixPermissions:0o755],ofItemAtPath:monitor.path)
+            let driver = ActivationProbe(root:base), document = "/drawings/Shared name.docx"
+            try require(try driver.activateOffice("word",document,"figure-id") == "com.microsoft.Word","Office did not become active")
+            try require(driver.activation == [document,"figure-id"],"Lost the exact document or drawing identity")
         }
         try check("Native cold-launch failure cannot script an unready ChemDraw") {
             class LaunchProbe: NativeAutomation {

@@ -1,7 +1,7 @@
-ChemOffice for Mac v0.1.0 · 安装与使用
+ChemOffice for Mac v0.1.2 · 安装与使用
 
-下载：https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/tag/v0.1.0
-文件：ChemOffice-for-Mac-0.1.0-universal.pkg（Apple Silicon 与 Intel 通用版）
+发布页：https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/tag/v0.1.2
+文件：ChemOffice-for-Mac-0.1.2-universal.pkg（Apple Silicon 与 Intel 通用版）
 要求：macOS 12 或更新；另行安装并激活 ChemDraw、Word、PowerPoint。
 使用安装包无需 Python、Homebrew、命令行工具或源码目录。
 
@@ -16,7 +16,7 @@ ChemOffice for Mac v0.1.0 · 安装与使用
    点击 Trust Localhost，按 macOS 提示授权，以启用 Office 内的可选面板。
    该信任限定为 localhost 的 SSL 用途，私钥留在本机。
    如果稍后再处理，可从菜单选择 Trust Local Connection。
-4. 在“系统设置 → 隐私与安全性 → 辅助功能”启用 ChemOffice，随后在菜单选择 Start Helper。
+4. 在“系统设置 → 隐私与安全性 → 辅助功能”（macOS 27 中名为“设备控制和数据访问”）启用 ChemOffice，随后在菜单选择 Start Helper。
    首次编辑时，按系统提示允许对 ChemDraw、Word、PowerPoint 的自动化控制。
 5. 保存文档后重启 Word 与 PowerPoint。
    在“开始 → 加载项 → 开发人员加载项”打开 ChemOffice for Mac（蓝色 C 图标）。
@@ -35,12 +35,26 @@ ChemOffice for Mac v0.1.0 · 安装与使用
 每次使用
 
 1. 打开 ChemOffice，确认菜单显示 Helper running。
-2. Word 先保存一次；未保存的 PPT 在首次粘贴时提示保存，完成后自动继续，取消则不插入。
+2. 未保存的 Word / PPT 在首次粘贴时提示保存，完成后自动继续，取消则不插入。
 3. ChemDraw 中用 ⌘C 复制结构，在 Office 用 ⌘V 粘贴。
 4. 双击结构，或选中结构后使用面板中的 Edit selected drawing。
 5. 编辑后用 ⌘W 关闭 ChemDraw 的当前绘图窗口，助手检查并回写到 Office。
    回写会保存整个 Office 文档，包括其中其他尚未保存的修改。
 6. 使用结束后在菜单栏选择 Quit ChemOffice。正在进行的操作会完成后退出。
+
+Word 提示“内容被阻止，因为它未由有效的安全证书签名”
+
+在菜单栏选择 Trust Local Connection，在 macOS 授权窗口完成验证。
+应用确认 localhost 证书受信任后会提示成功。保存文档并完全退出、重新打开 Word / PowerPoint。
+不要只依赖面板中的“重新启动”按钮，Office 可能缓存先前的证书错误。
+这与安装包的 Developer ID 签名是两件事；无需关闭 Office 的安全检查。
+若仍无法粘贴，确认使用 0.1.2、Helper running，并在 ChemDraw 重新 ⌘C 后在 Office ⌘V。
+0.1.2 识别 ChemDraw 26 的 Revvity 剪贴板格式，同时保留旧 PerkinElmer 格式。
+
+升级后显示已开启权限但助手仍不能启动
+
+在辅助功能／设备控制和数据访问中移除旧的 ChemOffice 条目，重新添加 /Applications/ChemOffice.app 并启用，再重启 ChemOffice。
+本地 ad-hoc 签名随构建变化，旧记录可能仍匹配上一版签名。不要清除其他应用的权限。
 
 菜单与本机数据
 
@@ -58,8 +72,9 @@ Installation Guide：打开本指南。
 
 验证范围
 
-v0.1.0 的原生自动化及打包检查见 docs/release-0.1.0-results.md。
-原生重写的真实 Office/ChemDraw 复制、双击、⌘W 回写验收仍待完成。
-历史 beta 的实测不等于本次原生版已完成同样验收；不同 macOS、Office、ChemDraw 版本仍需兼容性测试。
+v0.1.2 已通过 50 项原生检查、双架构打包检查，以及真实 Word 面板、⌘V、首次保存继续粘贴、双击和 ⌘W 回写返回流程。
+实测环境为 macOS 27.0.1、Word 16.114.1、ChemDraw 26.0.0.6599，详见 docs/native-paste-certificate-fix-results.md。
+ChemDraw 22 的旧剪贴板格式和应用识别已保留并通过自动化检查，但 0.1.2 与 22 的完整实机流程尚未验证；同时安装时默认选择较新版。
+原生 PowerPoint、Intel 实际运行、全新 Mac 和其他版本仍待验证。历史 beta 实测不代替本次原生版验收。
 这不是 Windows 原生 OLE。普通 PNG、JPEG 或截图无法恢复化学源数据。
 接收者需要本助手与 ChemDraw 才能编辑；源数据随管理的绘图保存在文档中。

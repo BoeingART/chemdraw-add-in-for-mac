@@ -17,19 +17,20 @@ on run argv
     set actionName to item 1 of argv
     tell application id "com.microsoft.Word"
         if actionName is "demo" then
+            if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
             set d to make new document
             set content of text object of d to "ChemOffice for Mac" & return & "Double-click the structure. Edit in ChemDraw. Close to return." & return & return
             make new inline picture at end of text object of d with properties {file name:item 2 of argv, link to file:false, save with document:true}
             set pic to inline shape (count of inline shapes of d) of d
             set alternative text of pic to "ChemOffice Drawing:" & (item 5 of argv)
-            set originalWidth to width of pic
-            set originalHeight to height of pic
             set width of pic to 320
-            set height of pic to originalHeight * 320 / originalWidth
-            save as d file name (item 4 of argv) file format format document default
+            set height of pic to 320 * ((item 6 of argv) as real)
+            set demoDocumentName to (POSIX file (item 4 of argv)) as text
+            save as d file name demoDocumentName file format format document default
             activate
             return item 4 of argv
         else if actionName is "insert" then
+            if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
             set d to active document
             if my documentPath(d) is not (item 5 of argv) then error "The target Word document changed before paste"
             set insertionRange to collapse range (text object of selection) direction collapse end
@@ -44,10 +45,8 @@ on run argv
             -- SVG insertion returns an unusable inline-picture specifier in Word.
             set pic to inline shape insertedIndex of d
             set alternative text of pic to "ChemOffice Drawing:" & (item 4 of argv)
-            set originalWidth to width of pic
-            set originalHeight to height of pic
             set width of pic to 320
-            set height of pic to originalHeight * 320 / originalWidth
+            set height of pic to 320 * ((item 6 of argv) as real)
             save d
             select text object of pic
             activate
@@ -57,6 +56,26 @@ on run argv
             return alternative text of inline shape 1 of selection
         else if actionName is "context" then
             return my documentPath(active document)
+        else if actionName is "save-for-paste" then
+            set d to active document
+            set currentPath to my documentPath(d)
+            if currentPath starts with "/" then return currentPath
+            set suggestedName to name of d
+            if suggestedName does not end with ".docx" then set suggestedName to suggestedName & ".docx"
+            activate
+            try
+                with timeout of 600 seconds
+                    set chosenDrawingDocument to choose file name with prompt "Save this document to paste an editable ChemDraw drawing. The captured drawing will be inserted after saving." default name suggestedName
+                end timeout
+            on error number -128
+                return ""
+            end try
+            -- Word's Save As expects a Mac file-name string. A POSIX string can
+            -- silently save under its default name inside the Office container.
+            set chosenDrawingDocumentName to chosenDrawingDocument as text
+            save as d file name chosenDrawingDocumentName file format format document default
+            if my documentPath(d) is not (POSIX path of chosenDrawingDocument) then error "Word did not save to the selected location; captured chemistry was retained"
+            return my documentPath(d)
         else if actionName is "persist" then
             repeat with documentIndex from 1 to (count of documents)
                 set d to document documentIndex

@@ -67,12 +67,12 @@ import Foundation
         }
         try server.start(); defer { server.stop() }
         try check("A real native TLS listener serves a certificate-verified local request") {
-            let body = try command("/usr/bin/curl",["--silent","--show-error","--fail","--max-time","5","--cacert",cert.path,"https://localhost:\(server.router.port)/api/status"])
+            let body = try command("/usr/bin/curl",["--noproxy","*","--silent","--show-error","--fail","--max-time","5","--cacert",cert.path,"https://localhost:\(server.router.port)/api/status"])
             let object = try JSONSerialization.jsonObject(with:body) as? [String:Any]
             try require(object?["ready"] as? Bool == true,"HTTPS status unavailable")
         }
         try check("A real TLS request cannot bypass the edit token") {
-            let status = try command("/usr/bin/curl",["--silent","--show-error","--max-time","5","--cacert",cert.path,"-o","/dev/null","-w","%{http_code}","-H","Content-Type: application/json","-d","{\"host\":\"word\"}","https://localhost:\(server.router.port)/api/edit"])
+            let status = try command("/usr/bin/curl",["--noproxy","*","--silent","--show-error","--max-time","5","--cacert",cert.path,"-o","/dev/null","-w","%{http_code}","-H","Content-Type: application/json","-d","{\"host\":\"word\"}","https://localhost:\(server.router.port)/api/edit"])
             try require(String(decoding:status,as:UTF8.self) == "403","Unauthenticated edit accepted")
         }
         print("Passed \(count) native installer and HTTPS checks")

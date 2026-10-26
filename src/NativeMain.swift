@@ -22,6 +22,7 @@ class NativeMonitorRuntime {
         process.executableURL = bridge.root.appendingPathComponent("build/event-monitor")
         process.arguments = [bridge.state.path]; process.standardOutput = pipe
         try process.run()
+        try pipe.fileHandleForWriting.close()
         let tls = bridge.work.appendingPathComponent("tls")
         if FileManager.default.fileExists(atPath:tls.appendingPathComponent("localhost.pem").path) {
             do {
@@ -41,22 +42,17 @@ class NativeMonitorRuntime {
             source.setEventHandler { [weak self] in self?.stop() }; source.resume(); signals.append(source)
         }
         DispatchQueue.global().async { [self] in
-            var buffered = Data()
             do {
-                while let data = try pipe.fileHandleForReading.read(upToCount:65536), !data.isEmpty {
-                    buffered.append(data)
-                    try require(buffered.count <= maxCarrierBytes,"Native monitor event is too large")
-                    while let newline = buffered.firstIndex(of:10) {
-                        let line = buffered.subdata(in:0..<newline); buffered.removeSubrange(0...newline)
-                        guard !line.isEmpty else { continue }
-                        let event = try JSONSerialization.jsonObject(with:line) as? [String:Any] ?? [:]
-                        worker.async { [self] in
-                            do { try bridge.handle(event) }
-                            catch { bridge.record("error",["operation":event["event"] ?? "unknown","message":error.localizedDescription]) }
-                        }
+                try readMonitorEvents(pipe.fileHandleForReading) { event in
+                    worker.async { [self] in
+                        do { try bridge.handle(event) }
+                        catch { bridge.record("error",["operation":event["event"] ?? "unknown","message":error.localizedDescription]) }
                     }
                 }
-            } catch { worker.async { [self] in bridge.record("error",["message":error.localizedDescription]) } }
+            } catch {
+                worker.async { [self] in bridge.record("error",["message":error.localizedDescription]) }
+                if process.isRunning { process.terminate() }
+            }
             process.waitUntilExit()
             let status = process.terminationStatus
             worker.async { [self] in stop(status:status) }
