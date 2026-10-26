@@ -56,3 +56,7 @@ Open **Check Installation.command**. It checks the helper connection, localhost 
 Press **Control-C** in the helper's window to stop it. No login item or automatic startup service is installed. Remove only `chemoffice-for-mac.xml` from the two Finder folders to remove the local entry, then restart Office. Do not clear all Office caches or remove other add-ins.
 
 The localhost certificate can be removed manually in Keychain Access by matching the exact ChemOffice certificate fingerprint. Deleting this project's work folder also deletes retained chemistry and recovery drafts; keep those while they are needed.
+
+## ChemDraw selection on the dev branch
+
+The helper discovers ChemDraw in /Applications, ~/Applications, and Spotlight-indexed locations. It selects the highest installed application version using numeric ordering and launches that exact application path. There is no fixed ChemDraw 22 identifier or silent fallback to an older installation. Older and newer versions still need the AppleScript and SVG export features used by the integration; the existing live acceptance evidence covers ChemDraw 22 only.

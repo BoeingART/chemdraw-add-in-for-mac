@@ -8,6 +8,10 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
 import automation
 
 class ColdLaunchTests(unittest.TestCase):
+    def setUp(self):
+        application = patch.object(automation, '_chem_application', {'path':'/Applications/ChemDraw 30.app','bundle':'example.ChemDraw.30','version':'30'})
+        application.start(); self.addCleanup(application.stop)
+
     def test_failed_native_launch_cannot_send_script_to_an_unready_editor(self):
         with patch.object(automation.subprocess,'run',return_value=CompletedProcess([],2,'','ChemDraw is unavailable')), patch.object(automation,'script') as script:
             with self.assertRaisesRegex(RuntimeError,'unavailable'):

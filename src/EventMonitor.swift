@@ -7,6 +7,19 @@ import PDFKit
 
 let cdxClipboardType = NSPasteboard.PasteboardType("com.perkinelmer.chemdraw.cdx-clipboard")
 
+if CommandLine.arguments.dropFirst().first == "--discover-chemdraw" {
+    let data = try JSONEncoder().encode(ChemDrawApplication.installed())
+    print(String(decoding: data, as: UTF8.self))
+    exit(0)
+}
+
+func runningApplication(_ target: String) -> NSRunningApplication? {
+    if target.hasPrefix("/") {
+        return NSWorkspace.shared.runningApplications.first { $0.bundleURL?.resolvingSymlinksInPath().path == target }
+    }
+    return NSRunningApplication.runningApplications(withBundleIdentifier: target).first
+}
+
 func chemicalClipboard() -> (String, Data, Int)? {
     let board = NSPasteboard.general
     let generation = board.changeCount
@@ -56,14 +69,15 @@ if CommandLine.arguments.dropFirst().first == "--frontmost" {
     exit(0)
 }
 if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--is-running" {
-    print(NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).isEmpty ? "no" : "yes")
+    print(runningApplication(CommandLine.arguments[2]) == nil ? "no" : "yes")
     exit(0)
 }
 if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-document" {
     let identifier = CommandLine.arguments[2]
     let document = URL(fileURLWithPath: CommandLine.arguments[3])
+    let applicationURL = identifier.hasPrefix("/") ? URL(fileURLWithPath: identifier) : NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
     guard FileManager.default.fileExists(atPath: document.path),
-          let application = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier) else {
+          let application = applicationURL, FileManager.default.fileExists(atPath: application.path) else {
         fputs("ChemDraw or the managed drawing was not found.\n", stderr)
         exit(2)
     }
@@ -85,7 +99,7 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-docum
     exit(0)
 }
 if CommandLine.arguments.count == 4 && ["--activate-office", "--activate-window"].contains(CommandLine.arguments[1]) {
-    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).first else { exit(2) }
+    guard let app = runningApplication(CommandLine.arguments[2]) else { exit(2) }
     let ax = AXUIElementCreateApplication(app.processIdentifier)
     guard let windows = attribute(ax, kAXWindowsAttribute) as? [AXUIElement] else { exit(2) }
     let expected = CommandLine.arguments[3]

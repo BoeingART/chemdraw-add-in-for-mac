@@ -23,7 +23,7 @@ ChemOffice for Mac · 安装与使用
 
 1. 解压源代码并将项目文件夹放在固定位置。
 2. 双击 Setup.command，完成本地依赖和助手的准备。
-   需要已激活的 ChemDraw 22、Word、PowerPoint、Python 3.10 或更新版本及 Apple 命令行工具。
+   需要已激活的 ChemDraw（自动发现，多个版本优先使用最新版）、Word、PowerPoint、Python 3.10 或更新版本及 Apple 命令行工具。
 3. 双击 Install Office Add-ins.command。
 4. 如果提示 macOS 阻止自动复制，按安装器说明在 Finder 中复制文件。
    在 Finder 按 ⌘⇧G，分别打开：

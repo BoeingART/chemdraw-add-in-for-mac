@@ -12,6 +12,8 @@ from metadata import encode, decode
 
 class RecoveryTests(unittest.TestCase):
     def setUp(self):
+        application = patch.object(chemoffice, 'chem_application', return_value={'bundle':'example.ChemDraw.30'})
+        application.start(); self.addCleanup(application.stop)
         temporary = tempfile.TemporaryDirectory(); self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         self.tag = encode(b'<CDXML><page><t>embedded old version</t></page></CDXML>')

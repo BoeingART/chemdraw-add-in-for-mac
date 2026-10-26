@@ -24,7 +24,7 @@ ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and Po
 
 Open **Setup.command** once. It prepares the small local helper and its image-checking component inside this project folder. The first setup needs an internet connection; the editing workflow runs locally.
 
-This preview needs an activated **ChemDraw 22**, **Word for Mac**, and **PowerPoint for Mac**. Its local setup also uses Python 3.10 or later and Apple's command-line tools, which are already present on the test Mac.
+This preview needs an activated **ChemDraw**, **Word for Mac**, and **PowerPoint for Mac**. The helper automatically discovers installed ChemDraw applications and chooses the newest version. Its local setup also uses Python 3.10 or later and Apple's command-line tools, which are already present on the test Mac.
 
 ### 2 · Start the helper
 

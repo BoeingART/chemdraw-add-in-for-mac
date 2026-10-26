@@ -14,7 +14,7 @@ import queue
 import threading
 from pathlib import Path
 
-from automation import CHEM_ID, ROOT, chem_open, chem_is_open, chem_snapshot, chem_render_vector, chem_close, office, office_preview
+from automation import ROOT, chem_application, chem_open, chem_is_open, chem_snapshot, chem_render_vector, chem_close, office, office_preview
 from metadata import encode, decode, validate_source, object_id
 from verification import verify_saved_figure, read_saved_figure
 from carrier import create_carrier, read_carrier, render_svg, has_vectors, svg_aspect
@@ -130,7 +130,7 @@ class Bridge:
         (session_dir / f"original.{extension}").write_bytes(source)
         self.session = {"host": host, "document": document, "id": drawing_id,
                         "path": str(path), "originalTag": tag,
-                        "windowTitle": path.name, "chemBundle": CHEM_ID, "busy": False}
+                        "windowTitle": path.name, "chemBundle": chem_application()["bundle"], "busy": False}
         (session_dir / "session.json").write_text(json.dumps(self.session, indent=2))
         write_state(self.session)
         try:
