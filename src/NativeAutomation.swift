@@ -58,7 +58,7 @@ class NativeAutomation: ChemistryAutomation {
     }
     func office(_ action:String, _ host:String, _ arguments:[String] = []) throws -> String {
         try require(["word","powerpoint"].contains(host),"Unknown Office host")
-        let data = try command("/usr/bin/osascript",[root.appendingPathComponent("office/\(host)/adapter.applescript").path,action]+arguments,timeout:action == "save-for-paste" ? 610 : 45)
+        let data = try command("/usr/bin/osascript",[root.appendingPathComponent("office/\(host)/adapter.applescript").path,action]+arguments)
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }
     func open(_ path:URL) throws {
@@ -187,8 +187,7 @@ class NativeAutomation: ChemistryAutomation {
         """,[path.path])
     }
     func activateOffice(_ host:String, _ document:String, _ id:String) throws -> String {
-        // The adapter identifies the document by its full path. Office window
-        // titles may hide extensions, so a basename-based AX lookup is unreliable.
+        // The adapter resolves the stable document identity even after Save As.
         _ = try office("activate",host,[document,id])
         return String(decoding:try command(monitor,["--frontmost"]),as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }

@@ -24,6 +24,18 @@ import Cocoa
             try require(try decodeSource(encodeSource(cdx,id:id)).source == cdx,"CDX mismatch")
             for tag in ["CFM1_"+id,"ChemOffice Drawing:"+id] { try require(try objectID(tag) == id,"Identity mismatch") }
         }
+        try check("Live figure markers identify the same drawing across source revisions") {
+            let first = try figureMarker(id,source:source), changed = try figureMarker(id,source:cdx)
+            try require(try objectID(first) == id && objectID(changed) == id,"A revision changed the figure identity")
+            try require(try figureRevision(first) == sha256(source) && figureRevision(changed) == sha256(cdx),"Revision did not identify its source")
+            try require(first != changed,"Changed source reused an old revision")
+        }
+        try check("Malformed revision markers cannot address source-cache files") {
+            for suffix in ["", "../outside", String(repeating:"z",count:64), String(repeating:"a",count:63), String(repeating:"a",count:64)+":extra"] {
+                try rejects { _ = try objectID("ChemOffice Drawing:"+id+":"+suffix) }
+            }
+            try rejects { _ = try objectID("CFM1_"+id+":"+sha256(source)) }
+        }
         try check("Checksum corruption and invalid format are rejected") {
             try rejects { _ = try decodeSource(old.replacingOccurrences(of:sha256(source),with:String(repeating:"0",count:64))) }
             try rejects { _ = try encodeSource(Data("not chemistry".utf8)) }

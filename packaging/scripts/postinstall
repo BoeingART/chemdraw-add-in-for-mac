@@ -7,5 +7,5 @@ if [ "${3:-/}" != / ]; then exit 0; fi
 CFM_USER=$(/usr/bin/stat -f %Su /dev/console)
 case "$CFM_USER" in root|loginwindow|_mbsetupuser|"") exit 0 ;; esac
 CFM_UID=$(/usr/bin/id -u "$CFM_USER")
-/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/open /Applications/ChemOffice.app || true
+/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/open /Applications/ChemOffice.app --args --setup || true
 exit 0

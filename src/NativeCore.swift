@@ -82,10 +82,23 @@ func decodeSource(_ tag: String) throws -> (id: String, source: Data) {
 }
 func objectID(_ tag: String) throws -> String {
     for prefix in ["ChemOffice Drawing:", "CFM1_"] where tag.hasPrefix(prefix) {
-        guard let uuid = UUID(uuidString: String(tag.dropFirst(prefix.count))) else { throw ChemOfficeError("Invalid drawing identity") }
+        let parts = tag.dropFirst(prefix.count).split(separator:":",omittingEmptySubsequences:false)
+        guard (1...2).contains(parts.count), let uuid = UUID(uuidString:String(parts[0])) else { throw ChemOfficeError("Invalid drawing identity") }
+        if parts.count == 2 { try require(prefix == "ChemOffice Drawing:","Invalid drawing identity"); _ = try figureRevision(tag) }
         return uuid.uuidString.lowercased()
     }
     return try decodeSource(tag).id
+}
+func figureRevision(_ tag: String) throws -> String? {
+    guard tag.hasPrefix("ChemOffice Drawing:") else { return nil }
+    let parts = tag.dropFirst("ChemOffice Drawing:".count).split(separator:":",omittingEmptySubsequences:false)
+    if parts.count == 1 { return nil }
+    try require(parts.count == 2 && UUID(uuidString:String(parts[0])) != nil && parts[1].count == 64 && parts[1].allSatisfy { "0123456789abcdef".contains($0) },"Invalid drawing revision")
+    return String(parts[1])
+}
+func figureMarker(_ id: String, source: Data) throws -> String {
+    guard let uuid = UUID(uuidString:id) else { throw ChemOfficeError("Invalid drawing identity") }
+    return "ChemOffice Drawing:\(uuid.uuidString.lowercased()):\(sha256(source))"
 }
 
 extension Data {
@@ -303,7 +316,7 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
         if host == "word" {
             for drawing in try nodes(root,"//*[local-name()='drawing']") {
                 let tag = try nodes(drawing,".//*[local-name()='docPr']").first.map { attribute($0,"descr") } ?? ""
-                if tag == "ChemOffice Drawing:\(id)" || tag.hasPrefix("CFM1:\(id):") || tag.hasPrefix("CFM2:\(id):") { candidates.append((part,drawing,tag)) }
+                if tag == "ChemOffice Drawing:\(id)" || tag.hasPrefix("ChemOffice Drawing:\(id):") || tag.hasPrefix("CFM1:\(id):") || tag.hasPrefix("CFM2:\(id):") { candidates.append((part,drawing,tag)) }
             }
         } else {
             var tag = ""
@@ -313,7 +326,7 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
             }
             for picture in try nodes(root,"//*[local-name()='pic']") {
                 let name = try nodes(picture,"./*[local-name()='nvPicPr']/*[local-name()='cNvPr']").first.map { attribute($0,"name") }
-                if name == "CFM1_\(id)" || name == "ChemOffice Drawing:\(id)" { candidates.append((part,picture,tag)) }
+                if let name, name == "CFM1_\(id)" || name == "ChemOffice Drawing:\(id)" || name.hasPrefix("ChemOffice Drawing:\(id):") { candidates.append((part,picture,name.hasPrefix("ChemOffice Drawing:\(id):") ? name : tag)) }
             }
         }
     }
@@ -336,6 +349,7 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
     let preview = try archive.read(target), portable = svgBlip != nil
     let tag = portable ? try readCarrier(preview) : metadata
     let decoded = try decodeSource(tag)
+    if let revision = try figureRevision(metadata) { try require(sha256(decoded.source) == revision,"Office figure revision differs from its embedded source") }
     if portable && metadata.hasPrefix("CFM") { try require(try decodeSource(metadata).source == decoded.source, "Office metadata and graphic source disagree") }
     try require(decoded.id == id, "Graphic source identity differs from its Office figure")
     let vector = try portable && hasVectors(xml(preview))

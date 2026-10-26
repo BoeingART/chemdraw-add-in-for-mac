@@ -11,7 +11,7 @@ class NativeBridge {
     let automation: ChemistryAutomation
     var session: EditingSession?
     var state: URL { work.appendingPathComponent("monitor-state.json") }
-    var verify: (String,String,String,Data,Data) throws -> [String:Any] = { try verifySavedFigure($0,host:$1,id:$2,source:$3,expected:$4) }
+    lazy var verify: (String,String,String,Data,Data) throws -> [String:Any] = { [unowned self] in try self.verifyOpenFigure($0,host:$1,id:$2,source:$3,expected:$4) }
     var savedFigure: (String,String,String) throws -> SavedFigure = { try readSavedFigure($0,host:$1,id:$2) }
     init(root:URL, automation:ChemistryAutomation, home:URL = FileManager.default.homeDirectoryForCurrentUser) {
         self.root = root; self.home = home; self.work = NativePaths.work(root:root,home:home); self.automation = automation
@@ -54,13 +54,48 @@ class NativeBridge {
         }
         try writeState()
     }
-    func payload(_ host:String, _ document:String, _ id:String) throws -> String {
-        if host == "word" {
-            let tag = try automation.office("payload",host,[document,id])
-            if tag.hasPrefix("CFM1:") || tag.hasPrefix("CFM2:") { return tag }
+    func cacheFigure(_ svg:Data) throws -> String {
+        let envelope = try readCarrier(svg), decoded = try decodeSource(envelope)
+        let marker = try figureMarker(decoded.id,source:decoded.source)
+        let target = work.appendingPathComponent("figures/\(decoded.id)/\(sha256(decoded.source)).svg")
+        try FileManager.default.createDirectory(at:target.deletingLastPathComponent(),withIntermediateDirectories:true)
+        try svg.write(to:target,options:.atomic)
+        return marker
+    }
+    func payload(_ host:String, _ document:String, _ id:String, marker:String? = nil) throws -> String {
+        let tag = try marker ?? automation.office("payload",host,[document,id])
+        if tag.hasPrefix("CFM1:") || tag.hasPrefix("CFM2:") { return tag }
+        try require(try objectID(tag) == id,"Office figure identity changed")
+        let revision = try figureRevision(tag)
+        if let revision {
+            let cached = work.appendingPathComponent("figures/\(id)/\(revision).svg")
+            if FileManager.default.fileExists(atPath:cached.path) {
+                let envelope = try readCarrier(Data(contentsOf:cached)), decoded = try decodeSource(envelope)
+                try require(decoded.id == id && sha256(decoded.source) == revision,"Cached source differs from the Office figure")
+                return envelope
+            }
         }
-        _ = try automation.office("persist",host,[document])
-        return try savedFigure(document,host,id).tag
+        let path = document.hasPrefix("/") ? document : try automation.office("path",host,[document])
+        try require(path.hasPrefix("/"),"The drawing source is unavailable. Copy the structure from ChemDraw and paste it again.")
+        let saved = try savedFigure(path,host,id)
+        if let revision { try require(sha256(saved.source) == revision,"The saved source differs from the open figure") }
+        if (try? readCarrier(saved.preview)) != nil { _ = try cacheFigure(saved.preview) }
+        return saved.tag
+    }
+    func verifyOpenFigure(_ document:String, host:String, id:String, source:Data, expected:Data) throws -> [String:Any] {
+        let fields = try automation.office("inspect",host,[document,id]).components(separatedBy:"\t")
+        try require(fields.count == 3,"Office did not return the drawing's source revision and dimensions")
+        let envelope = try payload(host,document,id,marker:fields[0])
+        try require(try decodeSource(envelope).source == source,"Office source differs from the final ChemDraw source")
+        guard let width = Double(fields[1].replacingOccurrences(of:",",with:".")),
+              let height = Double(fields[2].replacingOccurrences(of:",",with:".")), width > 0, height > 0,
+              let bitmap = NSBitmapImageRep(data:expected), bitmap.pixelsWide > 0, bitmap.pixelsHigh > 0 else { throw ChemOfficeError("Office returned invalid drawing dimensions") }
+        var aspect = Double(bitmap.pixelsHigh)/Double(bitmap.pixelsWide)
+        if let revision = try figureRevision(fields[0]) {
+            aspect = try svgAspect(Data(contentsOf:work.appendingPathComponent("figures/\(id)/\(revision).svg")))
+        }
+        try require(abs((height/width)/aspect-1) <= 0.005,"Office figure proportions differ from the ChemDraw canvas")
+        return ["verification":"open-document","source_bytes":source.count,"source_revision_verified":true,"display_size_points":[width,height]]
     }
     func officePreview(_ host:String, _ svg:Data) throws -> URL {
         let directory = try NativePaths.officePreviews(host,home:home)
@@ -75,15 +110,8 @@ class NativeBridge {
     }
     func paste(_ host:String, snapshot:URL) throws {
         try require(session == nil,"Close the current managed ChemDraw edit before pasting another drawing")
-        var document = try automation.office("context",host,[])
-        if !document.hasPrefix("/") {
-            try writeState(["saveDialogBundle":host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"])
-            defer { try? writeState() }
-            record("paste_needs_save",["host":host])
-            document = try automation.office("save-for-paste",host,[])
-            if document.isEmpty { record("paste_cancelled",["host":host,"reason":"save-dialog-cancelled"]); return }
-        }
-        try require(document.hasPrefix("/") && FileManager.default.fileExists(atPath:document),"Save the target Office document once before using editable paste")
+        let document = try automation.office("context",host,[UUID().uuidString.lowercased()])
+        try require(document.hasPrefix("cfm-document:") || (document.hasPrefix("/") && FileManager.default.fileExists(atPath:document)),"The target Office document is no longer available")
         try writeState(["pasteBusyBundle":host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"])
         defer { try? writeState() }
         let sourcePath = snapshot.appendingPathComponent("source.cdx"), capturedPath = snapshot.appendingPathComponent("carrier.svg")
@@ -101,14 +129,14 @@ class NativeBridge {
         let expected = try renderPNG(vector), carrier = try createCarrier(source,id:id,vector:vector)
         try expected.write(to:snapshot.appendingPathComponent("preview.png"))
         try carrier.svg.write(to:snapshot.appendingPathComponent("figure.svg"))
-        let preview = try officePreview(host,carrier.svg)
-        _ = try automation.office("insert",host,[preview.path,carrier.tag,id,document,String(try svgAspect(carrier.svg))])
+        let marker = try cacheFigure(carrier.svg), preview = try officePreview(host,carrier.svg)
+        _ = try automation.office("insert",host,[preview.path,marker,id,document,String(try svgAspect(carrier.svg))])
         let evidence = try verify(document,host,id,source,expected)
         try JSONSerialization.data(withJSONObject:evidence,options:[.prettyPrinted,.sortedKeys]).write(to:snapshot.appendingPathComponent("verification.json"))
         record("pasted",["host":host,"document":document,"drawing_id":id,"source_sha256":sha256(source),"portable_carrier":true])
     }
     func begin(_ host:String, tag:String) throws {
-        let document = try automation.office("context",host,[]), requestedID = try objectID(tag)
+        let document = try automation.office("context",host,[UUID().uuidString.lowercased()]), requestedID = try objectID(tag)
         if let previous = session {
             let path = URL(fileURLWithPath:previous.path)
             if previous.host == host && previous.document == document && previous.id == requestedID {
@@ -156,8 +184,8 @@ class NativeBridge {
             let vector = try Data(contentsOf:image.deletingPathExtension().appendingPathExtension("svg"))
             let carrier = try createCarrier(source,id:current.id,vector:vector)
             try carrier.svg.write(to:directory.appendingPathComponent("figure-\(UUID().uuidString).svg"))
-            let preview = try officePreview(current.host,carrier.svg)
-            _ = try automation.office("update",current.host,[current.document,current.id,preview.path,newTag,String(try svgAspect(carrier.svg))])
+            let marker = try cacheFigure(carrier.svg), preview = try officePreview(current.host,carrier.svg)
+            _ = try automation.office("update",current.host,[current.document,current.id,preview.path,marker,String(try svgAspect(carrier.svg))])
             try require(try decodeSource(payload(current.host,current.document,current.id)).source == source,"Write-back verification failed; ChemDraw remains open")
             current.originalTag = newTag; session = current; try writeState()
             let evidence = try verify(current.document,current.host,current.id,source,expected)

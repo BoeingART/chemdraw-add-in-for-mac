@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.0.5 — 2026-10-26
+
+- Open a visible setup checklist after installation for Word/PowerPoint file access and Accessibility.
+- Automatically verify add-in registration and preview writes, retry after authorization, and start the paste helper.
+- Show completion only after the keyboard and mouse monitor confirms readiness; retain an explicit retry for startup failures.
+- Keep manual Stop Helper paused and expose setup from the menu and by reopening the app.
+
+## v1.0.4 — 2026-10-26
+
+- Paste and edit ChemDraw structures directly in new, unsaved Word documents and PowerPoint presentations.
+- Keep Office saving under user control; paste and write-back update the open document.
+- Track the original document through Save As and window switches with a stable identity.
+- Retain drawing revisions locally and restore editing sessions after helper restarts.
+- Simplify installer and release copy and record the writing rules in AGENTS.md.
+
 ## v1.0.3 — 2026-10-26
 
 - Place generated SVGs in the target Office application's sandbox cache, avoiding Word/PowerPoint Grant File Access dialogs for ChemOffice's private preview files.

@@ -4,7 +4,7 @@ import Cocoa
 class TestAutomation: ChemistryAutomation {
     let app = ChemDrawApplication(path:"/Applications/ChemDraw 30.app",bundle:"example.ChemDraw.30",version:"30")
     var document = "", savedDocument = "", tag = "", finalSource = Data("<CDXML><page><t>FINAL Z</t></page></CDXML>".utf8)
-    var calls = [String](), failure = "", cancel = false, opened = false
+    var calls = [String](), targets = [String](), failure = "", opened = false, dimensions = "320\t160"
     let vector = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\" viewBox=\"0 0 200 100\"><path d=\"M10 20L150 80\" stroke=\"black\"/></svg>".utf8)
     func application() throws -> ChemDrawApplication { app }
     func useApplication(_ application:ChemDrawApplication) { calls.append("use:"+application.path) }
@@ -14,8 +14,10 @@ class TestAutomation: ChemistryAutomation {
         switch action {
         case "context": return document
         case "payload": return tag
-        case "save-for-paste": return cancel ? "" : (savedDocument.isEmpty ? document : savedDocument)
-        case "update": tag = arguments[3]; return "updated"
+        case "path": return savedDocument.isEmpty ? (document.hasPrefix("/") ? document : "") : savedDocument
+        case "inspect": return tag + "\t" + dimensions
+        case "insert": tag = arguments[1]; targets.append(arguments[3]); return "inserted"
+        case "update": tag = arguments[3]; targets.append(arguments[0]); return "updated"
         default: return "ok"
         }
     }
@@ -40,12 +42,12 @@ class TestAutomation: ChemistryAutomation {
         var count = 0
         func check(_ name:String, _ body:() throws -> Void) throws { try body(); count += 1; print("PASS \(name)") }
         func rejects(_ body:() throws -> Void) throws { var failed=false; do { try body() } catch { failed=true }; try require(failed,"Expected failure") }
-        func fixture() throws -> (NativeBridge,TestAutomation) {
+        func fixture(liveVerification:Bool = false) throws -> (NativeBridge,TestAutomation) {
             let base = root.appendingPathComponent(UUID().uuidString), driver = TestAutomation()
             let bridge = NativeBridge(root:base,automation:driver,home:base.appendingPathComponent("home")); try bridge.prepare()
             driver.document = base.appendingPathComponent("test.docx").path; fm.createFile(atPath:driver.document,contents:Data())
             driver.tag = try encodeSource(Data("<CDXML><page><t>old</t></page></CDXML>".utf8))
-            bridge.verify = { _,_,_,_,_ in ["verified":true] }
+            if !liveVerification { bridge.verify = { _,_,_,_,_ in ["verified":true] } }
             return (bridge,driver)
         }
         try check("A resumed edit keeps its latest retained draft") {
@@ -73,7 +75,7 @@ class TestAutomation: ChemistryAutomation {
             try require(bridge.session == nil,"Successful edit still active")
             try require(driver.calls.firstIndex(of:"update")! < driver.calls.firstIndex(of:"close")!,"Closed too soon")
         }
-        for failure in ["snapshot","update","close","verify"] {
+        for failure in ["snapshot","payload","update","close","verify"] {
             try check("\(failure) failure retains the draft and unfreezes input") {
                 let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag); driver.failure = failure
                 if failure == "verify" { bridge.verify = { _,_,_,_,_ in throw ChemOfficeError("Saved preview differs") } }
@@ -129,32 +131,74 @@ class TestAutomation: ChemistryAutomation {
             try rejects { try bridge.paste("powerpoint",snapshot:root) }
             try require(!driver.calls.contains("save-for-paste") && !driver.calls.contains("insert"),"Unexpected Save As")
         }
-        for host in ["word", "powerpoint"] {
-        try check("Canceling \(host)'s save prompt clears temporary state") {
-            let (bridge,driver) = try fixture(); driver.document = "Presentation1"; driver.cancel = true
-            try bridge.paste(host,snapshot:root)
-            let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
-            try require(state.isEmpty && !driver.calls.contains("insert"),"Cancellation left state or inserted artwork")
-        }
-        try check("\(host) saves and resumes the exact captured chemistry") {
-            let (bridge,driver) = try fixture(); driver.savedDocument = driver.document; driver.document = "Presentation1"
+        func capturedDrawing(_ bridge:NativeBridge) throws -> URL {
             let snapshot = bridge.work.appendingPathComponent("capture")
             try fm.createDirectory(at:snapshot,withIntermediateDirectories:true)
-            let cdx = try Data(contentsOf:URL(fileURLWithPath:"tests/fixtures/clipboard-ethanol.cdx"))
-            try cdx.write(to:snapshot.appendingPathComponent("source.cdx"))
-            var verified = false
-            bridge.verify = { _,actualHost,_,source,_ in try require(actualHost == host && source == cdx,"Captured chemistry changed"); verified = true; return [:] }
-            try bridge.paste(host,snapshot:snapshot)
-            try require(verified && driver.calls.contains("save-for-paste") && driver.calls.contains("insert"),"Save did not resume paste")
-            let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
-            try require(state.isEmpty,"Paste remained busy")
+            try Data(contentsOf:URL(fileURLWithPath:"tests/fixtures/clipboard-ethanol.cdx")).write(to:snapshot.appendingPathComponent("source.cdx"))
+            return snapshot
         }
-        try check("\(host) save failures clear temporary state") {
-            let (bridge,driver) = try fixture(); driver.document = "Presentation1"; driver.failure = "save-for-paste"
-            try rejects { try bridge.paste(host,snapshot:root) }
-            let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
-            try require(state.isEmpty,"Save dialog state was not cleared")
+        for host in ["word", "powerpoint"] {
+            try check("Unsaved \(host) pastes and edits chemistry without saving Office") {
+                let (bridge,driver) = try fixture(liveVerification:true)
+                driver.document = "cfm-document:" + UUID().uuidString.lowercased()
+                try bridge.paste(host,snapshot:capturedDrawing(bridge))
+                let pastedMarker = driver.tag
+                try require(try figureRevision(pastedMarker) != nil,"Drawing has no live source revision")
+                try bridge.begin(host,tag:pastedMarker)
+                try bridge.finish("command-w")
+                try require(bridge.session == nil && driver.targets == [driver.document,driver.document],"Unsaved drawing did not complete in its original document")
+                try require(!driver.calls.contains("save-for-paste") && !driver.calls.contains("persist"),"Office was asked to save")
+                let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
+                try require(state.isEmpty,"Paste or edit remained busy")
+            }
+            try check("\(host) write-back follows the original identity after Save As and a document switch") {
+                let (bridge,driver) = try fixture(liveVerification:true)
+                driver.document = "cfm-document:" + UUID().uuidString.lowercased()
+                let original = driver.document
+                try bridge.paste(host,snapshot:capturedDrawing(bridge)); try bridge.begin(host,tag:driver.tag)
+                driver.savedDocument = "/documents/User chosen new name." + (host == "word" ? "docx" : "pptx")
+                driver.document = "cfm-document:" + UUID().uuidString.lowercased()
+                try bridge.finish("command-w")
+                try require(driver.targets == [original,original],"A rename or switch redirected the edit")
+                try require(!driver.calls.contains("persist") && !driver.calls.contains("save-for-paste"),"Helper saved the user's document")
+            }
+            try check("Unsaved \(host) insert failure retains its capture and clears busy state") {
+                let (bridge,driver) = try fixture(); driver.document = "cfm-document:" + UUID().uuidString.lowercased(); driver.failure = "insert"
+                let capture = try capturedDrawing(bridge)
+                try rejects { try bridge.paste(host,snapshot:capture) }
+                let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
+                try require(state.isEmpty && fm.fileExists(atPath:capture.appendingPathComponent("source.cdx").path),"Failed paste lost its source or left input busy")
+            }
+            try check("Unsaved \(host) source cache survives a helper restart") {
+                let (bridge,driver) = try fixture(liveVerification:true); driver.document = "cfm-document:" + UUID().uuidString.lowercased()
+                try bridge.paste(host,snapshot:capturedDrawing(bridge))
+                let restarted = NativeBridge(root:bridge.root,automation:driver,home:bridge.home)
+                try restarted.restore(); try restarted.begin(host,tag:driver.tag); try restarted.finish("command-w")
+                try require(restarted.session == nil,"Restarted helper could not complete the unsaved edit")
+            }
+            try check("\(host) live verification catches a stretched figure") {
+                let (bridge,driver) = try fixture(liveVerification:true); driver.document = "cfm-document:" + UUID().uuidString.lowercased()
+                try bridge.paste(host,snapshot:capturedDrawing(bridge)); try bridge.begin(host,tag:driver.tag)
+                driver.dimensions = "320\t500"
+                try rejects { try bridge.finish("command-w") }
+                try require(bridge.session?.busy == false && !driver.calls.contains("close"),"Invalid live proportions closed or lost the draft")
+            }
         }
+        try check("A cache containing a different source revision cannot open the drawing") {
+            let (bridge,driver) = try fixture(); driver.document = "cfm-document:" + UUID().uuidString.lowercased()
+            try bridge.paste("word",snapshot:capturedDrawing(bridge))
+            let id = try objectID(driver.tag), revision = try figureRevision(driver.tag)!
+            let replacement = try createCarrier(driver.finalSource,id:id,vector:driver.vector)
+            try replacement.svg.write(to:bridge.work.appendingPathComponent("figures/\(id)/\(revision).svg"))
+            try rejects { try bridge.begin("word",tag:driver.tag) }
+            try require(!driver.calls.contains("open") && !driver.calls.contains("persist"),"A changed cached source was opened or saved into Office")
+        }
+        try check("A missing unsaved drawing cache never opens Save As") {
+            let (bridge,driver) = try fixture(); driver.document = "cfm-document:" + UUID().uuidString.lowercased()
+            try bridge.paste("word",snapshot:capturedDrawing(bridge))
+            try fm.removeItem(at:bridge.work.appendingPathComponent("figures"))
+            try rejects { try bridge.begin("word",tag:driver.tag) }
+            try require(!driver.calls.contains("open") && !driver.calls.contains("persist") && !driver.calls.contains("save-for-paste"),"Missing source invoked an editor or Save As")
         }
         try check("Office return activates the full document path when its title hides the extension") {
             class ActivationProbe: NativeAutomation {

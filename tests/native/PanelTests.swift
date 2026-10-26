@@ -47,6 +47,7 @@ import Foundation
             try require(try !installer.install(),"Protected installation falsely succeeded")
             try require(fm.fileExists(atPath:root.appendingPathComponent("work/install/chemoffice-for-mac.xml").path),"Staging manifest missing")
             try require(installer.installationIssues.count == 1 && installer.installationIssues[0].hasPrefix("word:"),"Failed host was not reported accurately")
+            try require(installer.hostIssues["word"] != nil && installer.hostIssues["powerpoint"] == nil,"Per-host setup state is inaccurate")
             try require(installer.needsInstallation(version:"test",installedVersion:"test"),"Failed installation was marked current")
         }
         try check("Partial failures are retried even with the old success marker") {
@@ -55,6 +56,7 @@ import Foundation
             try require(try installer.install(),"Retry did not repair the missing manifest")
             try require(copied == [installer.destinations()[0]],"Retry replaced an already-current host")
             try require(installer.installationIssues.isEmpty && !installer.needsInstallation(version:"test",installedVersion:"test"),"Successful retry is still incomplete")
+            try require(installer.hostIssues.isEmpty,"Permission error remained after successful retry")
             try require(installer.needsInstallation(version:"next",installedVersion:"test"),"Upgrade setup was skipped")
         }
         try check("Missing, outdated, empty and silently failed manifest copies are repaired") {
@@ -90,6 +92,22 @@ import Foundation
         let server = try NativeOfficeServer(root:root,port:0)
         var edited = [String](); server.router.edit = { edited.append($0) }
         let headers = ["host":"localhost:17524"]
+        try check("Only installed Office hosts are configured") {
+            let wordOnly = NativeInstaller(root:root,home:root.appendingPathComponent("word-only"),hosts:["word"])
+            try require(try wordOnly.install(report:false),"Word-only installation failed")
+            try require(wordOnly.destinations().count == 1 && wordOnly.destinations()[0].path.contains("com.microsoft.Word"),"Wrong host configured")
+            try require(!fm.fileExists(atPath:wordOnly.home.appendingPathComponent("Library/Containers/com.microsoft.Powerpoint").path),"Setup created an uninstalled Office container")
+        }
+        try check("Listening HTTPS alone does not mark the paste helper ready") {
+            server.router.ready = { false }
+            let response = server.router.response(method:"GET",target:"/api/status",headers:headers,body:Data())
+            let object = try JSONSerialization.jsonObject(with:response.body) as? [String:Any]
+            try require(object?["ready"] as? Bool == false,"Listener falsely reported event-monitor readiness")
+            let valid = headers.merging(["x-chemoffice-token":server.router.token]) { _,new in new }
+            try require(server.router.response(method:"POST",target:"/api/edit",headers:valid,body:Data("{\"host\":\"word\"}".utf8)).status == 400,"Edit accepted before monitor readiness")
+            try require(edited.isEmpty,"Unready edit was executed")
+            server.router.ready = { true }
+        }
         try check("Cross-site, wrong-host and missing-token edits are refused") {
             try require(server.router.response(method:"GET",target:"/api/status",headers:["host":"unrelated.example"],body:Data()).status == 403,"Host validation failed")
             try require(server.router.response(method:"POST",target:"/api/edit",headers:headers,body:Data("{\"host\":\"word\"}".utf8)).status == 403,"Token validation failed")

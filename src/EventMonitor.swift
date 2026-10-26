@@ -264,7 +264,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
 }
 
 guard AXIsProcessTrusted() else {
-    emit(["event": "fatal", "message": "Enable ChemOffice in System Settings → Privacy & Security → Accessibility, then start the helper again."])
+    emit(["event": "fatal", "message": "请在系统设置 → 辅助功能中启用 ChemOffice，完成安装窗口会自动继续。"])
     exit(2)
 }
 let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.keyDown.rawValue)

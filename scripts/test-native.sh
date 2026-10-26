@@ -12,3 +12,6 @@ cd "$PROJECT_DIR"
 "$PROJECT_DIR/build/test-bridge" | /usr/bin/awk '/^PASS|^Passed/'
 xcrun swiftc -O "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeOfficeUI.swift" "$PROJECT_DIR/src/NativeInstaller.swift" "$PROJECT_DIR/tests/native/PanelTests.swift" -o "$PROJECT_DIR/build/test-panel" -framework Cocoa -framework Network -framework Security
 "$PROJECT_DIR/build/test-panel" | /usr/bin/awk '/^PASS|^Passed/'
+
+xcrun swiftc -O "$PROJECT_DIR/src/NativeSetup.swift" "$PROJECT_DIR/tests/native/SetupTests.swift" -o "$PROJECT_DIR/build/test-setup"
+"$PROJECT_DIR/build/test-setup"

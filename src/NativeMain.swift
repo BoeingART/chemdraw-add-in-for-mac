@@ -10,11 +10,16 @@ class NativeMonitorRuntime {
     var signals = [DispatchSourceSignal]()
     var lockFD: Int32 = -1
     var stopped = false
+    var failureMessage: String?
+    func writeStatus(_ phase:HelperStatus.Phase,_ message:String? = nil) {
+        try? HelperStatus(pid:getpid(),monitorPID:process.isRunning ? process.processIdentifier : nil,phase:phase,message:message).write(work:bridge.work)
+    }
     init(root:URL) { bridge = NativeBridge(root:root,automation:NativeAutomation(root:root)) }
     func run() throws -> Never {
         try bridge.prepare()
         lockFD = Darwin.open(bridge.work.appendingPathComponent("monitor.lock").path,O_CREAT|O_WRONLY,0o600)
         try require(lockFD >= 0 && flock(lockFD,LOCK_EX|LOCK_NB) == 0,"A ChemOffice monitor is already running")
+        writeStatus(.starting)
         try bridge.restore()
         let app = try bridge.automation.application()
         bridge.record("chemdraw_selected",["path":app.path,"version":app.version,"bundle":app.bundle])
@@ -27,6 +32,10 @@ class NativeMonitorRuntime {
         if FileManager.default.fileExists(atPath:tls.appendingPathComponent("localhost.pem").path) {
             do {
                 let panel = try NativeOfficeServer(root:bridge.root)
+                panel.router.ready = { [weak self] in
+                    guard let self else { return false }
+                    return HelperStatus.read(work:self.bridge.work,expectedPID:getpid())?.phase == .ready
+                }
                 panel.router.editing = { [weak self] in self?.worker.sync { self?.bridge.session != nil } ?? false }
                 panel.router.edit = { [weak self] host in
                     guard let self else { throw ChemOfficeError("Helper is stopping") }
@@ -45,6 +54,11 @@ class NativeMonitorRuntime {
             do {
                 try readMonitorEvents(pipe.fileHandleForReading) { event in
                     worker.async { [self] in
+                        if event["event"] as? String == "ready" { writeStatus(.ready) }
+                        if event["event"] as? String == "fatal" {
+                            failureMessage = event["message"] as? String ?? "键盘与鼠标监听需要重新授权。"
+                            writeStatus(.failed,failureMessage)
+                        }
                         do { try bridge.handle(event) }
                         catch { bridge.record("error",["operation":event["event"] ?? "unknown","message":error.localizedDescription]) }
                     }
@@ -63,6 +77,7 @@ class NativeMonitorRuntime {
         if stopped { exit(0) }; stopped = true
         server?.stop(); if process.isRunning { process.terminate(); process.waitUntilExit() }
         bridge.session?.busy = false; try? bridge.writeState(); bridge.record("stopped")
+        writeStatus(status == 0 && failureMessage == nil ? .stopped : .failed,failureMessage)
         if lockFD >= 0 { Darwin.close(lockFD) }
         exit(status)
     }
@@ -73,7 +88,7 @@ class NativeMonitorRuntime {
         setbuf(stdout,nil)
         let root = URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent().deletingLastPathComponent()
         let args = Array(CommandLine.arguments.dropFirst())
-        if (args.isEmpty || args == ["--preview"] || args == ["--app-self-test"]) && Bundle.main.bundleIdentifier == "com.chemoffice.mac" {
+        if (args.isEmpty || args == ["--setup"] || args == ["--preview"] || args == ["--app-self-test"]) && Bundle.main.bundleIdentifier == "com.chemoffice.mac" {
             ChemOfficeApplication.run(preview:args == ["--preview"],selfTest:args == ["--app-self-test"])
             return
         }
@@ -88,6 +103,11 @@ class NativeMonitorRuntime {
             case "discover": print(String(decoding:try JSONEncoder().encode(ChemDrawApplication.installed()),as:UTF8.self))
             default: throw ChemOfficeError("Usage: chemoffice run|demo word|demo powerpoint|install|check|discover")
             }
-        } catch { FileHandle.standardError.write(Data(("ChemOffice: "+error.localizedDescription+"\n").utf8)); exit(1) }
+        } catch {
+            if args.first == "run" {
+                try? HelperStatus(pid:getpid(),monitorPID:nil,phase:.failed,message:error.localizedDescription).write(work:NativePaths.work(root:root))
+            }
+            FileHandle.standardError.write(Data(("ChemOffice: "+error.localizedDescription+"\n").utf8)); exit(1)
+        }
     }
 }

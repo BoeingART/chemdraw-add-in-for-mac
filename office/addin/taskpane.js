@@ -15,6 +15,7 @@ async function refresh() {
     const response = await fetch('/api/status', {cache:'no-store'});
     if (!response.ok) throw new Error('Connection unavailable');
     const data = await response.json();
+    if (!data.ready) throw new Error('Paste helper is starting');
     byId('dot').className = 'ready';
     byId('status').textContent = data.editing ? 'ChemDraw edit in progress' : 'Ready to keep drawing';
     byId('detail').textContent = data.editing ? 'Close with ⌘W to update Office.' : 'Double-click a ChemOffice drawing, or use the button below.';
@@ -26,7 +27,7 @@ async function refresh() {
   } catch (_) {
     byId('dot').className = '';
     byId('status').textContent = 'Local helper is unavailable';
-    byId('detail').textContent = 'Open ChemOffice from Applications, then reopen this panel.';
+    byId('detail').textContent = 'Open ChemOffice → 完成安装 to finish permissions and start the paste helper.';
     byId('edit').disabled = true;
   }
 }
