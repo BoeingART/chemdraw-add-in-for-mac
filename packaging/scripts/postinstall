@@ -4,8 +4,19 @@ set -eu
 # Only a live system with a signed-in desktop user can launch the per-user setup.
 # Do not create user files or trust certificates as root, or touch an offline target.
 if [ "${3:-/}" != / ]; then exit 0; fi
+CFM_INFO="$(/usr/bin/dirname "$0")/app-info.plist"
+CFM_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$CFM_INFO")
+CFM_BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CFM_INFO")
+CFM_APP="/Applications/$CFM_NAME.app"
+# Retire the previous application name only after the replacement is installed.
+# Keep Application Support, certificates, sessions and Office document identities.
+CFM_OLD=/Applications/ChemOffice.app
+if [ "$CFM_OLD" != "$CFM_APP" ] && [ -d "$CFM_APP" ] && [ -d "$CFM_OLD" ]; then
+    CFM_OLD_BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CFM_OLD/Contents/Info.plist" 2>/dev/null || true)
+    if [ "$CFM_OLD_BUNDLE" = "$CFM_BUNDLE" ]; then /bin/rm -rf "$CFM_OLD"; fi
+fi
 CFM_USER=$(/usr/bin/stat -f %Su /dev/console)
 case "$CFM_USER" in root|loginwindow|_mbsetupuser|"") exit 0 ;; esac
 CFM_UID=$(/usr/bin/id -u "$CFM_USER")
-/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/open /Applications/ChemOffice.app --args --setup || true
+/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/open "$CFM_APP" --args --setup
 exit 0

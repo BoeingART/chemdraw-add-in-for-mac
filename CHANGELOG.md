@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.1.0 — 2026-10-27
+
+- Rename the application and Office add-in to ChemOffice Add-ins for Mac.
+- Replace the menu bar icon with a configuration window and Dock entry for permissions, helper controls, panel setup and diagnostics.
+- Reset the signed-in user's Office file-access consent before every installation, including first installs; read the application identity from packaged metadata.
+- Remove the previous application bundle after installing the renamed app, while retaining certificates, chemistry and recovery drafts.
+- Preserve an explicit helper pause when reopening configuration.
+
 ## v1.0.6 — 2026-10-26
 
 - Handle right-click Paste through the editable chemistry pipeline and add a Paste editable drawing panel action.
@@ -48,7 +56,7 @@
 
 - Discover installed ChemDraw applications and prefer the newest numeric version; use exact application paths and pin active sessions.
 - Replace the Python bridge, image dependencies, installer, and HTTPS panel with native Swift using macOS frameworks and system zlib. Setup no longer downloads packages.
-- Preserve CFM1/CFM2 source envelopes, existing example documents, source/preview verification, recovery drafts, and unsaved-PowerPoint save-and-resume behavior.
+- Preserve CFM1/CFM2 source envelopes, existing example documents, source and preview validation, recovery drafts, and unsaved-PowerPoint save-and-resume behavior.
 - Ship a universal Apple Silicon / Intel pkg installing ChemOffice.app in Applications. Runtime requires no source checkout or developer tools.
 - Replace all eight root `.command` launchers with a native menu bar app for helper control, per-user add-in installation, local certificate trust, diagnostics, and guides.
 - Preserve per-user certificates and chemistry in Application Support across app upgrades. The pkg opens first-run setup in the signed-in user session and never trusts certificates as root.
@@ -81,14 +89,14 @@ First public source preview for ChemDraw 22, Word for Mac, and PowerPoint for Ma
 ### Sharp artwork and a visible Office panel
 
 - Render bonds and labels with ChemDraw's native SVG paths and text.
-- Preserve native CDX/CDXML source inside each managed graphic, with checksum checks.
+- Preserve native CDX/CDXML source inside each managed graphic, with source validation.
 - Keep PowerPoint picture proportions correct at insertion and write-back.
 - Open a ChemOffice task pane from Developer Add-ins or the ChemOffice ribbon tab in both Word and PowerPoint.
 - Edit the selected drawing from the panel and check local connection status with the supplied launcher.
 
 ### Installation and validation
 
-The release is a source ZIP with English and Chinese installation instructions and SHA-256 checksums. Setup requires Python 3.10 or later and Apple's command-line tools. The Office panel uses local sideloading and a per-Mac localhost certificate approved by the user.
+The release is a source ZIP with English and Chinese installation instructions and installation guides. Setup requires Python 3.10 or later and Apple's command-line tools. The Office panel uses local sideloading and a per-Mac localhost certificate approved by the user.
 
 Twenty-four automated tests passed during implementation. Live tests used macOS 27.0, ChemDraw 22.0.0.22, Word 16.114, and PowerPoint 16.114. See [launch and panel results](docs/launch-and-installation-results.md) and [vector and recovery results](docs/vector-and-recovery-results.md) for exact scenarios.
 

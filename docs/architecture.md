@@ -44,3 +44,10 @@ The user controls Office saving. Paste and write-back do not send Office Save or
 The native app opens a visible setup checklist after installation and on reopen. A serial background check installs/read-verifies manifests and probes each installed Office host cache; a main-thread timer observes Accessibility changes and automatically advances to helper startup. Explicit Stop Helper suspends this policy. Failed startup waits for a retry or a permission change.
 
 The helper writes atomic `helper-status-<pid>.json` updates with its PID, monitor PID and starting/ready/failed/stopped phases. The ready phase is emitted only after the monitor installs its event tap. The app accepts health for its current child PID and enables setup completion only when folder probes, application discovery, Accessibility and monitor readiness all pass. The HTTPS panel also checks readiness before exposing editing actions.
+
+
+## Configuration application and installation reset (1.1.0)
+
+The native app uses regular activation with a Dock entry and a configuration window. The NSStatusBar entry is removed. Helper controls, panel trust, diagnostics, local data and the guide are available in the window. Closing the window retains the helper; reopening it preserves a deliberate pause. Installation readiness continues to require independent Office folder checks, Accessibility and a ready event from the keyboard/mouse monitor.
+
+The package preinstall script resets `SystemPolicyAppDataDetailed` for the signed-in desktop user on every live installation. Both installer scripts read the bundle identifier and display name from the packaged application's Info.plist. The bundle remains `com.chemoffice.mac`. The application component is nonrelocatable and installs at `/Applications/ChemOffice Add-ins for Mac.app`. Postinstall removes a matching legacy `/Applications/ChemOffice.app` after the replacement is present, then opens setup in the user session. Private data and Office document identities retain their existing locations and values. Offline targets skip user-session changes.

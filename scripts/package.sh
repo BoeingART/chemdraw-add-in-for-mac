@@ -3,12 +3,13 @@
 set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 CFM_VERSION="$(<"$PROJECT_DIR/VERSION")"
+CFM_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PROJECT_DIR/packaging/Info.plist")"
 [[ "$CFM_VERSION" == "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PROJECT_DIR/packaging/Info.plist")" ]] || { print 'Update packaging metadata for the new version first.'; exit 1; }
 zsh "$PROJECT_DIR/scripts/build.sh" --universal
 CFM_STAGE="$PROJECT_DIR/build/package"
-CFM_APP="$CFM_STAGE/root/Applications/ChemOffice.app"
+CFM_APP="$CFM_STAGE/root/Applications/$CFM_NAME.app"
 rm -rf "$CFM_STAGE"
-mkdir -p "$CFM_APP/Contents/MacOS" "$CFM_APP/Contents/Resources/build" "$CFM_STAGE/resources" "$PROJECT_DIR/dist"
+mkdir -p "$CFM_APP/Contents/MacOS" "$CFM_APP/Contents/Resources/build" "$CFM_STAGE/resources" "$CFM_STAGE/scripts" "$PROJECT_DIR/dist"
 cp "$PROJECT_DIR/packaging/Info.plist" "$CFM_APP/Contents/Info.plist"
 cp "$PROJECT_DIR/build/chemoffice" "$CFM_APP/Contents/MacOS/ChemOffice"
 cp "$PROJECT_DIR/build/chemoffice" "$PROJECT_DIR/build/event-monitor" "$CFM_APP/Contents/Resources/build/"
@@ -29,10 +30,16 @@ for CFM_BINARY in "$CFM_APP/Contents/Resources/build/event-monitor" "$CFM_APP/Co
 done
 /usr/bin/codesign --force --sign - --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP"
 /usr/bin/codesign --verify --deep --strict "$CFM_APP"
+cp "$PROJECT_DIR/packaging/scripts/preinstall" "$PROJECT_DIR/packaging/scripts/postinstall" "$CFM_STAGE/scripts/"
+chmod 755 "$CFM_STAGE/scripts/preinstall" "$CFM_STAGE/scripts/postinstall"
+cp "$PROJECT_DIR/packaging/Info.plist" "$CFM_STAGE/scripts/app-info.plist"
 cp "$PROJECT_DIR/packaging/Welcome.html" "$PROJECT_DIR/packaging/Conclusion.html" "$CFM_STAGE/resources/"
 cp "$PROJECT_DIR/LICENSE" "$CFM_STAGE/resources/LICENSE.txt"
-/usr/bin/pkgbuild --root "$CFM_STAGE/root" --identifier com.chemoffice.mac.pkg --version "$CFM_VERSION" --install-location / --scripts "$PROJECT_DIR/packaging/scripts" --ownership recommended "$CFM_STAGE/ChemOffice-component.pkg"
-/usr/bin/productbuild --distribution "$PROJECT_DIR/packaging/Distribution.xml" --resources "$CFM_STAGE/resources" --package-path "$CFM_STAGE" "$PROJECT_DIR/dist/ChemOffice-for-Mac-$CFM_VERSION-universal.pkg"
+/usr/bin/pkgbuild --analyze --root "$CFM_STAGE/root" "$CFM_STAGE/components.plist"
+/usr/libexec/PlistBuddy -c 'Add :0:BundleIsRelocatable bool false' "$CFM_STAGE/components.plist"
+/usr/bin/pkgbuild --root "$CFM_STAGE/root" --component-plist "$CFM_STAGE/components.plist" --identifier com.chemoffice.mac.pkg --version "$CFM_VERSION" --install-location / --scripts "$CFM_STAGE/scripts" --ownership recommended "$CFM_STAGE/ChemOffice-component.pkg"
+/usr/bin/productbuild --distribution "$PROJECT_DIR/packaging/Distribution.xml" --resources "$CFM_STAGE/resources" --package-path "$CFM_STAGE" "$CFM_STAGE/ChemOffice-Add-ins-for-Mac-$CFM_VERSION-universal.pkg"
+mv "$CFM_STAGE/ChemOffice-Add-ins-for-Mac-$CFM_VERSION-universal.pkg" "$PROJECT_DIR/dist/"
 cd "$PROJECT_DIR/dist"
-/usr/bin/shasum -a 256 "ChemOffice-for-Mac-$CFM_VERSION-universal.pkg" > SHA256SUMS.txt
-print "Created dist/ChemOffice-for-Mac-$CFM_VERSION-universal.pkg (unsigned, not notarized)."
+/usr/bin/shasum -a 256 "ChemOffice-Add-ins-for-Mac-$CFM_VERSION-universal.pkg" > SHA256SUMS.txt
+print "Created dist/ChemOffice-Add-ins-for-Mac-$CFM_VERSION-universal.pkg."

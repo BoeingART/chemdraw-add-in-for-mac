@@ -22,7 +22,7 @@ import Foundation
         try check("Upgrades share the same user data while different users remain isolated") {
             let home = root.appendingPathComponent("one-user")
             let old = root.appendingPathComponent("old/ChemOffice.app/Contents/Resources")
-            let new = root.appendingPathComponent("new/ChemOffice.app/Contents/Resources")
+            let new = root.appendingPathComponent("new/ChemOffice Add-ins for Mac.app/Contents/Resources")
             try require(NativePaths.work(root:old,home:home) == NativePaths.work(root:new,home:home),"Upgrade lost the data location")
             try require(NativePaths.work(root:new,home:home) != NativePaths.work(root:new,home:root.appendingPathComponent("other-user")),"User data is shared")
         }

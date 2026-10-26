@@ -7,7 +7,7 @@ class NativeInstaller {
     let hosts: [String]
     private(set) var installationIssues = [String]()
     private(set) var hostIssues = [String:String]()
-    static let activationInstructions = "Office 2021 / 16.78: Insert → Add-ins → My Add-ins (▼) → Developer Add-ins → ChemOffice for Mac. Newer Office: Home → Add-ins → Developer Add-ins. Open a document first; the ChemOffice ribbon tab appears after activating the add-in."
+    static let activationInstructions = "Office 2021 / 16.78: Insert → Add-ins → My Add-ins (▼) → Developer Add-ins → ChemOffice Add-ins for Mac. Newer Office: Home → Add-ins → Developer Add-ins. Open a document first; the ChemOffice Add-ins for Mac ribbon tab appears after activating the add-in."
     var copy: (URL,URL) throws -> Void = { source,target in
         // Replace only this manifest; retain every unrelated add-in.
         try Data(contentsOf:source).write(to:target,options:.atomic)
@@ -20,7 +20,7 @@ class NativeInstaller {
     }
     func trustCertificate(_ cert:URL) throws {
         try command("/usr/bin/security",["add-trusted-cert","-r","trustRoot","-p","ssl","-s","localhost","-k",home.appendingPathComponent("Library/Keychains/login.keychain-db").path,cert.path],timeout:300)
-        try require(certificateTrusted(cert),"macOS has not trusted the localhost certificate. Choose Trust Local Connection again and complete the macOS authentication prompt, then restart Office.")
+        try require(certificateTrusted(cert),"macOS has not trusted the localhost certificate. Open ChemOffice Add-ins for Mac, choose 启用 Office 面板 and complete the macOS authentication prompt, then restart Office.")
     }
     func prepareTLS() throws -> URL {
         let directory = NativePaths.work(root:root,home:home).appendingPathComponent("tls"), fm = FileManager.default
@@ -37,7 +37,7 @@ class NativeInstaller {
         prompt=no
         [dn]
         CN=ChemOffice Localhost
-        O=ChemOffice for Mac Local Preview
+        O=ChemOffice Add-ins for Mac Local Preview
         [ext]
         subjectAltName=DNS:localhost,IP:127.0.0.1
         basicConstraints=critical,CA:FALSE
@@ -94,7 +94,7 @@ class NativeInstaller {
             }
         }
         if report {
-            if !installationIssues.isEmpty { print("Open ChemOffice → 完成安装. Allow Microsoft Word and Microsoft PowerPoint under Privacy & Security → Files & Folders → ChemOffice; setup retries automatically.") }
+            if !installationIssues.isEmpty { print("Open ChemOffice Add-ins for Mac → 完成安装. Allow Microsoft Word and Microsoft PowerPoint under Privacy & Security → Files & Folders → ChemOffice Add-ins for Mac; setup retries automatically.") }
             print(Self.activationInstructions)
         }
         return installationIssues.isEmpty
@@ -103,7 +103,7 @@ class NativeInstaller {
         for target in destinations() {
             do {
                 let actual = try Data(contentsOf:target), expected = try Data(contentsOf:root.appendingPathComponent("office/addin/manifest.xml"))
-                print("Manifest \(actual == expected ? "verified" : "OUTDATED / INVALID — choose Install Office Add-ins"): \(target.path)")
+                print("Manifest \(actual == expected ? "verified" : "OUTDATED / INVALID — open ChemOffice Add-ins for Mac and choose 修复加载项"): \(target.path)")
             }
             catch let error as NSError where error.domain == NSCocoaErrorDomain && [NSFileReadNoPermissionError,NSFileWriteNoPermissionError].contains(error.code) { print("macOS protects this folder; confirm the entry in Office: \(target.path)") }
             catch { print("Manifest missing or unreadable: \(target.path) — \(error.localizedDescription)") }
@@ -114,7 +114,7 @@ class NativeInstaller {
                 print("\(name) version: \(app.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "unknown")")
             }
             if let previews = try? NativePaths.officePreviews(host,home:home) {
-                print("Office preview cache: \(previews.path)\(FileManager.default.isWritableFile(atPath:previews.path) ? "" : " — unavailable; choose Install Office Add-ins and allow folder access")")
+                print("Office preview cache: \(previews.path)\(FileManager.default.isWritableFile(atPath:previews.path) ? "" : " — unavailable; open ChemOffice Add-ins for Mac and choose 修复加载项 and allow folder access")")
             }
         }
         for name in ["Word","PowerPoint"] where FileManager.default.fileExists(atPath:"/Applications/Microsoft \(name).app/Contents/_MASReceipt/receipt") { print("Mac App Store build detected: \(name); confirm activation inside Office.") }
@@ -122,8 +122,8 @@ class NativeInstaller {
         else { print("ChemDraw: no installed application found") }
         let cert = NativePaths.work(root:root,home:home).appendingPathComponent("tls/localhost.pem")
         if FileManager.default.fileExists(atPath:cert.path) {
-            print("Local certificate: " + (certificateTrusted(cert) ? "trusted for localhost" : "NOT TRUSTED — choose Trust Local Connection in ChemOffice, authenticate, then restart Office"))
-            print("Local helper: " + ((try? command("/usr/bin/curl",["--noproxy","*","--silent","--fail","--max-time","3","--cacert",cert.path,"https://localhost:17524/api/status"])) != nil ? "running" : "open ChemOffice from Applications"))
+            print("Local certificate: " + (certificateTrusted(cert) ? "trusted for localhost" : "NOT TRUSTED — choose 启用 Office 面板 in ChemOffice Add-ins for Mac, authenticate, then restart Office"))
+            print("Local helper: " + ((try? command("/usr/bin/curl",["--noproxy","*","--silent","--fail","--max-time","3","--cacert",cert.path,"https://localhost:17524/api/status"])) != nil ? "running" : "open ChemOffice Add-ins for Mac from Applications"))
         }
         print(Self.activationInstructions)
     }

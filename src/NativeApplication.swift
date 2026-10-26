@@ -5,8 +5,10 @@ import ApplicationServices
 final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     let root = Bundle.main.resourceURL!
     let setupQueue = DispatchQueue(label:"ChemOffice installation checks")
-    var item: NSStatusItem!
-    var status: NSMenuItem!
+    var status: NSTextField!
+    var configurationButtons = [NSButton]()
+    var helperButton: NSButton!
+    var stopButton: NSButton!
     var helper: Process?
     var output: FileHandle?
     var quitting = false
@@ -24,6 +26,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var latestActivity: HelperActivity?
     var shownFailure: String?
     var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development" }
+    var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemOffice Add-ins for Mac" }
     var work: URL { NativePaths.work(root:root) }
     var helperReady: Bool {
         guard let helper, helper.isRunning else { return false }
@@ -33,38 +36,30 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
 
     static func run(preview: Bool = false, selfTest: Bool = false) {
         let app = NSApplication.shared
+        app.setActivationPolicy(.regular)
         let delegate = ChemOfficeApplication()
         delegate.preview = preview; delegate.selfTest = selfTest
         app.delegate = delegate
         withExtendedLifetime(delegate) { app.run() }
     }
     func applicationDidFinishLaunching(_ notification: Notification) {
-        item = NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength)
-        item.button?.title = "ChemOffice"
-        let menu = NSMenu()
-        status = NSMenuItem(title:"正在检查安装…",action:nil,keyEquivalent:"")
-        menu.addItem(status); menu.addItem(.separator())
-        for (title,action) in [("完成安装…",#selector(showSetup)),("Start Helper",#selector(startHelper)),("Stop Helper",#selector(stopHelper)),("Open Panel",#selector(openPanel)),("Check Installation",#selector(checkInstallation)),("Install Office Add-ins",#selector(installAddins)),("Trust Local Connection…",#selector(trustConnection)),("Accessibility Settings…",#selector(accessibilitySettings)),("Open Local Data",#selector(openData)),("Installation Guide",#selector(openGuide))] {
-            let entry = NSMenuItem(title:title,action:action,keyEquivalent:"")
-            entry.target = self; menu.addItem(entry)
-        }
-        menu.addItem(.separator())
-        let quit = NSMenuItem(title:"Quit ChemOffice",action:#selector(quitApp),keyEquivalent:"q")
-        quit.target = self; menu.addItem(quit); item.menu = menu
+        buildApplicationMenu()
         buildSetupWindow()
         if selfTest {
-            let entries = menu.items.filter { $0.action != nil }
             let initiallyBlocked = !finishButton.isEnabled
             renderSetup(ready:true)
-            let valid = entries.count == 11 && entries.allSatisfy { $0.target === self && responds(to:$0.action!) }
+            let valid = configurationButtons.count == 13 && configurationButtons.allSatisfy { $0.target === self && $0.action != nil && responds(to:$0.action!) }
                 && initiallyBlocked && finishButton.isEnabled && details.count == 4
+                && NSApp.activationPolicy() == .regular
+                && Bundle.main.object(forInfoDictionaryKey:"LSUIElement") as? Bool != true
+                && setupWindow?.title == "\(appName) · 配置"
                 && NativePaths.work(root:root).path.contains("Library/Application Support/ChemOffice/work")
                 && ["build/chemoffice","build/event-monitor","office/addin/manifest.xml","assets/demo.cdxml","docs/quickstart-zh.txt"].allSatisfy { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
-            print(valid ? "PASS native app startup, setup window, completion gate, menu actions and bundled resources" : "FAIL native app startup self-test")
+            print(valid ? "PASS native app startup, Dock presence, configuration actions, completion gate and bundled resources" : "FAIL native app startup self-test")
             exit(valid ? 0 : 1)
         }
         if preview {
-            status.title = "v\(version) — 安装界面预览"
+            status.stringValue = "v\(version) · 配置界面预览"
             showSetup(); return
         }
         // Keep the setup visible until permission checks and the event tap succeed.
@@ -75,8 +70,29 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows flag:Bool) -> Bool {
         showSetup()
-        if !preview { startup.resume(); refreshSetup(force:true) }
+        if !preview { refreshSetup(force:true) }
         return true
+    }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication) -> Bool { false }
+    func buildApplicationMenu() {
+        let main = NSMenu()
+        let applicationItem = NSMenuItem(); main.addItem(applicationItem)
+        let application = NSMenu(title:appName); applicationItem.submenu = application
+        for (title,action,key) in [("关于 \(appName)",#selector(NSApplication.orderFrontStandardAboutPanel(_:)),""),("配置…",#selector(showSetup),","),("隐藏 \(appName)",#selector(NSApplication.hide(_:)),"h"),("退出 \(appName)",#selector(quitApp),"q")] {
+            let entry = NSMenuItem(title:title,action:action,keyEquivalent:key)
+            entry.target = [#selector(showSetup),#selector(quitApp)].contains(action) ? self : NSApp
+            application.addItem(entry)
+        }
+        let windowItem = NSMenuItem(); main.addItem(windowItem)
+        let window = NSMenu(title:"窗口"); windowItem.submenu = window
+        window.addItem(withTitle:"最小化",action:#selector(NSWindow.performMiniaturize(_:)),keyEquivalent:"m")
+        window.addItem(withTitle:"关闭窗口",action:#selector(NSWindow.performClose(_:)),keyEquivalent:"w")
+        NSApp.mainMenu = main; NSApp.windowsMenu = window
+    }
+    func button(_ title:String,_ action:Selector) -> NSButton {
+        let button = NSButton(title:title,target:self,action:action)
+        button.bezelStyle = .rounded; configurationButtons.append(button)
+        return button
     }
     func label(_ text:String, size:CGFloat = 13, bold:Bool = false) -> NSTextField {
         let field = NSTextField(wrappingLabelWithString:text)
@@ -84,16 +100,17 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         return field
     }
     func buildSetupWindow() {
-        let window = NSWindow(contentRect:NSRect(x:0,y:0,width:680,height:590),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
-        window.title = "ChemOffice · 完成安装"
+        let window = NSWindow(contentRect:NSRect(x:0,y:0,width:780,height:740),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
+        window.title = "\(appName) · 配置"
         window.isReleasedWhenClosed = false
         let content = window.contentView!
-        let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 18
+        let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 16
         stack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo:content.leadingAnchor,constant:28),stack.trailingAnchor.constraint(equalTo:content.trailingAnchor,constant:-28),stack.topAnchor.constraint(equalTo:content.topAnchor,constant:24)])
-        stack.addArrangedSubview(label("让复制的结构可以继续编辑",size:23,bold:true))
-        let intro = label("请完成下面两类系统授权。ChemOffice 会自动配置加载项、检查读写权限并启动粘贴助手，授权后会继续完成安装。")
+        stack.addArrangedSubview(label(appName,size:25,bold:true))
+        status = label("正在检查安装…",size:14,bold:true); stack.addArrangedSubview(status)
+        let intro = label("完成安装 · 确认 Office 文件访问和辅助功能授权。程序会自动配置加载项并启动粘贴助手。日常设置与运行状态也在此窗口查看。")
         stack.addArrangedSubview(intro); intro.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
         for (key,title,action,buttonTitle) in [
             ("word","1. Word 文件访问",#selector(officeFolderSettings),"打开文件访问设置"),
@@ -105,21 +122,28 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             let detail = label(key == "helper" ? helperMessage : "正在检查…")
             details[key] = detail
             let words = NSStackView(views:[heading,detail]); words.orientation = .vertical; words.alignment = .leading; words.spacing = 5
-            let button = NSButton(title:buttonTitle,target:self,action:action); button.bezelStyle = .rounded
+            let button = button(buttonTitle,action)
+            if key == "helper" { helperButton = button }
             let row = NSStackView(views:[words,button]); row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 16
             stack.addArrangedSubview(row); row.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
-            words.widthAnchor.constraint(equalToConstant:430).isActive = true
+            words.widthAnchor.constraint(equalToConstant:560).isActive = true
             detail.widthAnchor.constraint(equalTo:words.widthAnchor).isActive = true
         }
-        let note = label("在系统设置中为 ChemOffice 打开 Microsoft Word、Microsoft PowerPoint 和辅助功能。状态将自动更新。\n完成后可直接粘贴；如需加载项面板，点击“启用 Office 面板”，保存手头工作并重新打开 Office。")
+        let note = label("在系统设置中为 \(appName) 启用所用 Office 应用的文件访问及辅助功能，状态会自动更新。\n关闭窗口后助手继续运行，点击 Dock 图标或从“应用程序”重新打开即可配置。")
         note.textColor = .secondaryLabelColor
         stack.addArrangedSubview(note); note.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
         let footer = NSStackView(); footer.orientation = .horizontal; footer.spacing = 12
-        let guide = NSButton(title:"使用说明",target:self,action:#selector(openGuide)); guide.bezelStyle = .rounded
-        let panel = NSButton(title:"启用 Office 面板",target:self,action:#selector(trustConnection)); panel.bezelStyle = .rounded
-        finishButton = NSButton(title:"开始使用",target:self,action:#selector(finishSetup)); finishButton.bezelStyle = .rounded; finishButton.keyEquivalent = "\r"; finishButton.isEnabled = false
-        footer.addArrangedSubview(guide); footer.addArrangedSubview(panel); footer.addArrangedSubview(finishButton)
+        stopButton = button("暂停助手",#selector(stopHelper)); footer.addArrangedSubview(stopButton)
+        footer.addArrangedSubview(button("启用 Office 面板",#selector(trustConnection)))
+        footer.addArrangedSubview(button("打开面板",#selector(openPanel)))
+        finishButton = button("开始使用",#selector(finishSetup)); finishButton.keyEquivalent = "\r"; finishButton.isEnabled = false
+        footer.addArrangedSubview(finishButton)
         stack.addArrangedSubview(footer)
+        let tools = NSStackView(); tools.orientation = .horizontal; tools.spacing = 12
+        for (title,action) in [("检查安装",#selector(checkInstallation)),("修复加载项",#selector(installAddins)),("本机数据",#selector(openData)),("使用说明",#selector(openGuide)),("退出应用",#selector(quitApp))] {
+            tools.addArrangedSubview(button(title,action))
+        }
+        stack.addArrangedSubview(tools)
         content.bottomAnchor.constraint(greaterThanOrEqualTo:stack.bottomAnchor,constant:24).isActive = true
         setupWindow = window; window.center()
     }
@@ -136,20 +160,23 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     func renderSetup(ready:Bool) {
         finishButton.isEnabled = ready
+        setupWindow?.title = "\(appName) · \(ready ? "配置" : "完成安装")"
+        helperButton.title = startup.wantsRunning ? "重新检查" : "启动助手"
+        stopButton.isEnabled = startup.wantsRunning
         if ready {
             if let message = latestActivity?.error {
                 setDetail("helper","操作未完成："+message,complete:false)
-                status.title = "操作需要处理 · v\(version)"
+                status.stringValue = "操作需要处理 · v\(version)"
             } else if latestActivity?.busy == true {
                 setDetail("helper",latestActivity?.message ?? "正在处理…",complete:false)
-                status.title = "正在处理结构 · v\(version)"
+                status.stringValue = "正在处理结构 · v\(version)"
             } else {
                 setDetail("helper","✓ 已就绪：直接粘贴与双击编辑已启动。",complete:true)
-                status.title = "已就绪 · v\(version)"
+                status.stringValue = "已就绪 · v\(version)"
             }
         } else {
             setDetail("helper",helperMessage,complete:false)
-            status.title = startup.wantsRunning ? "待完成安装 · v\(version)" : "粘贴助手已暂停"
+            status.stringValue = startup.wantsRunning ? "待完成安装 · v\(version)" : "粘贴助手已暂停 · v\(version)"
         }
     }
     func refreshSetup(force:Bool = false) {
@@ -177,10 +204,10 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 let powerpoint = !hosts.contains("powerpoint") || (failure == nil && installer.hostIssues["powerpoint"] == nil)
                 requirements = SetupRequirements(word:word,powerpoint:powerpoint,accessibility:AXIsProcessTrusted(),applications:hasChemDraw && !hosts.isEmpty)
                 for (host,name,ok) in [("word","Word",word),("powerpoint","PowerPoint",powerpoint)] {
-                    let text = !hosts.contains(host) ? "未安装 \(name)，已跳过。" : ok ? "✓ 已验证：加载项已配置，绘图缓存可读写。" : "需要授权：文件与文件夹 → ChemOffice → Microsoft \(name)。"
+                    let text = !hosts.contains(host) ? "未安装 \(name)，已跳过。" : ok ? "✓ 已验证：加载项已配置，绘图缓存可读写。" : "需要授权：文件与文件夹 → \(appName) → Microsoft \(name)。\(installer.hostIssues[host] ?? "")"
                     setDetail(host,failure ?? text,complete:ok && failure == nil)
                 }
-                setDetail("accessibility",requirements.accessibility ? "✓ 已授权：可以接收复制、粘贴和双击操作。" : "需要授权：在辅助功能中启用 ChemOffice；若开关已打开，请移除旧项并重新添加本应用。",complete:requirements.accessibility)
+                setDetail("accessibility",requirements.accessibility ? "✓ 已授权：可以接收复制、粘贴和双击操作。" : "需要授权：在辅助功能中启用 \(appName)；若开关已打开，请移除旧项并重新添加本应用。",complete:requirements.accessibility)
                 if word && powerpoint && failure == nil { UserDefaults.standard.set(version,forKey:"installedVersion") }
                 else { UserDefaults.standard.removeObject(forKey:"installedVersion") }
                 if !hasChemDraw { helperMessage = "请先安装并激活 ChemDraw，然后点“重新检查”。" }
@@ -215,7 +242,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             let installer = NativeInstaller(root:root)
             let cert = try installer.prepareTLS()
             if installer.certificateTrusted(cert) { return }
-            guard alert("启用 Office 本地面板", "请在 macOS 认证提示中确认，以便 Office 连接本机 ChemOffice 面板。",confirm:"启用本地连接",cancel:true) else { return }
+            guard alert("启用 Office 本地面板", "请在 macOS 认证提示中确认，以便 Office 连接本机 ChemOffice Add-ins for Mac 面板。",confirm:"启用本地连接",cancel:true) else { return }
             try installer.trustCertificate(cert)
             alert("Office 本地连接已启用", "请保存手头工作并重新打开 Word 和 PowerPoint。")
         } catch { alert("本地连接需要完成设置",error.localizedDescription) }
@@ -277,7 +304,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         DispatchQueue.global().async { [self] in
             let report = (try? command(root.appendingPathComponent("build/chemoffice").path,["check"])) ?? Data("Could not run installation checks.".utf8)
             let log = (try? String(contentsOf:work.appendingPathComponent("application.log"),encoding:.utf8)) ?? ""
-            DispatchQueue.main.async { [self] in alert("ChemOffice installation",String(decoding:report,as:UTF8.self)+"\n\nRecent helper output:\n"+log.split(separator:"\n").suffix(6).joined(separator:"\n")) }
+            DispatchQueue.main.async { [self] in alert("ChemOffice Add-ins for Mac · 安装检查",String(decoding:report,as:UTF8.self)+"\n\nRecent helper output:\n"+log.split(separator:"\n").suffix(6).joined(separator:"\n")) }
         }
     }
     @objc func quitApp() { NSApp.terminate(nil) }

@@ -20,4 +20,4 @@ for CFM_BINARY in chemoffice event-monitor; do
     for CFM_ARCH in $CFM_ARCHS; do CFM_INPUTS+=("$PROJECT_DIR/build/$CFM_BINARY-$CFM_ARCH"); done
     /usr/bin/lipo -create $CFM_INPUTS -output "$PROJECT_DIR/build/$CFM_BINARY"
 done
-print 'Built native ChemOffice. No Python or downloaded runtime packages are required.'
+print 'Built native ChemOffice Add-ins for Mac. No Python or downloaded runtime packages are required.'

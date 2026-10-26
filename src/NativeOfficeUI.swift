@@ -36,10 +36,10 @@ class PanelRouter {
             return PanelResponse(data,type:type)
         }
         guard method == "POST" && ["/api/edit","/api/paste"].contains(target), (headers["origin"] ?? "https://localhost:\(port)") == "https://localhost:\(port)", headers["x-chemoffice-token"] == token else {
-            return PanelResponse(403,["error":"Open this action from the ChemOffice panel"])
+            return PanelResponse(403,["error":"Open this action from the ChemOffice Add-ins for Mac panel"])
         }
         do {
-            try require(ready(),"Open ChemOffice → 完成安装 to finish permissions and start the paste helper.")
+            try require(ready(),"Open ChemOffice Add-ins for Mac → 完成安装 to finish permissions and start the paste helper.")
             try require(!body.isEmpty && body.count <= 128,"Invalid request")
             let object = try JSONSerialization.jsonObject(with:body) as? [String:Any]
             guard let host = object?["host"] as? String, ["word","powerpoint"].contains(host) else { throw ChemOfficeError("Select a drawing in Word or PowerPoint") }
