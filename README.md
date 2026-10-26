@@ -12,9 +12,11 @@
 
 ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and PowerPoint. Use ordinary **⌘C / ⌘V**, double-click your drawing to edit it in the installed ChemDraw, and close the editing window to update Office. Copy just that drawing to another document and its editable source goes with it. Bonds and labels use **ChemDraw's native SVG vectors**, so enlarging the figure preserves their sharp edges.
 
-> **Early preview, real applications.** This independent local helper has been tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
+> **Historical beta acceptance.** The earlier Python helper was tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
-**Current release: v0.1.0-beta.2.** Download the versioned source ZIP from [Releases](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2), extract it to a permanent folder, and follow the setup steps below. This release builds the helper on your Mac; it is not a signed `.app` or `.pkg` installer. Python 3.10 or later and Apple's command-line tools are required. Installation on a fresh Mac and compatibility beyond the tested application versions have not yet been verified.
+> **Development branch (`dev`):** the helper now runs entirely in native Swift. Python, pip, Pillow, and resvg-py are no longer required. Installed ChemDraw versions are discovered automatically, with the newest selected. Use this checkout for the native setup below; the published beta.2 source archive still contains the earlier Python implementation. Real-application acceptance of the native rewrite is pending.
+
+**Published release: v0.1.0-beta.2.** Download the versioned source ZIP from [Releases](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2), and use the installation guide included in that archive. That release uses Python. On `dev`, setup builds a native helper with Apple's command-line tools; it is still not a signed `.app` or `.pkg` installer. Installation on a fresh Mac and compatibility beyond the tested application versions have not yet been verified.
 
 **Looking for ChemOffice inside Office?** A separate local Office add-in supplies the blue C entry, a right-hand panel, and a **ChemOffice** ribbon tab. Follow the [installation and viewing guide](docs/installation.md). The panels and their **Edit selected drawing** buttons have been verified in both Word and PowerPoint on the test Mac's existing App Store builds. The double-click workflow also works independently of the panel.
 
@@ -22,9 +24,9 @@ ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and Po
 
 ### 1 · Get ready
 
-Open **Setup.command** once. It prepares the small local helper and its image-checking component inside this project folder. The first setup needs an internet connection; the editing workflow runs locally.
+In this `dev` checkout, open **Setup.command** once. It compiles the native helper inside this project folder without downloading packages. Apple command-line tools must already be installed; obtaining them may require an internet connection. The editing workflow runs locally.
 
-This preview needs an activated **ChemDraw**, **Word for Mac**, and **PowerPoint for Mac**. The helper automatically discovers installed ChemDraw applications and chooses the newest version. Its local setup also uses Python 3.10 or later and Apple's command-line tools, which are already present on the test Mac.
+This preview needs an activated **ChemDraw**, **Word for Mac**, and **PowerPoint for Mac**. The helper automatically discovers installed ChemDraw applications and chooses the newest version. Its source build requires macOS 12 or later and Apple's command-line tools with Swift 5.7 or later. This deployment target is not a claim of complete application compatibility on every supported macOS version.
 
 ### 2 · Start the helper
 
@@ -48,7 +50,7 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 
 ## What works today
 
-| Experience | Current preview |
+| Experience | Earlier beta acceptance (native rewrite pending) |
 | :--- | :--- |
 | Ordinary ChemDraw ⌘C → Word or PowerPoint ⌘V | Fresh native clipboard and vector export passed in both applications |
 | First paste into an unsaved PowerPoint deck | Prompts for a save location and resumes the same captured paste; saving and cancellation verified |

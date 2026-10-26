@@ -2,9 +2,11 @@
 
 ChemOffice has two parts. The **local helper** opens ChemDraw and saves your edits back to Office. The **Office add-in** provides a visible ChemOffice entry, a status panel, instructions, and an Edit selected drawing button. The helper's double-click workflow works independently of the panel.
 
-Download **chemoffice-for-mac-v0.1.0-beta.2-source.zip** from the [current release](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2), then extract it to a permanent folder. This is a source preview that builds on your Mac, not a signed macOS application or installer. It requires Python 3.10 or later and Apple's command-line tools as well as your licensed Office and ChemDraw applications. The release includes SHA256SUMS for its downloadable files.
+These instructions describe the native **dev branch**. Keep this checkout in a permanent folder and run **Setup.command**. It requires macOS 12 or later and Apple's command-line tools with Swift 5.7 or later. No Python, pip, Homebrew, Rust, or third-party packages are required. Install missing Apple tools with `xcode-select --install`. The macOS deployment target has not received a live Office/ChemDraw acceptance run across OS versions.
 
-To upgrade from beta.1, stop the old helper with Control-C, extract the new source to a permanent folder, and repeat setup and Office panel installation for that folder. Each folder creates its own localhost certificate; review the new fingerprint before trusting it. Reopen any Office panels after restarting the helper. Existing drawings carry their source and do not need reinsertion.
+The published **v0.1.0-beta.2** source archive still contains the older Python implementation. Its release notes and acceptance reports describe that version, not a real-application test of the native rewrite.
+
+When switching from a previous version, stop the old helper with Control-C before rebuilding. Retained session records and embedded CFM1/CFM2 sources remain readable. A restored native session reuses its exact ChemDraw installation; new sessions choose the newest installed version. If you use a new folder, install its manifests and review its own localhost certificate fingerprint before trusting it.
 
 ## Before you install the Office panel
 
@@ -14,13 +16,13 @@ An earlier automated inspection described the entries as disabled. The user then
 
 ## One-time setup
 
-1. Open **Setup.command**. It prepares the helper and its local dependencies. The first setup needs an internet connection and Apple's command-line tools.
+1. Open **Setup.command**. It prepares the helper and its local dependencies. Setup compiles both Swift executables using Apple's command-line tools, without downloading packages.
 2. Open **Install Office Add-ins.command**. It prepares this Mac's localhost certificate and copies only ChemOffice's manifest to Word and PowerPoint. It does not change certificate trust.
 3. If macOS blocks automatic copying, use the Finder steps below. The installer opens a staging folder containing the file to copy. Do not grant broad disk access just to complete these steps.
 4. Open **Trust Local Connection.command**. Review the displayed certificate fingerprint and type **TRUST** if you approve. Enter any system password yourself in the macOS prompt. This adds trust for the generated certificate's **SSL localhost** use, not a general-purpose certificate authority. Its key stays in this project, under the ignored `work/tls` folder.
 5. Open **Start ChemOffice.command** and keep its window open. Restart Word and PowerPoint after saving your documents.
 
-Keep the project in its current location. A downloaded source archive does not include this Mac's private key, virtual environment, or build outputs. On another Mac, repeat setup and trust that Mac's own certificate.
+Keep the project in its current location. A source checkout does not include this Mac's private key or build outputs. On another Mac, repeat setup and trust that Mac's own certificate.
 
 ## If automatic copying is blocked
 

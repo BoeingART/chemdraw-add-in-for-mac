@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — dev
+
+- Discover installed ChemDraw applications and prefer the newest numeric version; use exact application paths and pin active sessions.
+- Replace the Python bridge, image dependencies, installer, and HTTPS panel with native Swift using macOS frameworks and system zlib. Setup no longer downloads packages.
+- Preserve CFM1/CFM2 source envelopes, existing example documents, source/preview verification, recovery drafts, and unsaved-PowerPoint save-and-resume behavior.
+- Source builds target macOS 12+, require Apple command-line tools with Swift 5.7+, and remain unsigned. Real Office/ChemDraw acceptance of this rewrite is pending.
+
 ## v0.1.0-beta.2 — 2026-10-26
 
 ### Paste into a new PowerPoint deck

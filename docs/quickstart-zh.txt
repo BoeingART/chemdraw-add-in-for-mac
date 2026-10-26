@@ -1,10 +1,11 @@
 ChemOffice for Mac · 安装与使用
 
-当前版本：v0.1.0-beta.2（源码测试版）
+当前说明：dev 分支（原生 Swift 开发版）
+已发布的 beta.2 仍为旧 Python 版本；下面的新流程适用于本 dev 工作树。
 下载地址：https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2
-下载 chemoffice-for-mac-v0.1.0-beta.2-source.zip，解压到固定位置。
+请将 dev 分支工作树放在固定位置。
 本版本需要本机准备运行环境并编译助手，尚未提供签名、公证的 .app 或 .pkg 安装包。
-目前已在开发者的测试 Mac 上完成 Word/PPT 实测；全新 Mac 的安装及其他应用版本尚未验证。
+历史 Word/PPT 实测对应 beta.2；本次 Swift 重写的真实应用编辑回写尚待验证。
 
 每次开始使用
 
@@ -23,7 +24,9 @@ ChemOffice for Mac · 安装与使用
 
 1. 解压源代码并将项目文件夹放在固定位置。
 2. 双击 Setup.command，完成本地依赖和助手的准备。
-   需要已激活的 ChemDraw（自动发现，多个版本优先使用最新版）、Word、PowerPoint、Python 3.10 或更新版本及 Apple 命令行工具。
+   需要已激活的 ChemDraw（自动发现，多个版本优先使用最新版）、Word、PowerPoint及 Apple 命令行工具（Swift 5.7 或更新版本），源码构建目标为 macOS 12 或更新版本。
+   不需要安装 Python、pip、Pillow 或 resvg-py；Setup.command 不下载第三方依赖。
+   如缺少 Apple 命令行工具，先在终端执行 xcode-select --install。
 3. 双击 Install Office Add-ins.command。
 4. 如果提示 macOS 阻止自动复制，按安装器说明在 Finder 中复制文件。
    在 Finder 按 ⌘⇧G，分别打开：

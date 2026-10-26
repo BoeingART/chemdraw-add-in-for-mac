@@ -3,8 +3,8 @@
 set -euo pipefail
 PROJECT_DIR="${0:A:h}"
 cd "$PROJECT_DIR"
-if [[ ! -x .venv/bin/python ]]; then
+if [[ ! -x build/chemoffice ]]; then
     print 'Please open Setup.command once, then try again.'
     exit 1
 fi
-exec .venv/bin/python "$PROJECT_DIR/src/chemoffice.py" demo powerpoint
+exec "$PROJECT_DIR/build/chemoffice" demo powerpoint
