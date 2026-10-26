@@ -16,32 +16,39 @@ async function refresh() {
     if (!response.ok) throw new Error('Connection unavailable');
     const data = await response.json();
     if (!data.ready) throw new Error('Paste helper is starting');
-    byId('dot').className = 'ready';
-    byId('status').textContent = data.editing ? 'ChemDraw edit in progress' : 'Ready to keep drawing';
-    byId('detail').textContent = data.editing ? 'Close with ⌘W to update Office.' : 'Double-click a ChemOffice drawing, or use the button below.';
-    if (awaitingClose && !data.editing) {
-      byId('message').textContent = '';
+    const activity = data.activity || {};
+    byId('dot').className = activity.error ? 'error' : 'ready';
+    byId('status').textContent = activity.error ? 'Drawing action needs attention' : activity.busy ? 'Processing your drawing…' : data.editing ? 'ChemDraw edit in progress' : activity.recoverable ? 'An editing draft is available' : 'Ready to keep drawing';
+    byId('detail').textContent = activity.error ? activity.error : activity.busy ? activity.message : data.editing ? 'Close with ⌘W to update Office.' : activity.recoverable ? 'Double-click the original drawing to resume, or paste a new structure.' : 'Paste with ⌘V, right-click → Paste, or use Paste editable drawing.';
+    if (activity.error) byId('message').textContent = activity.error;
+    else if (activity.message) byId('message').textContent = activity.message;
+    if (awaitingClose && !data.editing && !activity.error && !activity.busy) {
+      byId('message').textContent = activity.message || '';
       awaitingClose = false;
     }
-    byId('edit').disabled = !host || busy;
+    byId('edit').disabled = !host || busy || !!activity.busy;
+    byId('paste').disabled = !host || busy || !!activity.busy;
   } catch (_) {
     byId('dot').className = '';
     byId('status').textContent = 'Local helper is unavailable';
     byId('detail').textContent = 'Open ChemOffice → 完成安装 to finish permissions and start the paste helper.';
     byId('edit').disabled = true;
+    byId('paste').disabled = true;
   }
 }
-byId('edit').addEventListener('click', async () => {
-  busy = true; byId('edit').disabled = true;
-  byId('message').textContent = 'Opening the selected drawing in ChemDraw…';
+async function action(kind) {
+  busy = true; byId('edit').disabled = true; byId('paste').disabled = true;
+  byId('message').textContent = kind === 'paste' ? 'Pasting an editable drawing…' : 'Opening the selected drawing in ChemDraw…';
   try {
-    const response = await fetch('/api/edit', {method:'POST', headers:{'Content-Type':'application/json','X-ChemOffice-Token':token}, body:JSON.stringify({host})});
+    const response = await fetch(`/api/${kind}`, {method:'POST', headers:{'Content-Type':'application/json','X-ChemOffice-Token':token}, body:JSON.stringify({host})});
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'The drawing could not be opened.');
-    awaitingClose = true;
-    byId('message').textContent = 'Your drawing is open in ChemDraw. Close with ⌘W to return.';
+    if (!response.ok) throw new Error(data.error || 'The drawing action could not be completed.');
+    awaitingClose = kind === 'edit';
+    byId('message').textContent = kind === 'paste' ? 'Editable drawing pasted.' : 'Your drawing is open in ChemDraw. Close with ⌘W to return.';
   } catch (error) { byId('message').textContent = error.message; }
   finally { busy = false; refresh(); }
-});
+}
+byId('edit').addEventListener('click', () => action('edit'));
+byId('paste').addEventListener('click', () => action('paste'));
 refresh();
 setInterval(refresh, 2500);

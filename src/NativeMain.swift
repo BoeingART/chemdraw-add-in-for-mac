@@ -11,6 +11,30 @@ class NativeMonitorRuntime {
     var lockFD: Int32 = -1
     var stopped = false
     var failureMessage: String?
+    lazy var activity = NativeActivity(work:bridge.work)
+    func perform(_ event:[String:Any]) throws {
+        let name = event["event"] as? String ?? ""
+        let tracked = ["paste","pasteCaptureFailed","open","edit-selection","close"].contains(name)
+        if tracked { activity.begin(name == "pasteCaptureFailed" ? "paste" : name) }
+        do {
+            try bridge.handle(event)
+            if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen) }
+        } catch {
+            if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen,error:error.localizedDescription) }
+            bridge.record("error",["operation":name,"message":error.localizedDescription])
+            throw error
+        }
+    }
+    func pasteClipboard(_ host:String) throws {
+        guard let item = chemicalClipboard() else {
+            try perform(["event":"pasteCaptureFailed","message":"请先在 ChemDraw 中选择结构并复制，再粘贴可编辑结构。"])
+            return
+        }
+        let directory = bridge.work.appendingPathComponent("pastes/\(UUID().uuidString)")
+        do { try captureChemicalClipboard(directory,item) }
+        catch { try perform(["event":"pasteCaptureFailed","message":error.localizedDescription]); return }
+        try perform(["event":"paste","host":host,"snapshot":directory.path])
+    }
     func writeStatus(_ phase:HelperStatus.Phase,_ message:String? = nil) {
         try? HelperStatus(pid:getpid(),monitorPID:process.isRunning ? process.processIdentifier : nil,phase:phase,message:message).write(work:bridge.work)
     }
@@ -21,6 +45,7 @@ class NativeMonitorRuntime {
         try require(lockFD >= 0 && flock(lockFD,LOCK_EX|LOCK_NB) == 0,"A ChemOffice monitor is already running")
         writeStatus(.starting)
         try bridge.restore()
+        activity.end(editing:false,recoverable:bridge.session != nil)
         let app = try bridge.automation.application()
         bridge.record("chemdraw_selected",["path":app.path,"version":app.version,"bundle":app.bundle])
         let pipe = Pipe()
@@ -36,10 +61,17 @@ class NativeMonitorRuntime {
                     guard let self else { return false }
                     return HelperStatus.read(work:self.bridge.work,expectedPID:getpid())?.phase == .ready
                 }
-                panel.router.editing = { [weak self] in self?.worker.sync { self?.bridge.session != nil } ?? false }
+                // Status reads must stay responsive while an Apple event waits
+                // for Office/ChemDraw or a system permission prompt.
+                panel.router.editing = { [weak self] in self?.activity.snapshot().editing ?? false }
+                panel.router.activity = { [weak self] in self?.activity.dictionary() ?? [:] }
                 panel.router.edit = { [weak self] host in
                     guard let self else { throw ChemOfficeError("Helper is stopping") }
-                    try self.worker.sync { try self.bridge.handle(["event":"edit-selection","host":host]) }
+                    try self.worker.sync { try self.perform(["event":"edit-selection","host":host]) }
+                }
+                panel.router.paste = { [weak self] host in
+                    guard let self else { throw ChemOfficeError("Helper is stopping") }
+                    try self.worker.sync { try self.pasteClipboard(host) }
                 }
                 try panel.start(); server = panel
                 bridge.record("office_panel_ready",["url":"https://localhost:17524/taskpane.html"])
@@ -59,8 +91,7 @@ class NativeMonitorRuntime {
                             failureMessage = event["message"] as? String ?? "键盘与鼠标监听需要重新授权。"
                             writeStatus(.failed,failureMessage)
                         }
-                        do { try bridge.handle(event) }
-                        catch { bridge.record("error",["operation":event["event"] ?? "unknown","message":error.localizedDescription]) }
+                        do { try perform(event) } catch { /* perform publishes the error to the panel and native app. */ }
                     }
                 }
             } catch {

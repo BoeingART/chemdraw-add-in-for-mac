@@ -96,10 +96,39 @@ class TestAutomation: ChemistryAutomation {
             try require(restarted.session?.id == bridge.session?.id,"Session not restored")
             try require(driver.calls.contains("use:"+driver.app.path),"Pinned application not restored")
         }
-        try check("Pasting while an edit is active is refused") {
+        try check("Pasting during an edit creates an independent copy and retains the original target") {
             let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
-            try rejects { try bridge.paste("word",snapshot:root) }
-            try require(!driver.calls.contains("insert"),"Inserted during active edit")
+            let original = bridge.session!
+            driver.document = "cfm-document:"+UUID().uuidString.lowercased()
+            let capture = bridge.work.appendingPathComponent("copy-capture")
+            try fm.createDirectory(at:capture,withIntermediateDirectories:true)
+            try driver.finalSource.write(to:capture.appendingPathComponent("source.cdx"))
+            try bridge.paste("powerpoint",snapshot:capture)
+            try require(driver.calls.contains("insert") && bridge.session?.id == original.id && bridge.session?.document == original.document,"A new paste blocked or redirected the original edit")
+            try require(bridge.editingOpen && (try objectID(driver.tag)) != original.id,"The pasted copy reused the editing identity")
+            driver.tag = original.originalTag
+            try bridge.finish("command-w")
+            try require(bridge.session == nil && driver.targets.last == original.document,"Finishing an edit after a copy changed its original target")
+        }
+        try check("A restored closed draft cannot silently block new paste") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            let previous = bridge.session!, source = try Data(contentsOf:URL(fileURLWithPath:previous.path))
+            driver.opened = false
+            let restarted = NativeBridge(root:bridge.root,automation:driver,home:bridge.home); try restarted.restore()
+            restarted.verify = { _,_,_,_,_ in ["verified":true] }
+            let capture = restarted.work.appendingPathComponent("new-capture")
+            try fm.createDirectory(at:capture,withIntermediateDirectories:true)
+            try driver.finalSource.write(to:capture.appendingPathComponent("source.cdx"))
+            try restarted.paste("powerpoint",snapshot:capture)
+            try require(restarted.session == nil && driver.calls.contains("insert"),"Closed session blocked paste")
+            let backups = try fm.contentsOfDirectory(at:restarted.work.appendingPathComponent("recovery"),includingPropertiesForKeys:nil)
+            try require(backups.count == 1 && (try Data(contentsOf:backups[0].appendingPathComponent(URL(fileURLWithPath:previous.path).lastPathComponent))) == source,"Draft was not preserved")
+        }
+        try check("Failed opening is shown as a recoverable draft and capture failures surface") {
+            let (bridge,driver) = try fixture(); driver.failure = "open"
+            try rejects { try bridge.begin("word",tag:driver.tag) }
+            try require(!bridge.editingOpen && bridge.session != nil,"Failed opening was marked active")
+            try rejects { try bridge.handle(["event":"pasteCaptureFailed","message":"Copy again"]) }
         }
         for host in ["word","powerpoint"] {
             try check("\(host) insertion and write-back previews stay inside its own sandbox") {

@@ -15,3 +15,6 @@ xcrun swiftc -O "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/NativeCor
 
 xcrun swiftc -O "$PROJECT_DIR/src/NativeSetup.swift" "$PROJECT_DIR/tests/native/SetupTests.swift" -o "$PROJECT_DIR/build/test-setup"
 "$PROJECT_DIR/build/test-setup"
+
+xcrun swiftc -O "$PROJECT_DIR/src/NativeActivity.swift" "$PROJECT_DIR/tests/native/ActivityTests.swift" -o "$PROJECT_DIR/build/test-activity"
+"$PROJECT_DIR/build/test-activity"

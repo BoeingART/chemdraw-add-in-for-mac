@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.6 — 2026-10-26
+
+- Handle right-click Paste through the editable chemistry pipeline and add a Paste editable drawing panel action.
+- Capture ChemDraw source without requiring or rendering a PDF preview on the input callback; recognize the CambridgeSoft clipboard identifier.
+- Allow an independent paste during an existing edit and retain closed drafts before clearing stale sessions.
+- Report paste progress and failures in the panel and native app without blocking status reads behind Office automation.
+- Distinguish recoverable drafts from live ChemDraw editing.
+
 ## v1.0.5 — 2026-10-26
 
 - Open a visible setup checklist after installation for Word/PowerPoint file access and Accessibility.

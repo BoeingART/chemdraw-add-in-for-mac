@@ -92,6 +92,25 @@ import Foundation
         let server = try NativeOfficeServer(root:root,port:0)
         var edited = [String](); server.router.edit = { edited.append($0) }
         let headers = ["host":"localhost:17524"]
+        try check("The panel exposes progress and clipboard paste through the authenticated native path") {
+            server.router.activity = { ["busy":true,"message":"Rendering","recoverable":true] }
+            let status = server.router.response(method:"GET",target:"/api/status",headers:headers,body:Data())
+            let object = try JSONSerialization.jsonObject(with:status.body) as! [String:Any]
+            try require((object["activity"] as? [String:Any])?["busy"] as? Bool == true,"Progress is unavailable")
+            var pasted = [String](); server.router.paste = { pasted.append($0) }
+            let body = Data("{\"host\":\"powerpoint\"}".utf8)
+            try require(server.router.response(method:"POST",target:"/api/paste",headers:headers,body:body).status == 403,"Paste bypassed token validation")
+            let valid = headers.merging(["x-chemoffice-token":server.router.token]) { _,new in new }
+            try require(server.router.response(method:"POST",target:"/api/paste",headers:valid,body:body).status == 200 && pasted == ["powerpoint"],"Native paste was not invoked")
+            try require(edited.isEmpty,"Paste invoked selection editing")
+            server.router.activity = { [:] }
+        }
+        try check("Native paste errors are returned directly to the panel") {
+            server.router.paste = { _ in throw ChemOfficeError("Allow Office file access") }
+            let valid = headers.merging(["x-chemoffice-token":server.router.token]) { _,new in new }
+            let response = server.router.response(method:"POST",target:"/api/paste",headers:valid,body:Data("{\"host\":\"word\"}".utf8))
+            try require(response.status == 400 && String(decoding:response.body,as:UTF8.self).contains("Allow Office file access"),"Native paste failure was hidden")
+        }
         try check("Only installed Office hosts are configured") {
             let wordOnly = NativeInstaller(root:root,home:root.appendingPathComponent("word-only"),hosts:["word"])
             try require(try wordOnly.install(report:false),"Word-only installation failed")

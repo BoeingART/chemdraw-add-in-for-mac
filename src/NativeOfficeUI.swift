@@ -20,20 +20,22 @@ class PanelRouter {
     var port: UInt16 = 17524
     var ready: () -> Bool = { true }
     var editing: () -> Bool = { false }
+    var activity: () -> [String:Any] = { [:] }
     var edit: (String) throws -> Void = { _ in }
+    var paste: (String) throws -> Void = { _ in }
     init(root:URL) { self.root = root; self.token = UUID().uuidString+UUID().uuidString }
     func response(method:String, target:String, headers:[String:String], body:Data) -> PanelResponse {
         guard let host = headers["host"], ["localhost:\(port)","127.0.0.1:\(port)"].contains(host) else { return PanelResponse(403,["error":"Invalid local host"]) }
         if method == "GET" {
             let path = String(target.split(separator:"?",maxSplits:1).first ?? "")
-            if path == "/api/status" { return PanelResponse(200,["ready":ready(),"editing":editing()]) }
+            if path == "/api/status" { return PanelResponse(200,["ready":ready(),"editing":editing(),"activity":activity()]) }
             let routes = ["/":"taskpane.html","/taskpane.html":"taskpane.html","/help":"taskpane.html","/taskpane.js":"taskpane.js","/style.css":"style.css","/icon-16.png":"icon-16.png","/icon-32.png":"icon-32.png","/icon-80.png":"icon-80.png"]
             guard let name = routes[path], var data = try? Data(contentsOf:root.appendingPathComponent("office/addin/"+name)) else { return PanelResponse(404,["error":"Not found"]) }
             if name.hasSuffix(".html") { data = Data(String(decoding:data,as:UTF8.self).replacingOccurrences(of:"__CFM_TOKEN__",with:token).utf8) }
             let type = name.hasSuffix(".html") ? "text/html; charset=utf-8" : name.hasSuffix(".js") ? "text/javascript; charset=utf-8" : name.hasSuffix(".css") ? "text/css" : "image/png"
             return PanelResponse(data,type:type)
         }
-        guard method == "POST" && target == "/api/edit", (headers["origin"] ?? "https://localhost:\(port)") == "https://localhost:\(port)", headers["x-chemoffice-token"] == token else {
+        guard method == "POST" && ["/api/edit","/api/paste"].contains(target), (headers["origin"] ?? "https://localhost:\(port)") == "https://localhost:\(port)", headers["x-chemoffice-token"] == token else {
             return PanelResponse(403,["error":"Open this action from the ChemOffice panel"])
         }
         do {
@@ -41,6 +43,7 @@ class PanelRouter {
             try require(!body.isEmpty && body.count <= 128,"Invalid request")
             let object = try JSONSerialization.jsonObject(with:body) as? [String:Any]
             guard let host = object?["host"] as? String, ["word","powerpoint"].contains(host) else { throw ChemOfficeError("Select a drawing in Word or PowerPoint") }
+            if target == "/api/paste" { try paste(host); return PanelResponse(200,["pasted":true]) }
             try edit(host); return PanelResponse(200,["opened":true])
         } catch { return PanelResponse(400,["error":error.localizedDescription]) }
     }

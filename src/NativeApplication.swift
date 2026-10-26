@@ -21,6 +21,8 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var requirements = SetupRequirements()
     var startup = SetupStartupPolicy()
     var helperMessage = "等待完成上方授权，随后自动启动。"
+    var latestActivity: HelperActivity?
+    var shownFailure: String?
     var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development" }
     var work: URL { NativePaths.work(root:root) }
     var helperReady: Bool {
@@ -135,8 +137,16 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     func renderSetup(ready:Bool) {
         finishButton.isEnabled = ready
         if ready {
-            setDetail("helper","✓ 已就绪：直接粘贴与双击编辑已启动。",complete:true)
-            status.title = "已就绪 · v\(version)"
+            if let message = latestActivity?.error {
+                setDetail("helper","操作未完成："+message,complete:false)
+                status.title = "操作需要处理 · v\(version)"
+            } else if latestActivity?.busy == true {
+                setDetail("helper",latestActivity?.message ?? "正在处理…",complete:false)
+                status.title = "正在处理结构 · v\(version)"
+            } else {
+                setDetail("helper","✓ 已就绪：直接粘贴与双击编辑已启动。",complete:true)
+                status.title = "已就绪 · v\(version)"
+            }
         } else {
             setDetail("helper",helperMessage,complete:false)
             status.title = startup.wantsRunning ? "待完成安装 · v\(version)" : "粘贴助手已暂停"
@@ -144,6 +154,12 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     func refreshSetup(force:Bool = false) {
         guard !preview && !quitting else { return }
+        if let helper {
+            latestActivity = HelperActivity.read(work:work,pid:helper.processIdentifier)
+            if let latestActivity, latestActivity.error != nil, shownFailure != latestActivity.revision {
+                shownFailure = latestActivity.revision; showSetup()
+            }
+        } else { latestActivity = nil }
         let ready = readyForUse
         renderSetup(ready:ready)
         guard !checking, force || Date().timeIntervalSince(lastCheck) >= (ready ? 15 : 1) else { return }

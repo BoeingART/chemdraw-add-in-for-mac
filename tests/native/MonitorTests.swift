@@ -20,19 +20,40 @@ import PDFKit
         context.beginPDFPage(nil); context.setStrokeColor(NSColor.black.cgColor)
         context.move(to:CGPoint(x:10,y:10)); context.addLine(to:CGPoint(x:90,y:40)); context.strokePath()
         context.endPDFPage(); context.closePDF()
-        for name in ["com.revvity.chemdraw.cdx-clipboard", "com.perkinelmer.chemdraw.cdx-clipboard", "CorePasteboardFlavorType 0x43444946"] {
+        for name in ["com.revvity.chemdraw.cdx-clipboard", "com.perkinelmer.chemdraw.cdx-clipboard", "com.cambridgesoft.chemdraw.cdx-clipboard", "CorePasteboardFlavorType 0x43444946"] {
             try check("Recognize and capture CDX/PDF from \(name)") {
                 board.clearContents(); board.setData(cdx,forType:NSPasteboard.PasteboardType(name)); board.setData(pdf as Data,forType:.pdf)
                 guard let item = chemicalClipboard(board) else { throw ChemOfficeError("Chemical clipboard was not recognized") }
                 let target = temporary.appendingPathComponent(UUID().uuidString)
                 try captureChemicalClipboard(target,item,board:board)
                 try require(try Data(contentsOf:target.appendingPathComponent("source.cdx")) == cdx,"Source changed")
-                try require(NSImage(contentsOf:target.appendingPathComponent("preview.png")) != nil,"Invalid preview")
+                try require(!fm.fileExists(atPath:target.appendingPathComponent("preview.png").path),"Event tap performed expensive preview rendering")
                 board.clearContents()
                 var rejected = false
                 do { try captureChemicalClipboard(target,item,board:board) } catch { rejected = true }
                 try require(rejected,"Stale clipboard was captured")
             }
+        }
+        try check("ChemDraw source captures without a PDF or with an invalid PDF preview") {
+            for preview in [Data(), Data("invalid PDF".utf8)] {
+                board.clearContents(); board.setData(cdx,forType:NSPasteboard.PasteboardType("com.perkinelmer.chemdraw.cdx-clipboard"))
+                if !preview.isEmpty { board.setData(preview,forType:.pdf) }
+                let item = chemicalClipboard(board)!
+                let target = temporary.appendingPathComponent(UUID().uuidString)
+                try captureChemicalClipboard(target,item,board:board)
+                try require(try Data(contentsOf:target.appendingPathComponent("source.cdx")) == cdx,"Missing PDF lost the chemistry")
+            }
+        }
+        try check("Localized menu Paste uses the same handler as command-V") {
+            for title in ["Paste","粘贴","貼上"] {
+                try require(isOfficePasteMenuItem(role:"AXMenuItem",title:title,command:nil,modifiers:nil),"Paste menu not recognized")
+            }
+            try require(isOfficePasteMenuItem(role:"AXMenuItem",title:"Einsetzen",command:"v",modifiers:0),"Command-V menu shortcut not recognized")
+            try require(isOfficePasteMenuItem(role:"AXMenuItem",title:"粘贴",command:nil,modifiers:8),"A context menu without a keyboard shortcut was skipped")
+            for title in ["Paste Special…","粘贴选项","Copy","Paste and Match Style"] {
+                try require(!isOfficePasteMenuItem(role:"AXMenuItem",title:title,command:"v",modifiers:1),"A different action was intercepted")
+            }
+            try require(!isOfficePasteMenuItem(role:"AXTextField",title:"Paste",command:nil,modifiers:nil),"A document element was treated as a menu")
         }
         try check("Ordinary pictures and invalid CDX pass through unchanged") {
             board.clearContents(); board.setString("ordinary text",forType:.string)

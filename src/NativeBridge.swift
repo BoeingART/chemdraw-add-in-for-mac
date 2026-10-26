@@ -10,6 +10,7 @@ class NativeBridge {
     let root: URL, work: URL, home: URL
     let automation: ChemistryAutomation
     var session: EditingSession?
+    var editingOpen = false
     var state: URL { work.appendingPathComponent("monitor-state.json") }
     lazy var verify: (String,String,String,Data,Data) throws -> [String:Any] = { [unowned self] in try self.verifyOpenFigure($0,host:$1,id:$2,source:$3,expected:$4) }
     var savedFigure: (String,String,String) throws -> SavedFigure = { try readSavedFigure($0,host:$1,id:$2) }
@@ -109,10 +110,19 @@ class NativeBridge {
         return target
     }
     func paste(_ host:String, snapshot:URL) throws {
-        try require(session == nil,"Close the current managed ChemDraw edit before pasting another drawing")
+        defer { if let app = session?.chemApplication { automation.useApplication(app) } }
+        // A paste creates an independent drawing. Keep an open edit attached to
+        // its original target, and retain a closed edit before clearing it.
+        if let previous = session {
+            editingOpen = try automation.isOpen(URL(fileURLWithPath:previous.path))
+            if !editingOpen { try archiveSession(previous) }
+        }
         let document = try automation.office("context",host,[UUID().uuidString.lowercased()])
         try require(document.hasPrefix("cfm-document:") || (document.hasPrefix("/") && FileManager.default.fileExists(atPath:document)),"The target Office document is no longer available")
-        try writeState(["pasteBusyBundle":host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"])
+        var pasteState = session.flatMap { try? JSONSerialization.jsonObject(with:JSONEncoder().encode($0)) as? [String:Any] } ?? [:]
+        pasteState["pasteBusyBundle"] = host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"
+        pasteState["busy"] = true
+        try writeState(pasteState)
         defer { try? writeState() }
         let sourcePath = snapshot.appendingPathComponent("source.cdx"), capturedPath = snapshot.appendingPathComponent("carrier.svg")
         let source: Data
@@ -135,23 +145,27 @@ class NativeBridge {
         try JSONSerialization.data(withJSONObject:evidence,options:[.prettyPrinted,.sortedKeys]).write(to:snapshot.appendingPathComponent("verification.json"))
         record("pasted",["host":host,"document":document,"drawing_id":id,"source_sha256":sha256(source),"portable_carrier":true])
     }
+    func archiveSession(_ previous:EditingSession) throws {
+        let path = URL(fileURLWithPath:previous.path)
+        let recovery = work.appendingPathComponent("recovery/\(previous.id)-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at:recovery,withIntermediateDirectories:true)
+        try FileManager.default.copyItem(at:path,to:recovery.appendingPathComponent(path.lastPathComponent))
+        try JSONEncoder().encode(previous).write(to:recovery.appendingPathComponent("session.json"))
+        record("closed_session_retained",["drawing_id":previous.id,"recovery":recovery.path])
+        session = nil; editingOpen = false; try writeState()
+    }
     func begin(_ host:String, tag:String) throws {
         let document = try automation.office("context",host,[UUID().uuidString.lowercased()]), requestedID = try objectID(tag)
         if let previous = session {
             let path = URL(fileURLWithPath:previous.path)
             if previous.host == host && previous.document == document && previous.id == requestedID {
                 if let app = previous.chemApplication { automation.useApplication(app) }
-                try automation.open(path); record("edit_resumed",["host":host,"drawing_id":requestedID,"document":document]); return
+                try automation.open(path); editingOpen = true; record("edit_resumed",["host":host,"drawing_id":requestedID,"document":document]); return
             }
             if try automation.isOpen(path) {
                 try automation.open(path); throw ChemOfficeError("Finish the visible ChemDraw edit before opening another drawing")
             }
-            let recovery = work.appendingPathComponent("recovery/\(previous.id)-\(UUID().uuidString)")
-            try FileManager.default.createDirectory(at:recovery,withIntermediateDirectories:true)
-            try FileManager.default.copyItem(at:path,to:recovery.appendingPathComponent(path.lastPathComponent))
-            try JSONEncoder().encode(previous).write(to:recovery.appendingPathComponent("session.json"))
-            record("closed_session_retained",["drawing_id":previous.id,"recovery":recovery.path])
-            session = nil; try writeState()
+            try archiveSession(previous)
         }
         let envelope = tag.hasPrefix("CFM1:") || tag.hasPrefix("CFM2:") ? tag : try payload(host,document,requestedID)
         let decoded = try decodeSource(envelope)
@@ -166,6 +180,7 @@ class NativeBridge {
         session = EditingSession(host:host,document:document,id:decoded.id,path:path.path,originalTag:envelope,windowTitle:path.lastPathComponent,chemBundle:app.bundle,busy:false,chemApplication:app)
         try writeState()
         try automation.open(path)
+        editingOpen = true
         record("opened",["host":host,"document":document,"drawing_id":decoded.id,"chem_version":app.version,"chem_path":app.path])
     }
     func finish(_ gesture:String) throws {
@@ -192,6 +207,7 @@ class NativeBridge {
             try JSONSerialization.data(withJSONObject:evidence,options:[.prettyPrinted,.sortedKeys]).write(to:directory.appendingPathComponent("verification.json"))
             try source.write(to:directory.appendingPathComponent(source.starts(with:Data("VjCD0100".utf8)) ? "committed.cdx" : "committed.cdxml"))
             try automation.close(path)
+            editingOpen = false
             let front = try automation.activateOffice(current.host,current.document,current.id)
             record("committed",["host":current.host,"drawing_id":current.id,"gesture":gesture,"source_sha256":sha256(source),"bytes":source.count,"frontmost_app":front])
             session = nil; try writeState()
@@ -208,6 +224,7 @@ class NativeBridge {
             try begin(host,tag:tag)
         case "paste": try paste(event["host"] as? String ?? "",snapshot:URL(fileURLWithPath:event["snapshot"] as? String ?? ""))
         case "close": try finish(event["gesture"] as? String ?? "unknown")
+        case "pasteCaptureFailed": throw ChemOfficeError(event["message"] as? String ?? "复制结构后重试粘贴。")
         default:
             var details = event; details.removeValue(forKey:"event"); record(event["event"] as? String ?? "unknown",details)
         }

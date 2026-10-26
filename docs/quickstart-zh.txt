@@ -1,6 +1,6 @@
-ChemOffice for Mac v1.0.5 · 安装与使用
+ChemOffice for Mac v1.0.6 · 安装与使用
 
-安装包：ChemOffice-for-Mac-1.0.5-universal.pkg（Apple Silicon 与 Intel 通用版）
+安装包：ChemOffice-for-Mac-1.0.6-universal.pkg（Apple Silicon 与 Intel 通用版）
 要求：macOS 12 或更新；已安装并激活 ChemDraw 及 Word／PowerPoint。
 
 安装与升级
@@ -19,7 +19,8 @@ ChemOffice for Mac v1.0.5 · 安装与使用
 直接粘贴与编辑
 
 1. 新建或打开 Word 文档／PowerPoint 演示文稿。
-2. 在 ChemDraw 中选中结构并按 ⌘C，到 Office 中按 ⌘V。
+2. 在 ChemDraw 中选中结构并按 ⌘C，到 Office 中按 ⌘V，或右键选择“粘贴”。
+   也可在 ChemOffice 面板点击 Paste editable drawing。
    新建、尚未保存的文档也可直接粘贴。
 3. 双击结构，在 ChemDraw 中继续编辑。
 4. 用 ⌘W 关闭当前 ChemDraw 绘图窗口，将修改带回原来的 Office 文档。
@@ -54,3 +55,8 @@ Installation Guide：打开本指南。
 
 本机数据保存在 ~/Library/Application Support/ChemOffice/work。
 Office 预览位于各自沙盒的 Library/Caches/ChemOffice 中。升级应用会继续使用已有的绘图数据和恢复草稿。
+
+粘贴状态
+
+面板显示结构处理进度及具体失败原因。出现错误时按提示处理后重新复制粘贴。
+编辑中的结构可粘贴为新的独立副本；原编辑仍回写原文档。已关闭的编辑草稿会保留在 recovery 中。

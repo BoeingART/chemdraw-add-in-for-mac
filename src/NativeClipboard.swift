@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import Cocoa
-import PDFKit
 
 func chemicalClipboard(_ board: NSPasteboard = .general) -> (String, Data, Int)? {
     let generation = board.changeCount
-    for name in ["com.revvity.chemdraw.cdx-clipboard", "com.perkinelmer.chemdraw.cdx-clipboard", "CorePasteboardFlavorType 0x43444946"] {
+    for name in ["com.revvity.chemdraw.cdx-clipboard", "com.perkinelmer.chemdraw.cdx-clipboard", "com.cambridgesoft.chemdraw.cdx-clipboard", "CorePasteboardFlavorType 0x43444946"] {
         if let data = board.data(forType: NSPasteboard.PasteboardType(name)), data.count <= 8 * 1024 * 1024,
            data.starts(with: Data("VjCD0100".utf8)), board.changeCount == generation { return ("cdx", data, generation) }
     }
@@ -29,21 +28,10 @@ func captureChemicalClipboard(_ directory: URL, _ item: (String, Data, Int), boa
     if item.0 == "svg" {
         try item.1.write(to: directory.appendingPathComponent("carrier.svg"))
     } else {
-        guard let pdf = board.data(forType: .pdf),
-              let document = PDFDocument(data: pdf), let page = document.page(at: 0) else {
-            throw NSError(domain: "ChemOffice", code: 1, userInfo: [NSLocalizedDescriptionKey: "ChemDraw clipboard has no PDF preview"])
-        }
-        let bounds = page.bounds(for: .mediaBox)
-        guard bounds.width > 0, bounds.height > 0 else { throw NSError(domain: "ChemOffice", code: 2) }
-        let scale = min(3, 3200 / max(bounds.width, bounds.height))
-        let image = withExtendedLifetime(document) {
-            page.thumbnail(of: NSSize(width: bounds.width * scale, height: bounds.height * scale), for: .mediaBox)
-        }
-        guard let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff),
-              let png = bitmap.representation(using: .png, properties: [:]) else { throw NSError(domain: "ChemOffice", code: 3) }
+        // Capture only immutable chemistry on the event tap. NativeBridge exports
+        // the vector preview later, away from the input callback.
         try item.1.write(to: directory.appendingPathComponent("source.cdx"))
-        try png.write(to: directory.appendingPathComponent("preview.png"))
     }
-    guard board.changeCount == item.2 else { throw NSError(domain: "ChemOffice", code: 4) }
+    guard board.changeCount == item.2 else { throw NSError(domain: "ChemOffice", code: 4,userInfo:[NSLocalizedDescriptionKey:"剪贴板内容已改变，请重新复制结构后粘贴。"] ) }
 }
 

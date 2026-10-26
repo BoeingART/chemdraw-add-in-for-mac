@@ -4,9 +4,11 @@
 
 **Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
 
-[Download v1.0.5 installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v1.0.5/ChemOffice-for-Mac-1.0.5-universal.pkg) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
+[Download v1.0.6 installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v1.0.6/ChemOffice-for-Mac-1.0.6-universal.pkg) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
 
-**v1.0.5 is available.** Guided permission checks automatically configure Office and start the helper. New, unsaved Word documents and PowerPoint presentations support direct paste and ChemDraw editing. Office saving stays under your control. Build the updated universal installer with `zsh scripts/package.sh`.
+**v1.0.6 is available.** Right-click Paste and the panel’s Paste editable drawing action join the native chemistry pipeline. Paste errors and recoverable drafts are displayed in the panel.
+
+**Published v1.0.5:** Guided permission checks automatically configure Office and start the helper. New, unsaved Word documents and PowerPoint presentations support direct paste and ChemDraw editing. Office saving stays under your control. Build the updated universal installer with `zsh scripts/package.sh`.
 
 **v1.0.3 fixes Office preview authorization and add-in setup.** Generated previews now stay in Word/PowerPoint's own sandbox cache, and Office dialogs receive normal input during paste/write-back. Setup verifies both add-in manifests and retries failed registration. Office 2021 / 16.78 uses **Insert → Add-ins → My Add-ins (▼) → Developer Add-ins**; activate ChemOffice in an open document before expecting its ribbon tab. See the [verification record](docs/office-sandbox-registration-fix-results.md) for 61 automated checks and Word/PowerPoint sandbox smoke checks; Office 2021 / 16.78 acceptance on that version remains pending.
 
@@ -14,11 +16,11 @@
 
 </div>
 
-ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and PowerPoint. Use ordinary **⌘C / ⌘V**, double-click your drawing to edit it in the installed ChemDraw, and close the editing window to update Office. Copy just that drawing to another document and its editable source goes with it. Bonds and labels use **ChemDraw's native SVG vectors**, so enlarging the figure preserves their sharp edges.
+ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and PowerPoint. Use ordinary **⌘C / ⌘V** or right-click **Paste**, double-click your drawing to edit it in the installed ChemDraw, and close the editing window to update Office. Copy just that drawing to another document and its editable source goes with it. Bonds and labels use **ChemDraw's native SVG vectors**, so enlarging the figure preserves their sharp edges.
 
 > **Historical beta acceptance.** The earlier Python helper was tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
-**v1.0.5 is a native macOS app with a pkg installer.** Download the [universal installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v1.0.5/ChemOffice-for-Mac-1.0.5-universal.pkg), open it, and follow the macOS installation steps. It installs **ChemOffice.app** in Applications and opens the menu bar helper. No source checkout, terminal window, Python, Homebrew, or developer tools are needed to use the installed app. The application and package have no Developer ID signature or Apple notarization; macOS may require **System Settings → Privacy & Security → Open Anyway**. The earlier installed 0.1.2 native app passed the Word copy/paste, double-click and ⌘W write-back workflow on macOS 27.0.1 with ChemDraw 26.0.0.6599 and Word 16.114.1. Native PowerPoint acceptance and other application versions remain pending.
+**v1.0.6 is a native macOS app with a pkg installer.** Download the [universal installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v1.0.6/ChemOffice-for-Mac-1.0.6-universal.pkg), open it, and follow the macOS installation steps. It installs **ChemOffice.app** in Applications and opens the menu bar helper. No source checkout, terminal window, Python, Homebrew, or developer tools are needed to use the installed app. The application and package have no Developer ID signature or Apple notarization; macOS may require **System Settings → Privacy & Security → Open Anyway**. The earlier installed 0.1.2 native app passed the Word copy/paste, double-click and ⌘W write-back workflow on macOS 27.0.1 with ChemDraw 26.0.0.6599 and Word 16.114.1. Native PowerPoint acceptance and other application versions remain pending.
 
 **Looking for ChemOffice inside Office?** A separate local Office add-in supplies the blue C entry, a right-hand panel, and a **ChemOffice** ribbon tab. Follow the [installation and viewing guide](docs/installation.md). The earlier beta panels and their **Edit selected drawing** buttons were verified in both Word and PowerPoint on the test Mac's App Store builds; the native 0.1.2 panel was verified in Word. The double-click workflow also works independently of the panel.
 
@@ -28,7 +30,7 @@ ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and Po
 
 ### 1 · Get ready
 
-Open **ChemOffice-for-Mac-1.0.5-universal.pkg**. The installer supports Apple Silicon and Intel Macs and targets **macOS 12 or later**. Install and activate **ChemDraw**, **Word for Mac**, and **PowerPoint for Mac** separately. ChemDraw is discovered automatically; the newest installed version is selected.
+Open **ChemOffice-for-Mac-1.0.6-universal.pkg**. The installer supports Apple Silicon and Intel Macs and targets **macOS 12 or later**. Install and activate **ChemDraw**, **Word for Mac**, and **PowerPoint for Mac** separately. ChemDraw is discovered automatically; the newest installed version is selected.
 
 ### 2 · Open ChemOffice
 
@@ -52,7 +54,7 @@ Prefer a ready-made example? Start the helper, then open one of the [saved Word 
 
 ## What works today
 
-**v1.0.5 validation:** 83 native checks, 4 task-pane checks, application discovery and universal package validation passed. The installed setup completed after renewed system consent on the test Mac. See [installation readiness results](docs/installation-readiness-results.md) and [unsaved Word/PowerPoint checks](docs/unsaved-office-results.md).
+**v1.0.6 validation:** 96 native checks, 8 task-pane checks, application discovery and universal package validation passed. The installed setup completed after renewed system consent on the test Mac. See [installation readiness results](docs/installation-readiness-results.md) and [unsaved Word/PowerPoint checks](docs/unsaved-office-results.md).
 
 **Native 0.1.2 acceptance:** Word panel loading, ChemDraw 26 ⌘C → Word ⌘V, save-and-resume for an unsaved Word document, double-click opening, and ⌘W save/verification/return passed on the test Mac. Legacy ChemDraw 22 discovery and clipboard formats pass automated checks, but the native 0.1.2 workflow has not been tested with ChemDraw 22. If several versions are installed, the newest is selected. See [native verification](docs/native-paste-certificate-fix-results.md).
 
@@ -97,7 +99,7 @@ If a managed window disappears outside that closing path, double-click the same 
 - **A drawing the helper recognizes.** A `ChemOffice Drawing` identity connects the Office figure to the source carried inside it. Office's own ribbon still calls it a graphic; double-click editing is supplied by the running helper.
 - **Clear limits.** This is a custom Mac integration, with its own saved source, rather than native Windows OLE compatibility.
 
-Use **⌘V** to create or copy editable figures, and **⌘W** for the verified closing path. Menu Paste, drag-and-drop, Paste Special, grouped objects, cloud collaboration, File-menu Close, quitting ChemDraw, and crashes are outside the verified workflow. New, unsaved documents support direct paste and editing. Flattening a drawing into a screenshot, PNG, or JPEG can remove its source. A recipient needs this helper and ChemDraw to use double-click editing.
+Use **⌘V** to create or copy editable figures, and **⌘W** for the verified closing path. Drag-and-drop, Paste Special, grouped objects, cloud collaboration, File-menu Close, quitting ChemDraw, and crashes are outside the verified workflow. New, unsaved documents support direct paste and editing. Flattening a drawing into a screenshot, PNG, or JPEG can remove its source. A recipient needs this helper and ChemDraw to use double-click editing.
 
 Edit one managed drawing at a time and keep its original Office document open. Word inserts after the current selection; PowerPoint places the new figure on the current slide, where you can move it. Pasting and write-back update the open document. Save the Office document when you choose.
 
