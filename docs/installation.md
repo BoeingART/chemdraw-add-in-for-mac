@@ -4,6 +4,8 @@ ChemOffice has two parts. The **local helper** opens ChemDraw and saves your edi
 
 These instructions describe the native **dev branch**. Keep this checkout in a permanent folder and run **Setup.command**. It requires macOS 12 or later and Apple's command-line tools with Swift 5.7 or later. No Python, pip, Homebrew, Rust, or third-party packages are required. Install missing Apple tools with `xcode-select --install`. The macOS deployment target has not received a live Office/ChemDraw acceptance run across OS versions.
 
+Download the [current dev source ZIP](https://github.com/BoeingART/chemoffice-plugin-for-mac/archive/refs/heads/dev.zip) and extract it to a permanent folder, or use an existing checkout of the [dev branch](https://github.com/BoeingART/chemoffice-plugin-for-mac/tree/dev). See the [native migration results](native-dev-results.md) for the checks completed on this branch.
+
 The published **v0.1.0-beta.2** source archive still contains the older Python implementation. Its release notes and acceptance reports describe that version, not a real-application test of the native rewrite.
 
 When switching from a previous version, stop the old helper with Control-C before rebuilding. Retained session records and embedded CFM1/CFM2 sources remain readable. A restored native session reuses its exact ChemDraw installation; new sessions choose the newest installed version. If you use a new folder, install its manifests and review its own localhost certificate fingerprint before trusting it.

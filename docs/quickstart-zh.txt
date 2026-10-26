@@ -2,8 +2,9 @@ ChemOffice for Mac · 安装与使用
 
 当前说明：dev 分支（原生 Swift 开发版）
 已发布的 beta.2 仍为旧 Python 版本；下面的新流程适用于本 dev 工作树。
-下载地址：https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2
-请将 dev 分支工作树放在固定位置。
+当前 dev 源码下载：https://github.com/BoeingART/chemoffice-plugin-for-mac/archive/refs/heads/dev.zip
+代码与更新：https://github.com/BoeingART/chemoffice-plugin-for-mac/tree/dev
+下载 ZIP 后解压到固定位置；已有 dev 工作树也可直接使用。
 本版本需要本机准备运行环境并编译助手，尚未提供签名、公证的 .app 或 .pkg 安装包。
 历史 Word/PPT 实测对应 beta.2；本次 Swift 重写的真实应用编辑回写尚待验证。
 
@@ -49,6 +50,13 @@ ChemOffice for Mac · 安装与使用
 独立浏览器的证书识别可能与 Office 不同，请优先使用已验证的 Office 内面板。
 
 当前验证范围
+
+原生 dev 版已通过 37 项原生检查及 ChemDraw 自动发现测试。
+当前开发环境未安装 ChemDraw 和 Office，真实应用中的复制、双击和 ⌘W 回写尚待回归验证。
+自动发现不再限制版本号，但不同版本仍需具备插件使用的 AppleScript 与 SVG 导出接口。
+详细记录：docs/native-dev-results.md。
+
+以下为旧 beta.2 的历史实测记录，不代表本次原生重写已完成同样的实测：
 
 beta.2 修复了未保存 PPT 首次粘贴没有界面反馈的问题，保存后无需重新复制即可完成同一次粘贴。
 Word 和 PPT 的冷启动 ChemDraw、面板编辑入口、⌘W 回写和返回均已实测。
