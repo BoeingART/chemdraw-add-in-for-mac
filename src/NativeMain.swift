@@ -77,6 +77,10 @@ class NativeMonitorRuntime {
         setbuf(stdout,nil)
         let root = URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent().deletingLastPathComponent()
         let args = Array(CommandLine.arguments.dropFirst())
+        if (args.isEmpty || args == ["--preview"] || args == ["--app-self-test"]) && Bundle.main.bundleIdentifier == "com.chemoffice.mac" {
+            ChemOfficeApplication.run(preview:args == ["--preview"],selfTest:args == ["--app-self-test"])
+            return
+        }
         do {
             switch args.first {
             case "run": try NativeMonitorRuntime(root:root).run()

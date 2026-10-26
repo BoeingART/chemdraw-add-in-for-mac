@@ -1,0 +1,11 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+set -eu
+# Only a live system with a signed-in desktop user can launch the per-user setup.
+# Do not create user files or trust certificates as root, or touch an offline target.
+if [ "${3:-/}" != / ]; then exit 0; fi
+CFM_USER=$(/usr/bin/stat -f %Su /dev/console)
+case "$CFM_USER" in root|loginwindow|_mbsetupuser|"") exit 0 ;; esac
+CFM_UID=$(/usr/bin/id -u "$CFM_USER")
+/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/open /Applications/ChemOffice.app || true
+exit 0

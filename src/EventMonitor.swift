@@ -313,7 +313,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
 }
 
 guard AXIsProcessTrusted() else {
-    emit(["event": "fatal", "message": "Accessibility permission is required for the local prototype launcher."])
+    emit(["event": "fatal", "message": "Enable ChemOffice in System Settings → Privacy & Security → Accessibility, then start the helper again."])
     exit(2)
 }
 let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.keyDown.rawValue)

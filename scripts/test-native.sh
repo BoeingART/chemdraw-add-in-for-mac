@@ -3,10 +3,10 @@
 set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 mkdir -p "$PROJECT_DIR/build"
-xcrun swiftc -O "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/tests/native/CoreTests.swift" -o "$PROJECT_DIR/build/test-core" -framework Cocoa
+xcrun swiftc -O "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/tests/native/CoreTests.swift" -o "$PROJECT_DIR/build/test-core" -framework Cocoa
 "$PROJECT_DIR/build/test-core" "$PROJECT_DIR"
-xcrun swiftc -O "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeBridge.swift" "$PROJECT_DIR/tests/native/BridgeTests.swift" -o "$PROJECT_DIR/build/test-bridge" -framework Cocoa
+xcrun swiftc -O "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeBridge.swift" "$PROJECT_DIR/tests/native/BridgeTests.swift" -o "$PROJECT_DIR/build/test-bridge" -framework Cocoa
 cd "$PROJECT_DIR"
 "$PROJECT_DIR/build/test-bridge" | /usr/bin/awk '/^PASS|^Passed/'
-xcrun swiftc -O "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeOfficeUI.swift" "$PROJECT_DIR/src/NativeInstaller.swift" "$PROJECT_DIR/tests/native/PanelTests.swift" -o "$PROJECT_DIR/build/test-panel" -framework Cocoa -framework Network -framework Security
+xcrun swiftc -O "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeOfficeUI.swift" "$PROJECT_DIR/src/NativeInstaller.swift" "$PROJECT_DIR/tests/native/PanelTests.swift" -o "$PROJECT_DIR/build/test-panel" -framework Cocoa -framework Network -framework Security
 "$PROJECT_DIR/build/test-panel" | /usr/bin/awk '/^PASS|^Passed/'

@@ -13,8 +13,11 @@ class NativeBridge {
     var state: URL { work.appendingPathComponent("monitor-state.json") }
     var verify: (String,String,String,Data,Data) throws -> [String:Any] = { try verifySavedFigure($0,host:$1,id:$2,source:$3,expected:$4) }
     var savedFigure: (String,String,String) throws -> SavedFigure = { try readSavedFigure($0,host:$1,id:$2) }
-    init(root:URL, automation:ChemistryAutomation) { self.root = root; self.work = root.appendingPathComponent("work"); self.automation = automation }
-    func prepare() throws { try FileManager.default.createDirectory(at:work,withIntermediateDirectories:true) }
+    init(root:URL, automation:ChemistryAutomation) { self.root = root; self.work = NativePaths.work(root:root); self.automation = automation }
+    func prepare() throws {
+        try FileManager.default.createDirectory(at:work,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
+        try FileManager.default.setAttributes([.posixPermissions:0o700],ofItemAtPath:work.path)
+    }
     func record(_ event:String, _ details:[String:Any] = [:]) {
         var entry = details; entry["time"] = Date().timeIntervalSince1970; entry["event"] = event
         guard let data = try? JSONSerialization.data(withJSONObject:entry,options:[.sortedKeys]) else { return }

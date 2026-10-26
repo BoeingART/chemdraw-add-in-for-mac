@@ -26,7 +26,7 @@ async function refresh() {
   } catch (_) {
     byId('dot').className = '';
     byId('status').textContent = 'Local helper is unavailable';
-    byId('detail').textContent = 'Open Start ChemOffice.command, then reopen this panel.';
+    byId('detail').textContent = 'Open ChemOffice from Applications, then reopen this panel.';
     byId('edit').disabled = true;
   }
 }

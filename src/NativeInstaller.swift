@@ -10,8 +10,9 @@ class NativeInstaller {
     }
     init(root:URL,home:URL = FileManager.default.homeDirectoryForCurrentUser) { self.root = root; self.home = home }
     func prepareTLS() throws -> URL {
-        let directory = root.appendingPathComponent("work/tls"), fm = FileManager.default
+        let directory = NativePaths.work(root:root).appendingPathComponent("tls"), fm = FileManager.default
         try fm.createDirectory(at:directory,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
+        try fm.setAttributes([.posixPermissions:0o700],ofItemAtPath:directory.deletingLastPathComponent().path)
         try fm.setAttributes([.posixPermissions:0o700],ofItemAtPath:directory.path)
         let cert = directory.appendingPathComponent("localhost.pem"), key = directory.appendingPathComponent("localhost-key.pem")
         if fm.fileExists(atPath:cert.path) && fm.fileExists(atPath:key.path) { return cert }
@@ -37,7 +38,7 @@ class NativeInstaller {
     }
     func destinations() -> [URL] { ["com.microsoft.Word","com.microsoft.Powerpoint"].map { home.appendingPathComponent("Library/Containers/\($0)/Data/Documents/wef/chemoffice-for-mac.xml") } }
     func install() throws -> Bool {
-        let cert = try prepareTLS(), source = root.appendingPathComponent("office/addin/manifest.xml"), staging = root.appendingPathComponent("work/install")
+        let cert = try prepareTLS(), source = root.appendingPathComponent("office/addin/manifest.xml"), staging = NativePaths.work(root:root).appendingPathComponent("install")
         try FileManager.default.createDirectory(at:staging,withIntermediateDirectories:true)
         try Data(contentsOf:source).write(to:staging.appendingPathComponent("chemoffice-for-mac.xml"),options:.atomic)
         var blocked = false
@@ -50,7 +51,7 @@ class NativeInstaller {
             }
         }
         if blocked { print("Use Finder to copy \(staging.appendingPathComponent("chemoffice-for-mac.xml").path) to both wef folders above. See docs/installation.md.") }
-        print("No certificate trust setting was changed. Open Trust Local Connection.command, start ChemOffice, then restart Office.")
+        print("Start ChemOffice and choose Trust Local Connection from its menu, then restart Office.")
         print(String(decoding:try command("/usr/bin/openssl",["x509","-in",cert.path,"-noout","-fingerprint","-sha256"]),as:UTF8.self))
         return !blocked
     }
@@ -63,10 +64,10 @@ class NativeInstaller {
         for name in ["Word","PowerPoint"] where FileManager.default.fileExists(atPath:"/Applications/Microsoft \(name).app/Contents/_MASReceipt/receipt") { print("Mac App Store build detected: \(name); confirm activation inside Office.") }
         if let app = ChemDrawApplication.installed().first { print("Preferred ChemDraw: \(app.version) — \(app.path)") }
         else { print("ChemDraw: no installed application found") }
-        let cert = root.appendingPathComponent("work/tls/localhost.pem")
+        let cert = NativePaths.work(root:root).appendingPathComponent("tls/localhost.pem")
         if FileManager.default.fileExists(atPath:cert.path) {
-            print("Local certificate: " + ((try? command("/usr/bin/security",["verify-cert","-q","-c",cert.path,"-p","ssl","-s","localhost"])) != nil ? "trusted for localhost" : "run Trust Local Connection.command"))
-            print("Local helper: " + ((try? command("/usr/bin/curl",["--silent","--fail","--max-time","3","--cacert",cert.path,"https://localhost:17524/api/status"])) != nil ? "running" : "open Start ChemOffice.command"))
+            print("Local certificate: " + ((try? command("/usr/bin/security",["verify-cert","-q","-c",cert.path,"-p","ssl","-s","localhost"])) != nil ? "trusted for localhost" : "choose Trust Local Connection in ChemOffice"))
+            print("Local helper: " + ((try? command("/usr/bin/curl",["--silent","--fail","--max-time","3","--cacert",cert.path,"https://localhost:17524/api/status"])) != nil ? "running" : "open ChemOffice from Applications"))
         }
         print("Find the entry: Home → Add-ins → Developer Add-ins → ChemOffice for Mac.")
     }

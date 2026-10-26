@@ -1,11 +1,14 @@
 # Changelog
 
-## Unreleased — dev
+## v0.1.0 — 2026-10-26
 
 - Discover installed ChemDraw applications and prefer the newest numeric version; use exact application paths and pin active sessions.
 - Replace the Python bridge, image dependencies, installer, and HTTPS panel with native Swift using macOS frameworks and system zlib. Setup no longer downloads packages.
 - Preserve CFM1/CFM2 source envelopes, existing example documents, source/preview verification, recovery drafts, and unsaved-PowerPoint save-and-resume behavior.
-- Source builds target macOS 12+, require Apple command-line tools with Swift 5.7+, and remain unsigned. Real Office/ChemDraw acceptance of this rewrite is pending.
+- Ship a universal Apple Silicon / Intel pkg installing ChemOffice.app in Applications. Runtime requires no source checkout or developer tools.
+- Replace all eight root `.command` launchers with a native menu bar app for helper control, per-user add-in installation, local certificate trust, diagnostics, and guides.
+- Preserve per-user certificates and chemistry in Application Support across app upgrades. The pkg opens first-run setup in the signed-in user session and never trusts certificates as root.
+- Source builds target macOS 12+ and require Apple's command-line tools with Swift 5.7+. The app uses ad-hoc code signatures; the pkg has no Developer ID signature or Apple notarization. Real Office/ChemDraw acceptance of this rewrite remains pending.
 
 ## v0.1.0-beta.2 — 2026-10-26
 

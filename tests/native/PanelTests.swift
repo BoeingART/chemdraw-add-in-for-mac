@@ -12,6 +12,20 @@ import Foundation
         let installer = NativeInstaller(root:root,home:root.appendingPathComponent("home"))
         var count = 0
         func check(_ name:String, _ body:() throws -> Void) throws { try body(); count += 1; print("PASS \(name)") }
+        try check("Installed resources resolve to per-user data outside the app") {
+            let resources = root.appendingPathComponent("ChemOffice.app/Contents/Resources")
+            let home = root.appendingPathComponent("test-home")
+            let work = NativePaths.work(root:resources,home:home)
+            try require(work == home.appendingPathComponent("Library/Application Support/ChemOffice/work"),"Installed data would enter the app bundle")
+            try require(NativePaths.work(root:root,home:home) == root.appendingPathComponent("work"),"Source-checkout data moved")
+        }
+        try check("Upgrades share the same user data while different users remain isolated") {
+            let home = root.appendingPathComponent("one-user")
+            let old = root.appendingPathComponent("old/ChemOffice.app/Contents/Resources")
+            let new = root.appendingPathComponent("new/ChemOffice.app/Contents/Resources")
+            try require(NativePaths.work(root:old,home:home) == NativePaths.work(root:new,home:home),"Upgrade lost the data location")
+            try require(NativePaths.work(root:new,home:home) != NativePaths.work(root:new,home:root.appendingPathComponent("other-user")),"User data is shared")
+        }
         let cert = try installer.prepareTLS()
         try check("Certificate setup preserves existing certificate and private-key permissions") {
             let original = try Data(contentsOf:cert); _ = try installer.prepareTLS()

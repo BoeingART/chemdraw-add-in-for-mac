@@ -1,66 +1,48 @@
-# Install and find ChemOffice for Mac
+# Install ChemOffice for Mac 0.1.0
 
-ChemOffice has two parts. The **local helper** opens ChemDraw and saves your edits back to Office. The **Office add-in** provides a visible ChemOffice entry, a status panel, instructions, and an Edit selected drawing button. The helper's double-click workflow works independently of the panel.
+Download [ChemOffice-for-Mac-0.1.0-universal.pkg](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v0.1.0/ChemOffice-for-Mac-0.1.0-universal.pkg) from [Releases](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/tag/v0.1.0). Apple Silicon and Intel executables are included. The package targets macOS 12 or later and installs `/Applications/ChemOffice.app`. No Python, Homebrew, source folder, or developer tools are required at runtime. You need your own installed and activated ChemDraw and desktop Word/PowerPoint.
 
-These instructions describe the native **dev branch**. Keep this checkout in a permanent folder and run **Setup.command**. It requires macOS 12 or later and Apple's command-line tools with Swift 5.7 or later. No Python, pip, Homebrew, Rust, or third-party packages are required. Install missing Apple tools with `xcode-select --install`. The macOS deployment target has not received a live Office/ChemDraw acceptance run across OS versions.
+This package has no Developer ID signature or Apple notarization. If macOS blocks the downloaded installer or app, attempt to open it, then use **System Settings → Privacy & Security → Open Anyway** and authenticate in the system prompt. On older macOS versions this is under System Preferences → Security & Privacy. Verify the download with the release's `SHA256SUMS.txt` if desired. The application binaries have ad-hoc signatures for execution; those do not establish publisher identity.
 
-Download the [current dev source ZIP](https://github.com/BoeingART/chemoffice-plugin-for-mac/archive/refs/heads/dev.zip) and extract it to a permanent folder, or use an existing checkout of the [dev branch](https://github.com/BoeingART/chemoffice-plugin-for-mac/tree/dev). See the [native migration results](native-dev-results.md) for the checks completed on this branch.
+## Install and start
 
-The published **v0.1.0-beta.2** source archive still contains the older Python implementation. Its release notes and acceptance reports describe that version, not a real-application test of the native rewrite.
+1. Save your documents and quit an older ChemOffice helper first (Control-C if it was a terminal helper). Open the pkg and follow the macOS installer. It requires administrator authentication to install in Applications.
+2. ChemOffice opens after installation when a desktop user is signed in. Otherwise open **Applications → ChemOffice**. It appears in the menu bar and requires no terminal window.
+3. First launch installs only `chemoffice-for-mac.xml` in your Word and PowerPoint add-in folders, and generates a per-user localhost certificate. When asked, choose **Trust Localhost** to enable the optional HTTPS Office panel and authenticate in macOS. Trust is scoped to SSL on `localhost`; the private key stays on this Mac. You can defer and later choose **Trust Local Connection** from the menu. The double-click helper can run without trusting the panel certificate.
+4. Enable **ChemOffice** in **System Settings → Privacy & Security → Accessibility**, then choose **Start Helper** in the menu bar. Allow Automation access to ChemDraw, Word, and PowerPoint when macOS asks during use. The helper uses these permissions to recognize managed drawings, handle copy/paste and closing, and update the document.
+5. Save documents and restart Word and PowerPoint. Open **Home → Add-ins → Developer Add-ins → ChemOffice for Mac** (Chinese: **开始 → 加载项 → 开发人员加载项**). After activation, the **ChemOffice** ribbon tab opens the task pane.
 
-When switching from a previous version, stop the old helper with Control-C before rebuilding. Retained session records and embedded CFM1/CFM2 sources remain readable. A restored native session reuses its exact ChemDraw installation; new sessions choose the newest installed version. If you use a new folder, install its manifests and review its own localhost certificate fingerprint before trusting it.
+No login item or persistent system service is installed. Open ChemOffice for each working session. Use **Stop Helper** or **Quit ChemOffice** to stop; an active transaction is allowed to finish before exiting.
 
-## Before you install the Office panel
+## Protected Office folders
 
-This preview is installed locally and has not been published in Microsoft AppSource. Keep your existing Office installation. Both Word and PowerPoint panels have been opened and used successfully on this test Mac's App Store builds.
+macOS can block copying into another app's container even after the pkg has installed correctly. The app reports this and opens a staging folder. Use Finder; broad disk access is not required.
 
-An earlier automated inspection described the entries as disabled. The user then opened both successfully, and their actual edit actions passed complete ChemDraw open/close transactions. That inspection was not reliable evidence of an Office distribution restriction. Microsoft's separate Office.com requirement concerns its documented debugging setup and should not be used to infer that this Mac's runtime cannot load the panel.
-
-## One-time setup
-
-1. Open **Setup.command**. It prepares the helper and its local dependencies. Setup compiles both Swift executables using Apple's command-line tools, without downloading packages.
-2. Open **Install Office Add-ins.command**. It prepares this Mac's localhost certificate and copies only ChemOffice's manifest to Word and PowerPoint. It does not change certificate trust.
-3. If macOS blocks automatic copying, use the Finder steps below. The installer opens a staging folder containing the file to copy. Do not grant broad disk access just to complete these steps.
-4. Open **Trust Local Connection.command**. Review the displayed certificate fingerprint and type **TRUST** if you approve. Enter any system password yourself in the macOS prompt. This adds trust for the generated certificate's **SSL localhost** use, not a general-purpose certificate authority. Its key stays in this project, under the ignored `work/tls` folder.
-5. Open **Start ChemOffice.command** and keep its window open. Restart Word and PowerPoint after saving your documents.
-
-Keep the project in its current location. A source checkout does not include this Mac's private key or build outputs. On another Mac, repeat setup and trust that Mac's own certificate.
-
-## If automatic copying is blocked
-
-Microsoft documents a Finder-based [Mac sideload installation](https://learn.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-mac). In Finder, press **⌘⇧G** and visit each location below. If its `wef` folder does not exist, open the parent `Documents` folder and create a folder named `wef` with **⌘⇧N**.
+In Finder press **⌘⇧G** and visit:
 
 - Word: `~/Library/Containers/com.microsoft.Word/Data/Documents/wef`
 - PowerPoint: `~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef`
 
-Copy **work/install/chemoffice-for-mac.xml** from this project into both folders. Replace only an earlier ChemOffice file with the same name; leave other add-ins in place. Restart Office afterward. This is the method used on the test Mac when terminal copying was denied.
+If `wef` is absent, open its parent `Documents` folder and create it. Copy `~/Library/Application Support/ChemOffice/work/install/chemoffice-for-mac.xml` into both folders. Replace only the same-named ChemOffice manifest. Keep all other add-ins. Restart Office.
 
-## Where to find it
+The plugin uses local developer sideloading and is not listed in Microsoft AppSource. Keep your existing Office installation. Earlier beta panels worked on the test Mac's App Store builds; an automated “disabled” label was not reliable evidence of a distribution restriction. Native runtime compatibility still needs real-application acceptance.
 
-In Word or PowerPoint, open **Home → Add-ins → Developer Add-ins → ChemOffice for Mac**. In the Chinese interface this is **开始 → 加载项 → 开发人员加载项 → ChemOffice for Mac**. The blue C icon identifies this project. Developer previews may require selecting the entry again in a new Office session.
+## Use and troubleshoot
 
-Once Office activates the add-in, its **ChemOffice** ribbon tab opens the panel with **Open ChemOffice**. Select one managed drawing in your document, then use **Edit selected drawing**, or double-click the drawing itself. ChemDraw can start from a fully quit state. Use **⌘W** in ChemDraw for the verified save-back path.
+Save Word once before the first paste. PowerPoint's first paste into an unsaved deck asks where to save, then resumes the captured paste. Copy a drawing in ChemDraw, paste with **⌘V** in Office, double-click it to edit, and close the managed ChemDraw window with **⌘W** to update Office. Write-back saves the entire target Office document, including its other pending edits.
 
-Both applications' panels, **ChemOffice** ribbon tabs, and edit actions are verified on the test Mac. Do not look for this web add-in in Word's Templates and Add-ins or PowerPoint's VBA add-in manager; those are different types of integration.
+Use **Check Installation** in the menu to inspect manifests, local HTTPS trust, helper connection, and ChemDraw discovery. If a protected folder cannot be read, confirm the add-in in Office. If the helper stopped, the same dialog shows recent output. **Open Local Data** opens certificates, diagnostics, sessions, paste captures, and recovery drafts. **Open Panel** opens a browser status view; editing a selection needs the task pane inside Office. Browser certificate stores can behave differently from Office. The panel's Office.js library loads from Microsoft's CDN.
 
-**Open ChemOffice Panel.command** opens a standalone view of status and instructions in your default browser; editing requires the panel inside Office. Browser certificate stores differ: the Codex in-app browser rejected the scoped certificate even though Word loaded the panel successfully. Use the Office entry for the tested workflow.
+If an older source helper owns port 17524 or the monitor lock, stop it before starting this app. The app chooses the highest discovered ChemDraw version, and restored sessions use their exact previous ChemDraw installation. Discovery does not prove every ChemDraw version supports the required AppleScript and SVG features.
 
-## Check your installation
+## Upgrade or remove
 
-Open **Check Installation.command**. It checks the helper connection, localhost certificate trust, manifest locations when macOS permits the check, and the detected Office distribution. A protected folder is reported as unverified, not missing.
+Quit ChemOffice before running a newer installer. The app is replaced in Applications, while this user's private certificate and chemistry remain in `~/Library/Application Support/ChemOffice/work`. Earlier source-checkout drafts remain in that checkout's `work` folder; they are not moved automatically. Finish active edits in the old helper before switching and retain any recovery drafts you need. Embedded CFM1/CFM2 drawing sources remain readable.
 
-- **No entry in Office:** confirm both XML copies, restart the applications, and check the Developer Add-ins section.
-- **Clicking the entry does nothing:** try an actual foreground click, confirm the helper is running, and check any organization add-in policy. Automated accessibility labels can be misleading; the Word entry worked despite being reported as disabled.
-- **Panel does not connect:** keep Start ChemOffice open and complete the scoped certificate trust step. Office.js is loaded from Microsoft's official CDN, so the Office panel also needs access to that service.
-- **No drawing selected:** select just one ChemOffice graphic in your document before using the panel's edit button. Ordinary PNG/JPEG pictures do not contain editable chemistry.
-- **First paste into a new PowerPoint deck:** choose a save location in the dialog. ChemOffice keeps the captured clipboard source and continues that paste automatically. Canceling leaves the deck unchanged. Word still requires saving once before pasting.
+To remove, quit the app, move `/Applications/ChemOffice.app` to Trash, and remove only `chemoffice-for-mac.xml` from the two Office `wef` folders. Restart Office. Remove this certificate in Keychain Access only after matching its fingerprint (`work/tls/localhost.pem`); retain unrelated certificates. Delete the Application Support folder only when its captured chemistry and drafts are no longer needed.
 
-## Stop or remove the preview
+## Build and validation
 
-Press **Control-C** in the helper's window to stop it. No login item or automatic startup service is installed. Remove only `chemoffice-for-mac.xml` from the two Finder folders to remove the local entry, then restart Office. Do not clear all Office caches or remove other add-ins.
+Developers can run `zsh scripts/build.sh` for the current architecture, `zsh scripts/build.sh --universal` for both architectures, or `zsh scripts/package.sh` for the universal pkg. The build uses macOS frameworks and system zlib, with no downloaded runtime dependencies. No `.command` launchers are required or shipped.
 
-The localhost certificate can be removed manually in Keychain Access by matching the exact ChemOffice certificate fingerprint. Deleting this project's work folder also deletes retained chemistry and recovery drafts; keep those while they are needed.
-
-## ChemDraw selection on the dev branch
-
-The helper discovers ChemDraw in /Applications, ~/Applications, and Spotlight-indexed locations. It selects the highest installed application version using numeric ordering and launches that exact application path. There is no fixed ChemDraw 22 identifier or silent fallback to an older installation. Older and newer versions still need the AppleScript and SVG export features used by the integration; the existing live acceptance evidence covers ChemDraw 22 only.
+See [v0.1.0 results](release-0.1.0-results.md) for packaging and automated verification. Earlier [beta live reports](launch-and-installation-results.md) describe the prior implementation. They do not establish acceptance of the native rewrite. The red close button, crashes, older macOS versions, and broader Office/ChemDraw compatibility remain outside current native acceptance.

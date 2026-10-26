@@ -51,7 +51,7 @@ class NativeOfficeServer {
     private var connections = [ObjectIdentifier:NWConnection]()
     init(root:URL, port:UInt16 = 17524) throws {
         router = PanelRouter(root:root)
-        let tls = root.appendingPathComponent("work/tls")
+        let tls = NativePaths.work(root:root).appendingPathComponent("tls")
         let cert = try command("/usr/bin/openssl",["x509","-in",tls.appendingPathComponent("localhost.pem").path,"-outform","DER"])
         let key = try command("/usr/bin/openssl",["rsa","-in",tls.appendingPathComponent("localhost-key.pem").path,"-outform","DER"])
         guard let certificate = SecCertificateCreateWithData(nil,cert as CFData),
