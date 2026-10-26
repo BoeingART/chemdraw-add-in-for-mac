@@ -1,7 +1,8 @@
-ChemOffice for Mac v0.1.2 · 安装与使用
+ChemOffice for Mac v1.0.3 · 安装与使用
 
-发布页：https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/tag/v0.1.2
-文件：ChemOffice-for-Mac-0.1.2-universal.pkg（Apple Silicon 与 Intel 通用版）
+发布页：https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/tag/v1.0.3
+安装包：ChemOffice-for-Mac-1.0.3-universal.pkg（Apple Silicon 与 Intel 通用版）
+源码构建可运行 zsh scripts/package.sh，在 dist 下生成安装包。
 要求：macOS 12 或更新；另行安装并激活 ChemDraw、Word、PowerPoint。
 使用安装包无需 Python、Homebrew、命令行工具或源码目录。
 
@@ -12,25 +13,36 @@ ChemOffice for Mac v0.1.2 · 安装与使用
    如果系统拦截安装包或应用，尝试打开后，在“系统设置 → 隐私与安全性”中选择“仍要打开”。
 2. 安装后通常自动打开 ChemOffice；也可在“应用程序”中打开。
    它显示在菜单栏，无需保留终端窗口，目前不会自动随登录启动。
-3. 首次启动自动安装 Office 加载项并生成本机 localhost 证书。
+3. 首次启动自动安装并校验两个 Office 加载项、准备各自沙盒中的预览目录，并生成本机 localhost 证书。
+   macOS 询问访问 Office 文件夹时允许访问；注册失败不会记为成功，之后启动会再次检查。
    点击 Trust Localhost，按 macOS 提示授权，以启用 Office 内的可选面板。
    该信任限定为 localhost 的 SSL 用途，私钥留在本机。
    如果稍后再处理，可从菜单选择 Trust Local Connection。
 4. 在“系统设置 → 隐私与安全性 → 辅助功能”（macOS 27 中名为“设备控制和数据访问”）启用 ChemOffice，随后在菜单选择 Start Helper。
    首次编辑时，按系统提示允许对 ChemDraw、Word、PowerPoint 的自动化控制。
-5. 保存文档后重启 Word 与 PowerPoint。
-   在“开始 → 加载项 → 开发人员加载项”打开 ChemOffice for Mac（蓝色 C 图标）。
+5. 保存文档后完全退出、重新打开 Word 与 PowerPoint，并打开一个文档。
+   Office 2021 / 16.78：在“插入 → 加载项 → 我的加载项”的下拉菜单中，
+   选择“开发人员加载项 → ChemOffice for Mac”（部分布局直接在“插入”中显示“我的加载项”）。
+   新版 Office：在“开始 → 加载项 → 开发人员加载项”打开 ChemOffice for Mac（蓝色 C 图标）。
    激活后也可从 ChemOffice → Open ChemOffice 打开右侧面板。
 
 如果 macOS 阻止复制 Office 加载项
 
-应用会打开准备好的加载项目录。用 Finder 按 ⌘⇧G，分别前往：
+先允许访问 Office 文件夹，并从菜单选择 Install Office Add-ins 重试。
+若仍受保护，应用会打开准备好的加载项目录。用 Finder 按 ⌘⇧G，分别前往：
 ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
 ~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef
 若 wef 不存在，在其父级 Documents 内创建该文件夹。
 将以下文件复制到两个 wef 文件夹，只替换同名 ChemOffice 文件，保留其他加载项：
 ~/Library/Application Support/ChemOffice/work/install/chemoffice-for-mac.xml
 随后重启 Office。无需为此授予整个磁盘访问权限。
+
+1.0.3 不再要求 Word / PPT 读取 ChemOffice 私有目录中的 office-preview-word.svg。
+预览文件改为各自沙盒内的 Library/Caches/ChemOffice/office-preview.svg，
+完整路径为 ~/Library/Containers/com.microsoft.Word/Data/Library/Caches/ChemOffice/office-preview.svg
+（PPT 对应 com.microsoft.Powerpoint）。ChemOffice 需要该目录的写入权限。
+若目录访问失败，会保留源数据或编辑草稿并报错；不会再退回旧路径触发 Office 文件授权。
+等待 Office 处理期间，鼠标和键盘仍正常通过，授权／保存对话框可以操作和取消。
 
 每次使用
 
@@ -48,7 +60,7 @@ Word 提示“内容被阻止，因为它未由有效的安全证书签名”
 应用确认 localhost 证书受信任后会提示成功。保存文档并完全退出、重新打开 Word / PowerPoint。
 不要只依赖面板中的“重新启动”按钮，Office 可能缓存先前的证书错误。
 这与安装包的 Developer ID 签名是两件事；无需关闭 Office 的安全检查。
-若仍无法粘贴，确认使用 0.1.2、Helper running，并在 ChemDraw 重新 ⌘C 后在 Office ⌘V。
+若仍无法粘贴，确认使用 1.0.3、Helper running，并在 ChemDraw 重新 ⌘C 后在 Office ⌘V。
 0.1.2 识别 ChemDraw 26 的 Revvity 剪贴板格式，同时保留旧 PerkinElmer 格式。
 
 升级后显示已开启权限但助手仍不能启动
@@ -58,7 +70,7 @@ Word 提示“内容被阻止，因为它未由有效的安全证书签名”
 
 菜单与本机数据
 
-Check Installation：查看安装、证书、连接状态及最近日志。
+Check Installation：查看两个加载项清单的实际校验结果、Office 版本、预览目录、证书、连接状态及最近日志。
 Install Office Add-ins：重新安装本用户的 Office 加载项。
 Trust Local Connection：授权本机面板连接。
 Accessibility Settings：打开辅助功能设置。
@@ -71,6 +83,11 @@ Installation Guide：打开本指南。
 证书可在“钥匙串访问”中按准确指纹移除。仅在不再需要草稿时删除 Application Support 数据。
 
 验证范围
+
+v1.0.3 已通过 61 项原生检查、ChemDraw 发现检查、微软清单校验和双架构打包检查。
+在 Word / PowerPoint 16.114.1 实测沙盒内 SVG 的插入及再次读取回写，源数据、预览、尺寸校验通过。
+Office 2021 / 16.78 的实机加载项显示，以及完整安装后的 1.0.3 编辑流程仍待验证。
+详见 docs/office-sandbox-registration-fix-results.md。
 
 v0.1.2 已通过 50 项原生检查、双架构打包检查，以及真实 Word 面板、⌘V、首次保存继续粘贴、双击和 ⌘W 回写返回流程。
 实测环境为 macOS 27.0.1、Word 16.114.1、ChemDraw 26.0.0.6599，详见 docs/native-paste-certificate-fix-results.md。

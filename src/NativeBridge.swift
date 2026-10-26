@@ -7,13 +7,15 @@ struct EditingSession: Codable {
     var chemApplication: ChemDrawApplication?
 }
 class NativeBridge {
-    let root: URL, work: URL
+    let root: URL, work: URL, home: URL
     let automation: ChemistryAutomation
     var session: EditingSession?
     var state: URL { work.appendingPathComponent("monitor-state.json") }
     var verify: (String,String,String,Data,Data) throws -> [String:Any] = { try verifySavedFigure($0,host:$1,id:$2,source:$3,expected:$4) }
     var savedFigure: (String,String,String) throws -> SavedFigure = { try readSavedFigure($0,host:$1,id:$2) }
-    init(root:URL, automation:ChemistryAutomation) { self.root = root; self.work = NativePaths.work(root:root); self.automation = automation }
+    init(root:URL, automation:ChemistryAutomation, home:URL = FileManager.default.homeDirectoryForCurrentUser) {
+        self.root = root; self.home = home; self.work = NativePaths.work(root:root,home:home); self.automation = automation
+    }
     func prepare() throws {
         try FileManager.default.createDirectory(at:work,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
         try FileManager.default.setAttributes([.posixPermissions:0o700],ofItemAtPath:work.path)
@@ -61,8 +63,15 @@ class NativeBridge {
         return try savedFigure(document,host,id).tag
     }
     func officePreview(_ host:String, _ svg:Data) throws -> URL {
-        let target = work.appendingPathComponent("office-preview-\(host).svg")
-        try svg.write(to:target,options:.atomic); return target
+        let directory = try NativePaths.officePreviews(host,home:home)
+        let target = directory.appendingPathComponent("office-preview.svg")
+        do {
+            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+            try svg.write(to:target,options:.atomic)
+        } catch {
+            throw ChemOfficeError("Cannot prepare the Office preview at \(directory.path). Choose Install Office Add-ins in the ChemOffice menu and allow macOS access to the Office folders, then retry. Your captured source or editing draft has been retained. \(error.localizedDescription)")
+        }
+        return target
     }
     func paste(_ host:String, snapshot:URL) throws {
         try require(session == nil,"Close the current managed ChemDraw edit before pasting another drawing")

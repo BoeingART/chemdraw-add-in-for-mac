@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+import Foundation
+
+// A synchronous Office Apple event may be waiting for a modal file/permission
+// dialog. Stop interpreting helper gestures during the transaction, but pass
+// every click and key through so the user can complete or cancel that dialog.
+func passOfficeTransactionInput(_ current: [String:Any], bundle: String) -> Bool {
+    if current["saveDialogBundle"] as? String == bundle || current["pasteBusyBundle"] as? String == bundle { return true }
+    // Write-back still freezes the managed ChemDraw window, while Office must
+    // be free to handle its own dialogs without another selection Apple event.
+    let host = current["host"] as? String
+    return current["busy"] as? Bool == true &&
+        ((host == "word" && bundle == "com.microsoft.Word") || (host == "powerpoint" && bundle == "com.microsoft.Powerpoint"))
+}

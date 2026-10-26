@@ -42,7 +42,7 @@ class TestAutomation: ChemistryAutomation {
         func rejects(_ body:() throws -> Void) throws { var failed=false; do { try body() } catch { failed=true }; try require(failed,"Expected failure") }
         func fixture() throws -> (NativeBridge,TestAutomation) {
             let base = root.appendingPathComponent(UUID().uuidString), driver = TestAutomation()
-            let bridge = NativeBridge(root:base,automation:driver); try bridge.prepare()
+            let bridge = NativeBridge(root:base,automation:driver,home:base.appendingPathComponent("home")); try bridge.prepare()
             driver.document = base.appendingPathComponent("test.docx").path; fm.createFile(atPath:driver.document,contents:Data())
             driver.tag = try encodeSource(Data("<CDXML><page><t>old</t></page></CDXML>".utf8))
             bridge.verify = { _,_,_,_,_ in ["verified":true] }
@@ -90,7 +90,7 @@ class TestAutomation: ChemistryAutomation {
         }
         try check("Monitor restart restores the exact ChemDraw installation") {
             let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
-            let restarted = NativeBridge(root:bridge.root,automation:driver); try restarted.restore()
+            let restarted = NativeBridge(root:bridge.root,automation:driver,home:bridge.home); try restarted.restore()
             try require(restarted.session?.id == bridge.session?.id,"Session not restored")
             try require(driver.calls.contains("use:"+driver.app.path),"Pinned application not restored")
         }
@@ -98,6 +98,31 @@ class TestAutomation: ChemistryAutomation {
             let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
             try rejects { try bridge.paste("word",snapshot:root) }
             try require(!driver.calls.contains("insert"),"Inserted during active edit")
+        }
+        for host in ["word","powerpoint"] {
+            try check("\(host) insertion and write-back previews stay inside its own sandbox") {
+                let (bridge,_) = try fixture()
+                let first = try bridge.officePreview(host,Data("first SVG".utf8))
+                let second = try bridge.officePreview(host,Data("updated SVG".utf8))
+                let bundle = host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"
+                let expected = bridge.home.appendingPathComponent("Library/Containers/\(bundle)/Data/Library/Caches/ChemOffice/office-preview.svg")
+                try require(first == expected && second == first,"Office was given a file outside its sandbox")
+                try require(try Data(contentsOf:second) == Data("updated SVG".utf8),"Preview was not updated")
+                try require(!fm.fileExists(atPath:bridge.work.appendingPathComponent("office-preview-\(host).svg").path),"External preview was still generated")
+            }
+            try check("A blocked \(host) preview cannot invoke Office or lose an editing draft") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                let cache = try NativePaths.officePreviews(host,home:bridge.home)
+                try fm.createDirectory(at:cache.deletingLastPathComponent(),withIntermediateDirectories:true)
+                try Data("blocked".utf8).write(to:cache)
+                try rejects { try bridge.finish("command-w") }
+                try require(!driver.calls.contains("update") && !driver.calls.contains("close"),"Office was invoked with an inaccessible preview")
+                try require(bridge.session?.busy == false && fm.fileExists(atPath:bridge.session!.path),"Draft lost or input left frozen")
+            }
+        }
+        try check("Unknown preview hosts are rejected before writing files") {
+            let (bridge,_) = try fixture()
+            try rejects { _ = try bridge.officePreview("../other",Data()) }
         }
         try check("Missing saved targets are refused without opening Save As") {
             let (bridge,driver) = try fixture(); driver.document = "/missing/test.pptx"

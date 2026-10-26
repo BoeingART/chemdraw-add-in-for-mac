@@ -42,9 +42,50 @@ import Foundation
             for target in installer.destinations() { try require(try String(contentsOf:target,encoding:.utf8) == "<manifest/>","Wrong manifest") }
         }
         try check("Protected Office containers produce a Finder fallback") {
+            try fm.removeItem(at:installer.destinations()[0])
             installer.copy = { _,_ in throw NSError(domain:NSCocoaErrorDomain,code:NSFileWriteNoPermissionError) }
             try require(try !installer.install(),"Protected installation falsely succeeded")
             try require(fm.fileExists(atPath:root.appendingPathComponent("work/install/chemoffice-for-mac.xml").path),"Staging manifest missing")
+            try require(installer.installationIssues.count == 1 && installer.installationIssues[0].hasPrefix("word:"),"Failed host was not reported accurately")
+            try require(installer.needsInstallation(version:"test",installedVersion:"test"),"Failed installation was marked current")
+        }
+        try check("Partial failures are retried even with the old success marker") {
+            var copied = [URL]()
+            installer.copy = { source,target in copied.append(target); try Data(contentsOf:source).write(to:target,options:.atomic) }
+            try require(try installer.install(),"Retry did not repair the missing manifest")
+            try require(copied == [installer.destinations()[0]],"Retry replaced an already-current host")
+            try require(installer.installationIssues.isEmpty && !installer.needsInstallation(version:"test",installedVersion:"test"),"Successful retry is still incomplete")
+            try require(installer.needsInstallation(version:"next",installedVersion:"test"),"Upgrade setup was skipped")
+        }
+        try check("Missing, outdated, empty and silently failed manifest copies are repaired") {
+            for contents in [Data(),Data("<old-version/>".utf8)] {
+                try contents.write(to:installer.destinations()[1])
+                try require(installer.needsInstallation(version:"test",installedVersion:"test"),"Invalid manifest accepted as current")
+                installer.copy = { _,_ in }
+                try require(try !installer.install(),"Copy without matching read-back falsely succeeded")
+                installer.copy = { source,target in try Data(contentsOf:source).write(to:target,options:.atomic) }
+                try require(try installer.install(),"Manifest was not repaired")
+            }
+        }
+        try check("One host failing does not skip registration for the other host") {
+            for target in installer.destinations() { try fm.removeItem(at:target) }
+            installer.copy = { source,target in
+                if target == installer.destinations()[0] { throw POSIXError(.EPERM) }
+                try Data(contentsOf:source).write(to:target,options:.atomic)
+            }
+            try require(try !installer.install(),"Partial installation falsely succeeded")
+            try require(try Data(contentsOf:installer.destinations()[1]) == Data("<manifest/>".utf8),"Other host was skipped after an error")
+            try require(installer.installationIssues.count == 1,"Wrong failure count")
+        }
+        try check("Valid manifests cannot hide a broken Office preview cache") {
+            installer.copy = { source,target in try Data(contentsOf:source).write(to:target,options:.atomic) }
+            let cache = try NativePaths.officePreviews("word",home:installer.home)
+            try fm.removeItem(at:cache); try Data("not a directory".utf8).write(to:cache)
+            try require(installer.needsInstallation(version:"test",installedVersion:"test"),"Broken cache was marked ready")
+            try require(try !installer.install(),"Cache setup failure was reported as success")
+            try fm.removeItem(at:cache)
+            try require(try installer.install(),"Cache repair failed")
+            try require(try fm.contentsOfDirectory(atPath:cache.path).isEmpty,"Setup left probe files in the cache")
         }
         let server = try NativeOfficeServer(root:root,port:0)
         var edited = [String](); server.router.edit = { edited.append($0) }

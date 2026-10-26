@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.3 — 2026-10-26
+
+- Place generated SVGs in the target Office application's sandbox cache, avoiding Word/PowerPoint Grant File Access dialogs for ChemOffice's private preview files.
+- Pass mouse and keyboard input through during Office paste/write-back transactions so modal authorization and save dialogs remain usable. Keep protection of the managed ChemDraw window during write-back.
+- Verify installed manifest bytes, repair missing/outdated manifests on launch, retry partial failures, and mark setup complete only after both hosts succeed. Preserve unrelated add-ins.
+- Include Office 2021 / 16.78 Insert / My Add-ins activation instructions and report Office versions, manifest mismatches and unavailable preview folders in installation diagnostics.
+- Preserve private source/certificate/recovery data in Application Support. If Office cache preparation fails, retain chemistry and report the setup problem before asking Office to read a preview.
+
 ## v0.1.2 — 2026-10-26
 
 - Activate the original Office document through its adapter and full path after write-back, avoiding a failing AX lookup when Word hides the filename extension.

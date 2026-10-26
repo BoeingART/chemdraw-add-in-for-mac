@@ -44,9 +44,8 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             exit(valid ? 0 : 1)
         }
         if preview { status.title = "v\(version) — preview (helper stopped)"; return }
-        if UserDefaults.standard.string(forKey:"installedVersion") != version {
+        if NativeInstaller(root:root).needsInstallation(version:version,installedVersion:UserDefaults.standard.string(forKey:"installedVersion")) {
             installAddins()
-            UserDefaults.standard.set(version,forKey:"installedVersion")
         }
         // Installing a manifest does not establish certificate trust. Retry this
         // check on launch even when setup was deferred or cancelled previously.
@@ -62,14 +61,20 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     @objc func installAddins() {
         do {
-            if try !NativeInstaller(root:root).install() {
-                alert("Finish Office setup in Finder", "macOS protects the Office folders. Copy chemoffice-for-mac.xml from the opened folder into the Word and PowerPoint wef folders shown in the installation guide, then restart Office.")
+            let installer = NativeInstaller(root:root)
+            if try !installer.install() {
+                UserDefaults.standard.removeObject(forKey:"installedVersion")
+                alert("Office setup is incomplete", "Allow macOS access to the Office folders, then choose Install Office Add-ins again. If copying remains blocked, copy chemoffice-for-mac.xml from the opened folder into the Word and PowerPoint wef folders in the guide, then restart Office.\n\n"+installer.installationIssues.joined(separator:"\n"))
                 NSWorkspace.shared.open(NativePaths.work(root:root).appendingPathComponent("install"))
                 openGuide()
             } else {
-                alert("Office add-ins installed", "Save your documents and restart Word and PowerPoint. Find ChemOffice under Home → Add-ins → Developer Add-ins.")
+                UserDefaults.standard.set(version,forKey:"installedVersion")
+                alert("Office add-ins installed", "Save your documents and fully quit and restart Word and PowerPoint.\n\n"+NativeInstaller.activationInstructions)
             }
-        } catch { alert("Office setup needs attention",error.localizedDescription) }
+        } catch {
+            UserDefaults.standard.removeObject(forKey:"installedVersion")
+            alert("Office setup needs attention",error.localizedDescription)
+        }
     }
     @objc func trustConnection() {
         do {

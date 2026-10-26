@@ -204,10 +204,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
           let bundle = front.bundleIdentifier else { return Unmanaged.passUnretained(event) }
 
     let current = state()
-    // The save dialog must receive typing, clicks, and paste normally. Its
-    // chemistry snapshot has already been captured by the original paste event.
-    if current["saveDialogBundle"] as? String == bundle { return Unmanaged.passUnretained(event) }
-    if current["pasteBusyBundle"] as? String == bundle { return nil }
+    if passOfficeTransactionInput(current,bundle:bundle) { return Unmanaged.passUnretained(event) }
     if type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 9,
        event.flags.contains(.maskCommand), !event.flags.contains(.maskShift),
        !event.flags.contains(.maskAlternate), !event.flags.contains(.maskControl),

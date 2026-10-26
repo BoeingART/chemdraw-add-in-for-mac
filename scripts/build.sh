@@ -12,7 +12,7 @@ if [[ "${1:-}" == --universal ]]; then CFM_ARCHS=(arm64 x86_64); fi
 cp "$PROJECT_DIR/src/EventMonitor.swift" "$PROJECT_DIR/build/main.swift"
 for CFM_ARCH in $CFM_ARCHS; do
     CFM_TARGET="$CFM_ARCH-apple-macosx12.0"
-    xcrun swiftc -O -target "$CFM_TARGET" "$PROJECT_DIR/build/main.swift" "$PROJECT_DIR/src/NativeClipboard.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" -o "$PROJECT_DIR/build/event-monitor-$CFM_ARCH" -framework Cocoa -framework ApplicationServices -framework PDFKit
+    xcrun swiftc -O -target "$CFM_TARGET" "$PROJECT_DIR/build/main.swift" "$PROJECT_DIR/src/NativeClipboard.swift" "$PROJECT_DIR/src/NativeInputPolicy.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" -o "$PROJECT_DIR/build/event-monitor-$CFM_ARCH" -framework Cocoa -framework ApplicationServices -framework PDFKit
     xcrun swiftc -O -target "$CFM_TARGET" "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeBridge.swift" "$PROJECT_DIR/src/NativeOfficeUI.swift" "$PROJECT_DIR/src/NativeInstaller.swift" "$PROJECT_DIR/src/NativeApplication.swift" "$PROJECT_DIR/src/NativeMonitorEvents.swift" "$PROJECT_DIR/src/NativeMain.swift" -o "$PROJECT_DIR/build/chemoffice-$CFM_ARCH" -framework Cocoa -framework Network -framework Security
 done
 for CFM_BINARY in chemoffice event-monitor; do

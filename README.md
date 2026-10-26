@@ -4,9 +4,11 @@
 
 **Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
 
-[Download v0.1.2 installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v0.1.2/ChemOffice-for-Mac-0.1.2-universal.pkg) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
+[Download v1.0.3 installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v1.0.3/ChemOffice-for-Mac-1.0.3-universal.pkg) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
 
-[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/native-paste-certificate-fix-results.md)
+**v1.0.3 fixes Office preview authorization and add-in setup.** Generated previews now stay in Word/PowerPoint's own sandbox cache, and Office dialogs receive normal input during paste/write-back. Setup verifies both add-in manifests and retries failed registration. Office 2021 / 16.78 uses **Insert → Add-ins → My Add-ins (▼) → Developer Add-ins**; activate ChemOffice in an open document before expecting its ribbon tab. See the [verification record](docs/office-sandbox-registration-fix-results.md) for 61 automated checks and Word/PowerPoint sandbox smoke checks; Office 2021 / 16.78 acceptance on that version remains pending.
+
+[Getting started](#your-first-drawing) · [What works today](#what-works-today) · [Your work stays yours](#your-work-stays-yours) · [Latest tests](docs/office-sandbox-registration-fix-results.md)
 
 </div>
 
@@ -14,27 +16,27 @@ ChemOffice for Mac brings a familiar chemistry workflow to Microsoft Word and Po
 
 > **Historical beta acceptance.** The earlier Python helper was tested with ChemDraw 22 and Office 16.114 on the test Mac. It creates self-contained editable graphics through a custom Mac integration. Keep using copies of your work while compatibility develops.
 
-**v0.1.2 is a native macOS app with a pkg installer.** Download the [universal installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v0.1.2/ChemOffice-for-Mac-0.1.2-universal.pkg), open it, and follow the macOS installation steps. It installs **ChemOffice.app** in Applications and opens the menu bar helper. No source checkout, terminal window, Python, Homebrew, or developer tools are needed to use the installed app. The application and package have no Developer ID signature or Apple notarization; macOS may require **System Settings → Privacy & Security → Open Anyway**. The installed native app passed the Word copy/paste, double-click and ⌘W write-back workflow on macOS 27.0.1 with ChemDraw 26.0.0.6599 and Word 16.114.1. Native PowerPoint acceptance and other application versions remain pending.
+**v1.0.3 is a native macOS app with a pkg installer.** Download the [universal installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v1.0.3/ChemOffice-for-Mac-1.0.3-universal.pkg), open it, and follow the macOS installation steps. It installs **ChemOffice.app** in Applications and opens the menu bar helper. No source checkout, terminal window, Python, Homebrew, or developer tools are needed to use the installed app. The application and package have no Developer ID signature or Apple notarization; macOS may require **System Settings → Privacy & Security → Open Anyway**. The earlier installed 0.1.2 native app passed the Word copy/paste, double-click and ⌘W write-back workflow on macOS 27.0.1 with ChemDraw 26.0.0.6599 and Word 16.114.1. Native PowerPoint acceptance and other application versions remain pending.
 
 **Looking for ChemOffice inside Office?** A separate local Office add-in supplies the blue C entry, a right-hand panel, and a **ChemOffice** ribbon tab. Follow the [installation and viewing guide](docs/installation.md). The earlier beta panels and their **Edit selected drawing** buttons were verified in both Word and PowerPoint on the test Mac's App Store builds; the native 0.1.2 panel was verified in Word. The double-click workflow also works independently of the panel.
 
-**Fixed in 0.1.2.** Fixes ChemDraw 26 clipboard recognition, delayed native monitor events, repeated localhost certificate setup, and returning to Word after write-back. Word now offers to save an unsaved document and resumes the captured paste, as PowerPoint does. Upgrade from 0.1.0 using the installer above. The installed patch passed the real Word copy/paste, double-click and ⌘W workflow on macOS 27.0.1 with ChemDraw 26 and Word 16.114.1; see [patch verification](docs/native-paste-certificate-fix-results.md).
+**Earlier 0.1.2 fixes.** Fixes ChemDraw 26 clipboard recognition, delayed native monitor events, repeated localhost certificate setup, and returning to Word after write-back. Word now offers to save an unsaved document and resumes the captured paste, as PowerPoint does. Upgrade from 0.1.0 using the installer above. The installed 0.1.2 patch passed the real Word copy/paste, double-click and ⌘W workflow on macOS 27.0.1 with ChemDraw 26 and Word 16.114.1; see [patch verification](docs/native-paste-certificate-fix-results.md).
 
 ## Your first drawing
 
 ### 1 · Get ready
 
-Open **ChemOffice-for-Mac-0.1.2-universal.pkg**. The installer supports Apple Silicon and Intel Macs and targets **macOS 12 or later**. Install and activate **ChemDraw**, **Word for Mac**, and **PowerPoint for Mac** separately. ChemDraw is discovered automatically; the newest installed version is selected. The deployment target is not a claim of full application compatibility on every OS or application version.
+Open **ChemOffice-for-Mac-1.0.3-universal.pkg**. The installer supports Apple Silicon and Intel Macs and targets **macOS 12 or later**. Install and activate **ChemDraw**, **Word for Mac**, and **PowerPoint for Mac** separately. ChemDraw is discovered automatically; the newest installed version is selected. The deployment target is not a claim of full application compatibility on every OS or application version.
 
 ### 2 · Open ChemOffice
 
 The installer opens **ChemOffice** automatically when a user is signed in; you can also open it from **Applications**. It lives in the menu bar. First launch prepares this user's Office manifests and localhost certificate. Approve local certificate trust for the optional Office panel, enable **ChemOffice** under **System Settings → Privacy & Security → Accessibility** (**Device Control and Data Access** on macOS 27), then choose **Start Helper** from its menu. macOS asks for Automation access to ChemDraw and Office when first needed.
 
-If macOS protects an Office folder, the app opens the manifest folder and provides Finder copy instructions. After saving your documents, restart Office. Find **Home → Add-ins → Developer Add-ins → ChemOffice for Mac**. The **ChemOffice** ribbon tab appears after Office activates the add-in. The menu also provides **Check Installation**, **Install Office Add-ins**, **Trust Local Connection**, and **Open Panel**. See the [installation guide](docs/installation.md) for details.
+If macOS protects an Office folder, the app opens the manifest folder and provides Finder copy instructions. After saving your documents, restart Office. In Office 2021 / 16.78, use **Insert → My Add-ins (▼) → Developer Add-ins → ChemOffice for Mac**; newer Office uses **Home → Add-ins → Developer Add-ins → ChemOffice for Mac**. The **ChemOffice** ribbon tab appears after Office activates the add-in. The menu also provides **Check Installation**, **Install Office Add-ins**, **Trust Local Connection**, and **Open Panel**. See the [installation guide](docs/installation.md) for details.
 
 ### 3 · Copy, paste, and keep drawing
 
-The first paste into an unsaved Word document or PowerPoint deck asks where to save it and continues automatically after saving. Canceling leaves the document unchanged and keeps the captured drawing locally. In ChemDraw, select your structure and press **⌘C**, switch to Office, and press **⌘V**. If Office asks to access the generated preview file, approve that specific file once.
+The first paste into an unsaved Word document or PowerPoint deck asks where to save it and continues automatically after saving. Canceling leaves the document unchanged and keeps the captured drawing locally. In ChemDraw, select your structure and press **⌘C**, switch to Office, and press **⌘V**. In 1.0.3, generated previews use Office's sandbox cache. If macOS blocks ChemOffice from preparing that cache, choose **Install Office Add-ins** and allow access to the Office folders before retrying.
 
 Double-click the pasted drawing. Edit it in ChemDraw, then close its editing window with **⌘W**. The helper saves the drawing, checks the source and preview in the saved Office document, and brings you back to your figure.
 
