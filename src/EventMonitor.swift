@@ -159,6 +159,14 @@ func managedWindow(_ app: NSRunningApplication, _ expected: String) -> AXUIEleme
     return window
 }
 
+func matchesSessionApplication(_ app: NSRunningApplication, _ current: [String: Any]) -> Bool {
+    guard app.bundleIdentifier == current["chemBundle"] as? String else { return false }
+    if let application = current["chemApplication"] as? [String: Any], let path = application["path"] as? String {
+        return app.bundleURL?.resolvingSymlinksInPath().path == path
+    }
+    return true // Sessions retained by the previous release contain only a bundle ID.
+}
+
 func closeButtonContains(_ window: AXUIElement, _ point: CGPoint) -> Bool {
     guard let raw = attribute(window, kAXCloseButtonAttribute),
           CFGetTypeID(raw) == AXUIElementGetTypeID() else { return false }
@@ -180,7 +188,7 @@ func closeButtonContains(_ window: AXUIElement, _ point: CGPoint) -> Bool {
 func serviceCloseWindow(_ point: CGPoint, _ expected: String) -> AXUIElement? {
     let current = state()
     if let front = NSWorkspace.shared.frontmostApplication,
-       front.bundleIdentifier == current["chemBundle"] as? String,
+       matchesSessionApplication(front, current),
        let window = managedWindow(front, expected), closeButtonContains(window, point) { return window }
     var hit: AXUIElement?
     guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
@@ -280,7 +288,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     }
     guard let title = current["windowTitle"] as? String else { return Unmanaged.passUnretained(event) }
     let candidateWindow: AXUIElement?
-    if bundle == current["chemBundle"] as? String {
+    if matchesSessionApplication(front, current) {
         candidateWindow = managedWindow(front, title)
     } else if bundle == "com.apple.appkit.xpc.ThemeWidgetControlViewService" && type == .leftMouseDown {
         // Newer macOS versions host traffic-light controls in a separate AppKit process.
