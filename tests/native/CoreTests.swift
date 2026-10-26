@@ -88,6 +88,22 @@ import Cocoa
                 }
             }
         }
+        try check("A saved PowerPoint graphic with stretched dimensions is rejected") {
+            let fm = FileManager.default, temporary = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? fm.removeItem(at:temporary) }
+            let slides = temporary.appendingPathComponent("ppt/slides"), media = temporary.appendingPathComponent("ppt/media")
+            try fm.createDirectory(at:slides.appendingPathComponent("_rels"),withIntermediateDirectories:true)
+            try fm.createDirectory(at:media,withIntermediateDirectories:true)
+            let picture = "<p:sld xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:asvg=\"http://schemas.microsoft.com/office/drawing/2016/SVG/main\"><p:pic><p:nvPicPr><p:cNvPr name=\"ChemOffice Drawing:\(id)\"/></p:nvPicPr><p:blipFill><asvg:svgBlip r:embed=\"rId1\"/></p:blipFill><p:spPr><a:xfrm><a:ext cx=\"1000\" cy=\"1000\"/></a:xfrm></p:spPr></p:pic></p:sld>"
+            try Data(picture.utf8).write(to:slides.appendingPathComponent("slide1.xml"))
+            try Data("<Relationships><Relationship Id=\"rId1\" Target=\"../media/figure.svg\"/></Relationships>".utf8).write(to:slides.appendingPathComponent("_rels/slide1.xml.rels"))
+            try carrier.svg.write(to:media.appendingPathComponent("figure.svg"))
+            let archive = temporary.appendingPathComponent("stretched.pptx"), process = Process()
+            process.executableURL = URL(fileURLWithPath:"/usr/bin/zip"); process.currentDirectoryURL = temporary
+            process.arguments = ["-q","-r",archive.path,"ppt"]; try process.run(); process.waitUntilExit()
+            try require(process.terminationStatus == 0,"Could not create stretched fixture")
+            try rejects { _ = try verifySavedFigure(archive.path,host:"powerpoint",id:id,source:cdx,expected:vector) }
+        }
         print("Passed \(count) native core checks")
     }
 }

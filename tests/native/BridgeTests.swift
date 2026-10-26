@@ -129,6 +129,21 @@ class TestAutomation: ChemistryAutomation {
             let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
             try require(state.isEmpty,"Save dialog state was not cleared")
         }
+        try check("Native cold-launch failure cannot script an unready ChemDraw") {
+            class LaunchProbe: NativeAutomation {
+                var scripted = false
+                override func script(_ body:String, _ arguments:[String], timeout:TimeInterval = 45) throws -> String { scripted = true; return "" }
+            }
+            let base = root.appendingPathComponent("launch"), monitor = base.appendingPathComponent("build/event-monitor")
+            try fm.createDirectory(at:monitor.deletingLastPathComponent(),withIntermediateDirectories:true)
+            try Data("#!/bin/sh\necho 'ChemDraw unavailable' >&2\nexit 2\n".utf8).write(to:monitor)
+            try fm.setAttributes([.posixPermissions:0o755],ofItemAtPath:monitor.path)
+            let driver = LaunchProbe(root:base); driver.selected = ChemDrawApplication(path:"/missing/ChemDraw.app",bundle:"example.ChemDraw",version:"30")
+            try rejects { try driver.open(base.appendingPathComponent("draft.cdx")) }
+            try require(!driver.scripted,"Script sent after failed launch")
+            try Data("#!/bin/sh\necho no\n".utf8).write(to:monitor)
+            try require(try !driver.isOpen(base.appendingPathComponent("draft.cdx")) && !driver.scripted,"Checking a closed editor launched it")
+        }
         print("Passed \(count) native transaction checks")
     }
 }
