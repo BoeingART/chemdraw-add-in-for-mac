@@ -5,3 +5,6 @@ PROJECT_DIR="${0:A:h:h}"
 mkdir -p "$PROJECT_DIR/build"
 xcrun swiftc -O "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/tests/native/CoreTests.swift" -o "$PROJECT_DIR/build/test-core" -framework Cocoa
 "$PROJECT_DIR/build/test-core" "$PROJECT_DIR"
+xcrun swiftc -O "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeBridge.swift" "$PROJECT_DIR/tests/native/BridgeTests.swift" -o "$PROJECT_DIR/build/test-bridge" -framework Cocoa
+cd "$PROJECT_DIR"
+"$PROJECT_DIR/build/test-bridge" | /usr/bin/awk '/^PASS|^Passed/'
