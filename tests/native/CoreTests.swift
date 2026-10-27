@@ -77,6 +77,15 @@ import Cocoa
             let changed = Data(String(decoding:vector,as:UTF8.self).replacingOccurrences(of:"M10 20L150 80",with:"M190 20L20 90").utf8)
             try rejects { _ = try previewAgreement(vector,changed) }
         }
+        try check("An empty drawing retains its editable source and verifies as a white canvas") {
+            let empty = Data("<CDXML><page/></CDXML>".utf8), white = blankDrawingSVG()
+            let carrier = try createCarrier(empty,id:id,vector:white)
+            try require(try decodeSource(readCarrier(carrier.svg)).source == empty,"Blank drawing source was lost")
+            try require(try svgAspect(carrier.svg) == 1,"Blank drawing has unusable dimensions")
+            let evidence = try previewAgreement(carrier.svg,white)
+            try require(evidence["blank_canvas"] as? Bool == true,"Blank preview did not verify")
+            try rejects { _ = try previewAgreement(white,vector) }
+        }
         for (host,name) in [("word","Vector Word.docx"),("powerpoint","Vector PowerPoint.pptx")] {
             try check("Existing \(host) documents retain exact source, vectors, and dimensions") {
                 let path = root.appendingPathComponent("examples/vector/"+name)

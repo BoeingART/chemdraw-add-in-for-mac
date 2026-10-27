@@ -32,6 +32,7 @@ protocol ChemistryAutomation: AnyObject {
     func office(_ action:String, _ host:String, _ arguments:[String]) throws -> String
     func open(_ path:URL) throws
     func isOpen(_ path:URL) throws -> Bool
+    func saveSource(_ path:URL) throws -> Data
     func snapshot(_ path:URL, _ image:URL) throws
     func savedSnapshot(_ source:URL, _ image:URL) throws
     func renderVector(_ source:URL, _ vector:URL) throws
@@ -87,6 +88,9 @@ class NativeAutomation: ChemistryAutomation {
         end tell
         end timeout
         """,[path.path])
+        try focus(path,application:app)
+    }
+    func focus(_ path:URL,application app:ChemDrawApplication) throws {
         for _ in 0..<30 {
             if (try? command(monitor,["--activate-window",app.path,path.lastPathComponent])) != nil,
                let focused = try JSONSerialization.jsonObject(with:command(monitor,["--focused"])) as? [String:String],
@@ -110,25 +114,27 @@ class NativeAutomation: ChemistryAutomation {
         end tell
         """,[path.path]) == "open"
     }
-    func snapshot(_ path:URL, _ image:URL) throws {
+    func saveSource(_ path:URL) throws -> Data {
+        let app = try application()
+        try focus(path,application:app)
         _ = try script("""
-        set outputFile to POSIX file (item 2 of argv)
-        tell application \(appleQuote(try application().path))
+        tell application \(appleQuote(app.path))
             set targetPath to item 1 of argv
             set matches to {}
-            repeat with candidate in documents
+            repeat with documentIndex from 1 to (count of documents)
+                set candidate to document documentIndex
                 try
-                    if POSIX path of ((file of candidate) as alias) is targetPath then set end of matches to candidate
+                    if POSIX path of ((file of candidate) as alias) is targetPath then set end of matches to (documentIndex as integer)
                 end try
             end repeat
             if (count matches) is not 1 then error "Expected exactly one managed ChemDraw document"
-            set d to item 1 of matches
-            if POSIX path of ((file of document 1) as alias) is not targetPath then error "Managed drawing is not active"
+            set d to document (item 1 of matches)
             delay 0.25
             do command "chooseSelectionTool_Marquee"
             set sourceSaved to false
             repeat 5 times
                 delay 0.1
+                if POSIX path of ((file of d) as alias) is not targetPath then error "Managed drawing identity changed before save"
                 save d
                 delay 0.1
                 if not (modified of d) then
@@ -140,12 +146,16 @@ class NativeAutomation: ChemistryAutomation {
                 end if
             end repeat
             if not sourceSaved then error "ChemDraw still reports unsaved changes"
-            save d in outputFile as "Scalable Vector Graphics (SVG)"
-            if modified of d then error "Drawing changed during snapshot; close again to retry"
         end tell
-        """,[path.path,image.deletingPathExtension().appendingPathExtension("svg").path])
-        let svg = try Data(contentsOf:image.deletingPathExtension().appendingPathExtension("svg"))
-        try renderPNG(svg).write(to:image)
+        """,[path.path])
+        let source = try Data(contentsOf:path); try validateSource(source)
+        return source
+    }
+    func snapshot(_ path:URL, _ image:URL) throws {
+        let source = try saveSource(path)
+        let snapshot = image.deletingLastPathComponent().appendingPathComponent("saved-\(UUID().uuidString)").appendingPathExtension(path.pathExtension)
+        try source.write(to:snapshot,options:.atomic)
+        try savedSnapshot(snapshot,image)
     }
     func renderVector(_ source:URL, _ vector:URL) throws {
         try exportVector(source,vector,application:preferredApplication())
@@ -156,27 +166,34 @@ class NativeAutomation: ChemistryAutomation {
         try renderPNG(Data(contentsOf:vector)).write(to:image)
     }
     private func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
-        _ = try script("""
+        let result = try script("""
         set drawingFile to (POSIX file (item 1 of argv)) as alias
         set outputFile to POSIX file (item 2 of argv)
         tell application \(appleQuote(application.path))
             open drawingFile
             set matches to {}
-            repeat with d in documents
+            repeat with documentIndex from 1 to (count of documents)
+                set d to document documentIndex
                 try
-                    if POSIX path of ((file of d) as alias) is (item 1 of argv) then set end of matches to d
+                    if POSIX path of ((file of d) as alias) is (item 1 of argv) then set end of matches to (documentIndex as integer)
                 end try
             end repeat
             if (count matches) is not 1 then error "Cannot identify captured chemistry for vector export"
-            set d to item 1 of matches
+            set d to document (item 1 of matches)
             if modified of d then error "Captured source unexpectedly has pending edits"
+            if (count objects of d) is 0 then
+                close d saving no
+                return "empty"
+            end if
             save d in outputFile as "Scalable Vector Graphics (SVG)"
             if modified of d then error "Captured drawing changed during export; kept open"
             close d saving no
         end tell
         """,[source.path,vector.path])
+        if result == "empty" { try blankDrawingSVG().write(to:vector) }
     }
     func close(_ path:URL) throws {
+        try focus(path,application:application())
         _ = try script("""
         tell application \(appleQuote(try application().path))
             repeat with d in documents

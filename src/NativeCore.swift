@@ -229,6 +229,11 @@ func renderPNG(_ svg: Data) throws -> Data {
     guard let png = try renderImage(svg).representation(using: .png, properties: [:]) else { throw ChemOfficeError("Cannot encode preview PNG") }
     return png
 }
+// ChemDraw cannot export SVG artwork from a document with no objects. Keep a
+// positive, selectable white canvas so the original Office figure stays editable.
+func blankDrawingSVG() -> Data {
+    Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"100\" viewBox=\"0 0 100 100\"><rect width=\"100\" height=\"100\" fill=\"white\"/></svg>".utf8)
+}
 func previewAgreement(_ actual: Data, _ expected: Data) throws -> [String:Any] {
     let a = try renderImage(actual), b = try renderImage(expected)
     try require(a.pixelsHigh == b.pixelsHigh, "Saved preview dimensions differ from native drawing")
@@ -243,7 +248,12 @@ func previewAgreement(_ actual: Data, _ expected: Data) throws -> [String:Any] {
         inkB[index] = (Int(bp[i])*299 + Int(bp[i+1])*587 + Int(bp[i+2])*114) < 180000
         if inkA[index] { countA += 1 }; if inkB[index] { countB += 1 }
     }
-    try require(min(countA,countB) > 0, "The saved preview or its reference is blank")
+    if countA == 0 || countB == 0 {
+        try require(countA == 0 && countB == 0, "The saved preview differs from the blank ChemDraw canvas")
+        let mean = error/Double(width*height*3)
+        try require(mean <= 1.5, "The saved blank preview does not match the ChemDraw canvas")
+        return ["mean_pixel_error":mean,"ink_coverage":[1.0,1.0],"saved_preview_size":[width,height],"blank_canvas":true]
+    }
     func coverage(_ first: [Bool], _ second: [Bool], _ count: Int) -> Double {
         var covered = 0
         for i in first.indices where first[i] {

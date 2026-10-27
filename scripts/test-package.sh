@@ -39,6 +39,13 @@ print 'PASS packaged helper discovers ChemDraw without source checkout or develo
 /bin/sh "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/postinstall" unused unused "$CFM_TEMP/offline-target"
 print 'PASS installer scripts skip permissions and user setup for an offline target'
 cmp "$PROJECT_DIR/packaging/Info.plist" "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/app-info.plist"
-print 'PASS installer uses the packaged application identity for permission reset and launch'
+print 'PASS installer keeps consent and uses the packaged application identity for launch'
+if /usr/bin/grep -q 'tccutil' "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/preinstall"; then
+    print 'FAIL installer still resets privacy consent'; exit 1
+fi
+CFM_REQUIREMENT="$(/usr/bin/codesign -d -r- "$CFM_APP" 2>&1 | /usr/bin/sed -n 's/^designated => //p')"
+[[ "$CFM_REQUIREMENT" == *'certificate'* ]]
+/usr/bin/codesign --verify --strict -R "=$CFM_REQUIREMENT" "$CFM_APP"
+print 'PASS packaged application identity is bound to the persistent signing certificate'
 cd "$PROJECT_DIR/dist"
 /usr/bin/shasum -a 256 -c SHA256SUMS.txt

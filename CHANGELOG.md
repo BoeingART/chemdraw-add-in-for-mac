@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.3.1 — 2026-10-27
+
+- Download updates inside the app with progress and cancellation, then open the installer and relaunch automatically after installation. Active drawing edits defer installation while retaining the download.
+- Preserve Office, Accessibility and Automation consent during installation and upgrades. Reuse the project's persistent signing identity across builds.
+- Retain existing local connection certificates, drawing caches and recovery drafts. Validate release-specific update assets and downloaded packages before installation.
+
+- Keep the installed keyboard/mouse monitor running across ChemDraw activation and Apple-event run-loop interruptions, so Command-S synchronization continues after opening a figure. Report unexpected monitor exits with their cause.
+
+- Use the standard AppKit spinning progress control at its system size, with a transparent background.
+- Give updated Office previews distinct file paths so saved edits display the current artwork.
+- Render both save and close previews from independent saved copies. Keep ChemDraw input responsive and queue close requests during synchronization.
+- Replace a drawing whose objects were all deleted with an editable white canvas, supporting save, close and reopening.
+
 ## v1.3.0 — 2026-10-27
 
 - Show a nonactivating spinning indicator beside the pointer during opening, saving and close/write-back; hide it after completion or failure.

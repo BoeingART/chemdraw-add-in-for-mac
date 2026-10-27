@@ -14,11 +14,36 @@ struct ReleaseVersion: Comparable {
 }
 
 struct GitHubRelease: Decodable {
+    struct Asset: Decodable {
+        let name: String
+        let browser_download_url: URL
+        let size: Int64
+        let digest: String?
+    }
     let tag_name: String
     let html_url: URL
     let draft: Bool
     let prerelease: Bool
+    let assets: [Asset]?
     var version: ReleaseVersion? { ReleaseVersion(tag_name) }
+    func installer() throws -> Asset {
+        guard let version else { throw UpdateCheckError(message:"更新版本无效，请重新检查更新。") }
+        let number = version.components.map(String.init).joined(separator:".")
+        let name = "ChemDraw-Add-in-for-Mac-\(number)-universal.pkg"
+        let matches = (assets ?? []).filter { $0.name == name }
+        guard matches.count == 1, let asset = matches.first,
+              asset.size > 0, asset.size <= NativeUpdateDownload.maximumBytes,
+              asset.browser_download_url.scheme == "https", asset.browser_download_url.host == "github.com",
+              asset.browser_download_url.user == nil, asset.browser_download_url.password == nil,
+              asset.browser_download_url.port == nil, asset.browser_download_url.query == nil,
+              asset.browser_download_url.fragment == nil,
+              asset.browser_download_url.path == "/\(NativeUpdates.repository)/releases/download/\(tag_name)/\(name)",
+              let digest = asset.digest, digest.hasPrefix("sha256:"), digest.count == 71,
+              digest.dropFirst(7).allSatisfy({ $0.isASCII && $0.isHexDigit }) else {
+            throw UpdateCheckError(message:"这个版本的安装包尚未准备完成，请稍后重新检查更新。")
+        }
+        return asset
+    }
 }
 
 struct UpdateCheckError: LocalizedError {

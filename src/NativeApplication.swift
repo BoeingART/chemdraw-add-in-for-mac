@@ -25,6 +25,11 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var loginNote: NSTextField!
     let loginItem = NativeLoginItem()
     var checkingUpdates = false
+    var updateDownload: NativeUpdateDownload?
+    var updateWindow: NSWindow?
+    var updateProgress: NSProgressIndicator?
+    var updateMessage: NSTextField?
+    var stagedUpdate: (GitHubRelease,URL)?
     var details = [String:NSTextField]()
     var finishButton: NSButton!
     var timer: Timer?
@@ -99,7 +104,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         menu.addItem(versionItem); menu.addItem(.separator())
         for (title,action) in [("检查更新",#selector(checkUpdates)),("打开界面",#selector(showMain)),("隐藏图标",#selector(hideStatusIcon)),("退出应用",#selector(quitApp))] {
             let entry = NSMenuItem(title:title,action:action,keyEquivalent:""); entry.target = self
-            if title == "检查更新" { updateMenuItem = entry; entry.isEnabled = !checkingUpdates }
+            if title == "检查更新" { updateMenuItem = entry; entry.isEnabled = !checkingUpdates; entry.title = stagedUpdate == nil ? "检查更新" : "安装更新" }
             menu.addItem(entry)
         }
         item.menu = menu; statusItem = item
@@ -214,6 +219,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     @objc func checkUpdates() {
         guard !checkingUpdates else { return }
+        if let stagedUpdate { offerUpdateInstallation(stagedUpdate.0,stagedUpdate.1); return }
         checkingUpdates = true; updateButton.isEnabled = false; updateMenuItem.isEnabled = false
         NativeUpdates.check(currentVersion:version) { [weak self] result in
             guard let self else { return }
@@ -221,10 +227,69 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             switch result {
             case .success(let release):
                 if let latest = release.version, let current = ReleaseVersion(self.version), latest > current {
-                    if self.alert("发现新版本\(release.tag_name)","当前版本为v\(self.version)。前往GitHub Release下载安装包，完成当前编辑并退出应用后安装。",confirm:"前往下载",cancel:true) { NSWorkspace.shared.open(release.html_url) }
+                    if self.alert("发现新版本\(release.tag_name)","当前版本为v\(self.version)。下载更新后可直接安装，已有绘图和授权会保留。",confirm:"下载更新",cancel:true) { self.downloadUpdate(release) }
                 } else { self.alert("当前没有更新的正式版本","当前版本：v\(self.version)\nGitHub最新正式版：\(release.tag_name)") }
             case .failure(let error): self.alert("检查更新失败",error.localizedDescription)
             }
+        }
+    }
+    func setUpdateControls(enabled:Bool) {
+        updateButton.isEnabled = enabled; updateMenuItem.isEnabled = enabled
+        let title = stagedUpdate == nil ? "检查更新" : "安装更新"
+        updateButton.title = title; updateMenuItem.title = title
+    }
+    func showUpdateDownloadProgress(_ tag:String) {
+        let window = self.window("更新\(appName)",width:480,height:190)
+        // The download can be cancelled without affecting the running helper.
+        window.styleMask.remove(.closable)
+        let stack = contentStack(window), message = label("正在下载\(tag)…",size:14,bold:true)
+        let progress = NSProgressIndicator(); progress.style = .bar; progress.isIndeterminate = false; progress.maxValue = 1
+        stack.addArrangedSubview(message); stack.addArrangedSubview(progress)
+        progress.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
+        let cancel = NSButton(title:"取消下载",target:self,action:#selector(cancelUpdateDownload)); cancel.bezelStyle = .rounded
+        stack.addArrangedSubview(cancel)
+        updateWindow = window; updateProgress = progress; updateMessage = message
+        window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
+    }
+    func downloadUpdate(_ release:GitHubRelease) {
+        do {
+            let asset = try release.installer()
+            checkingUpdates = true; setUpdateControls(enabled:false)
+            showUpdateDownloadProgress(release.tag_name)
+            let download = NativeUpdateDownload(asset:asset,directory:work.appendingPathComponent("updates"),progress:{ [weak self] fraction in
+                self?.updateProgress?.doubleValue = fraction ?? 0
+                self?.updateMessage?.stringValue = "正在下载\(release.tag_name)… \(Int((fraction ?? 0)*100))%"
+            },completion:{ [weak self] result in
+                guard let self else { return }
+                self.updateWindow?.orderOut(nil); self.updateWindow = nil; self.updateProgress = nil; self.updateMessage = nil
+                self.updateDownload = nil; self.checkingUpdates = false
+                guard !self.quitting else { return }
+                switch result {
+                case .success(let file): self.stagedUpdate = (release,file); self.setUpdateControls(enabled:true); self.offerUpdateInstallation(release,file)
+                case .failure(let error):
+                    self.setUpdateControls(enabled:true)
+                    if (error as NSError).domain != NSURLErrorDomain || (error as NSError).code != NSURLErrorCancelled { self.alert("更新下载未完成",error.localizedDescription) }
+                }
+            })
+            updateDownload = download; download.start()
+        } catch { checkingUpdates = false; setUpdateControls(enabled:true); alert("无法下载更新",error.localizedDescription) }
+    }
+    @objc func cancelUpdateDownload() { updateDownload?.cancel() }
+    func offerUpdateInstallation(_ release:GitHubRelease,_ file:URL) {
+        let activity = helper.flatMap { HelperActivity.read(work:work,pid:$0.processIdentifier) }
+        let state = (try? Data(contentsOf:work.appendingPathComponent("monitor-state.json")))
+            .flatMap { try? JSONSerialization.jsonObject(with:$0) as? [String:Any] } ?? [:]
+        guard UpdateInstallationPolicy.canInstall(activity:activity,state:state) else {
+            alert("更新已下载","请先在ChemDraw用⌘W结束当前结构编辑，再点“安装更新”。安装包已保留。")
+            return
+        }
+        guard alert("安装\(release.tag_name)","应用会退出并打开安装器，安装结束后自动重新启动。Office文档由你按需要保存。",confirm:"安装并重新打开",cancel:true) else { return }
+        do {
+            try NativeUpdateDownload.verify(file,asset:release.installer())
+            guard NSWorkspace.shared.open(file) else { throw UpdateCheckError(message:"无法打开已下载的安装包，请重新检查更新。") }
+            NSApp.terminate(nil)
+        } catch {
+            stagedUpdate = nil; setUpdateControls(enabled:true); alert("更新安装未开始",error.localizedDescription)
         }
     }
     func setDetail(_ key:String,_ text:String,complete:Bool) {
@@ -254,7 +319,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         pointer.setBusy(true)
         let visibleBusyPointer = pointer.busy && pointer.panel.isVisible && pointer.panel.ignoresMouseEvents && !pointer.panel.canBecomeKey && !pointer.panel.canBecomeMain
         pointer.setBusy(false)
+        showUpdateDownloadProgress("v1.3.2")
+        let updateInterfaceValid = updateProgress?.style == .bar && updateProgress?.isIndeterminate == false
+            && updateWindow?.styleMask.contains(.closable) == false
+            && buttons(updateWindow!.contentView!).map(\.title) == ["取消下载"]
+            && responds(to:#selector(cancelUpdateDownload))
+        updateWindow?.orderOut(nil)
         var valid = visibleBusyPointer && !pointer.busy && !pointer.panel.isVisible
+            && updateInterfaceValid
             && !texts(mainWindow.contentView!).contains { $0.contains("已就绪") || $0.contains("v"+version) }
             && buttons(mainWindow.contentView!).map(\.title) == expectedMain
             && details.count == 4 && buttons(setupWindow.contentView!).count == 5
@@ -270,7 +342,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         if let destination = ProcessInfo.processInfo.environment["CFM_UI_SNAPSHOTS"] {
             do {
                 let directory = URL(fileURLWithPath:destination); try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
-                for (name,window) in [("main",mainWindow!),("setup",setupWindow!)] {
+                for (name,window) in [("main",mainWindow!),("setup",setupWindow!),("update",updateWindow!)] {
                     window.contentView!.layoutSubtreeIfNeeded()
                     let view = window.contentView!, bitmap = view.bitmapImageRepForCachingDisplay(in:view.bounds)!
                     view.cacheDisplay(in:view.bounds,to:bitmap)
@@ -410,6 +482,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     @objc func quitApp() { NSApp.terminate(nil) }
     func applicationShouldTerminate(_ sender:NSApplication) -> NSApplication.TerminateReply {
+        updateDownload?.cancel()
         timer?.invalidate()
         guard let helper, helper.isRunning else { return .terminateNow }
         quitting = true; stopHelper(); return .terminateLater

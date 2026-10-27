@@ -102,7 +102,9 @@ class NativeBridge {
     }
     func officePreview(_ host:String, _ svg:Data) throws -> URL {
         let directory = try NativePaths.officePreviews(host,home:home)
-        let target = directory.appendingPathComponent("office-preview.svg")
+        // Office caches imported images by path. Each revision needs a new URL
+        // or a successful replacement can still display the previous artwork.
+        let target = directory.appendingPathComponent("office-preview-\(sha256(svg)).svg")
         do {
             try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
             try svg.write(to:target,options:.atomic)
@@ -201,21 +203,15 @@ class NativeBridge {
         let path = URL(fileURLWithPath:current.path), directory = path.deletingLastPathComponent()
         let image = directory.appendingPathComponent("preview-\(UUID().uuidString).png")
         do {
-            let source: Data
-            if let savedSource {
-                source = savedSource
-                let snapshot = directory.appendingPathComponent("saved-\(UUID().uuidString)").appendingPathExtension(path.pathExtension)
-                try source.write(to:snapshot,options:.atomic)
-                current.previewWindowTitle = snapshot.lastPathComponent; session = current; try writeState()
-                if let app = current.chemApplication { automation.useApplication(app) }
-                try automation.savedSnapshot(snapshot,image)
-                try require(try Data(contentsOf:snapshot) == source,"Saved source changed during preview export")
-                current.previewWindowTitle = nil; session = current; try writeState()
-            } else {
-                try automation.snapshot(path,image)
-                source = try Data(contentsOf:path)
-            }
+            if let app = current.chemApplication { automation.useApplication(app) }
+            let source = try savedSource ?? automation.saveSource(path)
             try validateSource(source)
+            let snapshot = directory.appendingPathComponent("saved-\(UUID().uuidString)").appendingPathExtension(path.pathExtension)
+            try source.write(to:snapshot,options:.atomic)
+            current.previewWindowTitle = snapshot.lastPathComponent; session = current; try writeState()
+            try automation.savedSnapshot(snapshot,image)
+            try require(try Data(contentsOf:snapshot) == source,"Saved source changed during preview export")
+            current.previewWindowTitle = nil; session = current; try writeState()
             let expected = try Data(contentsOf:image)
             try require(expected.starts(with:[137,80,78,71,13,10,26,10]),"ChemDraw did not produce a valid PNG preview")
             let newTag = try encodeSource(source,id:current.id)
@@ -255,7 +251,10 @@ class NativeBridge {
             try require(!tag.isEmpty,"Select one editable ChemDraw drawing in your document, then choose Edit selected drawing")
             try begin(host,tag:tag)
         case "paste": try paste(event["host"] as? String ?? "",snapshot:URL(fileURLWithPath:event["snapshot"] as? String ?? ""))
-        case "close": try finish(event["gesture"] as? String ?? "unknown")
+        case "close":
+            if let id = event["id"] as? String, id != session?.id { return }
+            if let path = event["path"] as? String, path != session?.path { return }
+            try finish(event["gesture"] as? String ?? "unknown")
         case "save":
             if let id = event["id"] as? String, let path = event["path"] as? String, let source = event["source"] as? Data {
                 try save(SavedDrawingChange(id:id,path:path,source:source))

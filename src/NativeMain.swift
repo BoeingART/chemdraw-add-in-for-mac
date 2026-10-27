@@ -108,7 +108,13 @@ class NativeMonitorRuntime {
             }
             process.waitUntilExit()
             let status = process.terminationStatus
-            worker.async { [self] in stop(status:status) }
+            worker.async { [self] in
+                if failureMessage == nil {
+                    failureMessage = "键盘与鼠标监听意外退出（状态\(status)）。编辑草稿已保留，请在设置加载项中点击“重新检查”。"
+                    bridge.record("monitor_exited",["status":status,"reason":process.terminationReason == .uncaughtSignal ? "signal" : "exit"])
+                }
+                stop(status:status == 0 ? 1 : status)
+            }
         }
         dispatchMain()
     }

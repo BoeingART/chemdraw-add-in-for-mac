@@ -6,6 +6,11 @@ CFM_VERSION="$(<"$PROJECT_DIR/VERSION")"
 CFM_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_ICON_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$PROJECT_DIR/packaging/Info.plist")"
+CFM_SIGN_IDENTITY="${CFM_SIGN_IDENTITY:-ChemDraw Add-in for Mac Local Signing}"
+CFM_SIGN_CERT="${CFM_SIGN_CERT:-$PROJECT_DIR/packaging/local-signing-cert.pem}"
+[[ "$CFM_SIGN_IDENTITY" != - && -f "$CFM_SIGN_CERT" ]] || { print 'Create or restore the fixed signing identity before packaging: python3 scripts/create-signing-identity.py'; exit 1; }
+CFM_SIGN_FINGERPRINT="$(/usr/bin/openssl x509 -in "$CFM_SIGN_CERT" -noout -fingerprint -sha1 | /usr/bin/sed 's/.*=//;s/://g')"
+[[ ${#CFM_SIGN_FINGERPRINT} == 40 ]] || { print 'Cannot read the fixed signing certificate.'; exit 1; }
 [[ "$CFM_VERSION" == "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PROJECT_DIR/packaging/Info.plist")" ]] || { print 'Update packaging metadata for the new version first.'; exit 1; }
 zsh "$PROJECT_DIR/scripts/build.sh" --universal
 CFM_STAGE="$PROJECT_DIR/build/package"
@@ -26,11 +31,11 @@ for CFM_SIZE in 16 32 128 256 512; do
     /usr/bin/sips -z "$CFM_DOUBLE" "$CFM_DOUBLE" "$PROJECT_DIR/office/addin/icon-80.png" --out "$CFM_ICON/icon_$CFM_SIZE"x"$CFM_SIZE@2x.png" >/dev/null
 done
 /usr/bin/iconutil -c icns "$CFM_ICON" -o "$CFM_APP/Contents/Resources/$CFM_ICON_NAME.icns"
-# Ad-hoc signatures make universal code runnable; they are not Developer ID signing.
-for CFM_BINARY in "$CFM_APP/Contents/Resources/build/event-monitor" "$CFM_APP/Contents/Resources/build/chemoffice"; do
-    /usr/bin/codesign --force --sign - --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_BINARY"
-done
-/usr/bin/codesign --force --sign - --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP"
+# Keep a cryptographically authenticated identity across executable changes.
+# The fixed certificate selects the exact key, even if keychain labels overlap.
+/usr/bin/codesign --force --sign "$CFM_SIGN_FINGERPRINT" --timestamp=none --identifier com.chemdraw_addin.mac.monitor --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP/Contents/Resources/build/event-monitor"
+/usr/bin/codesign --force --sign "$CFM_SIGN_FINGERPRINT" --timestamp=none --identifier com.chemdraw_addin.mac.helper --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP/Contents/Resources/build/chemoffice"
+/usr/bin/codesign --force --sign "$CFM_SIGN_FINGERPRINT" --timestamp=none --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP"
 /usr/bin/codesign --verify --deep --strict "$CFM_APP"
 cp "$PROJECT_DIR/packaging/scripts/preinstall" "$PROJECT_DIR/packaging/scripts/postinstall" "$CFM_STAGE/scripts/"
 chmod 755 "$CFM_STAGE/scripts/preinstall" "$CFM_STAGE/scripts/postinstall"

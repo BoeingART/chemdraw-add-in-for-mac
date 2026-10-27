@@ -388,7 +388,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     guard let title = current["windowTitle"] as? String else { return Unmanaged.passUnretained(event) }
     let candidateWindow: AXUIElement?
     if matchesSessionApplication(front, current) {
-        candidateWindow = managedWindow(front, title) ?? (current["previewWindowTitle"] as? String).flatMap { managedWindow(front,$0) }
+        candidateWindow = managedWindow(front, title)
     } else if bundle == "com.apple.appkit.xpc.ThemeWidgetControlViewService" && type == .leftMouseDown {
         // Newer macOS versions host traffic-light controls in a separate AppKit process.
         candidateWindow = serviceCloseWindow(event.location, title)
@@ -396,15 +396,16 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
         candidateWindow = nil
     }
     guard let window = candidateWindow else { return Unmanaged.passUnretained(event) }
-    // Freeze edits during the short save/render/write-back transaction.
-    if current["busy"] as? Bool == true { return nil }
+    // Preview export uses an independent saved file. Keep native typing and
+    // dialogs responsive, and queue a close behind any in-flight save.
     let closeKey = type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 13
         && event.flags.contains(.maskCommand) && !event.flags.contains(.maskShift)
     let closeClick = type == .leftMouseDown && closeButtonContains(window, event.location)
     if closeKey || closeClick {
-        if current["busy"] as? Bool != true && Date().timeIntervalSince(lastClose) > 1 {
+        if Date().timeIntervalSince(lastClose) > 1 {
             lastClose = Date()
-            emit(["event": "close", "gesture": closeKey ? "command-w" : "red-button"])
+            emit(["event": "close", "gesture": closeKey ? "command-w" : "red-button",
+                  "id":current["id"] as? String ?? "","path":current["path"] as? String ?? ""])
         }
         return nil
     }
@@ -432,8 +433,5 @@ NSApp.setActivationPolicy(.accessory)
 let pointer = NativeBusyPointer()
 pointer.watch(work:URL(fileURLWithPath:statePath).deletingLastPathComponent(),pid:parentPID)
 let focusObserver = NSWorkspace.shared.notificationCenter.addObserver(forName:NSWorkspace.didDeactivateApplicationNotification,object:nil,queue:.main) { _ in invalidatePasteMenu() }
-let watchdog = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-    if getppid() != parentPID || kill(parentPID, 0) != 0 { pointer.stop(); CFRunLoopStop(CFRunLoopGetCurrent()) }
-}
-CFRunLoopRun()
+NativeMonitorLoop().run(parentIsAlive:{ getppid() == parentPID && kill(parentPID,0) == 0 },cleanup:{ pointer.stop() })
 pointer.stop()

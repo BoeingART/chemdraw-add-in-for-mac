@@ -27,6 +27,12 @@ import Foundation
             try require(detector.observe(state,source:saved,generation:"2") == nil,"Busy save was not rechecked")
             try require(detector.observe(state,source:saved,generation:"2") != nil,"Save after busy transaction was lost")
         }
+        try check("Deleting all objects is a complete saved drawing rather than a partial write") {
+            var detector = SavedChangeDetector()
+            let empty = Data("<CDXML><page/></CDXML>".utf8)
+            try require(detector.observe(state,source:empty,generation:"empty") == nil,"Empty save was not debounced")
+            try require(detector.observe(state,source:empty,generation:"empty")?.source == empty,"Deleted drawing was never synchronized")
+        }
         try check("A failed save is retried on the next save without a continuous retry loop") {
             var detector = SavedChangeDetector()
             _ = detector.observe(state,source:saved,generation:"1"); _ = detector.observe(state,source:saved,generation:"1")

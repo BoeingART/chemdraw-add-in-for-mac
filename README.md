@@ -5,7 +5,7 @@
 # ChemDraw Add-in for Mac
 
 
-[Download v1.3.0 installer](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/tag/v1.3.0) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
+[Download latest published installer](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
 
 </div>
 
@@ -15,10 +15,10 @@ ChemDraw Add-in for Mac connects ChemDraw with Microsoft Office. Copy a chemical
 
 Requires **macOS 12 or later**, **ChemDraw** and **Word and/or PowerPoint for Mac**, installed and activated separately. The installer includes Apple Silicon and Intel executables. 
 
-1. Finish any active ChemDraw edit and quit the helper before installing or upgrading. Open **ChemDraw-Add-in-for-Mac-1.3.0-universal.pkg**. If macOS blocks opening it, use **System Settings → Privacy & Security → Open Anyway**.
-2. The installer opens **设置加载项** with four checks: Word file access, PowerPoint file access, Accessibility and paste-helper readiness. Grant the requested system permissions; setup continues automatically. Choose **完成** after all checks pass.
+1. Finish any active ChemDraw edit and quit the helper before installing or upgrading. Open **ChemDraw-Add-in-for-Mac-1.3.1-universal.pkg**. If macOS blocks opening it, use **System Settings → Privacy & Security → Open Anyway**.
+2. The installer opens **设置加载项** with four checks: Word file access, PowerPoint file access, Accessibility and paste-helper readiness. Existing permissions are retained; grant missing permissions when requested and setup continues automatically. Choose **完成** after all checks pass.
 3. The app runs in the menu bar with a transparent C outline. Its menu shows the version, **检查更新**, **打开界面**, **隐藏图标** and **退出应用**.
-4. Choose **打开界面** to access **设置加载项**, **检查更新**, **修复加载项** and the **设置为开机启动项** checkbox. Update checks use this repository's latest stable GitHub Release. Reopen the app from Applications to restore a hidden icon.
+4. Choose **打开界面** to access **设置加载项**, **检查更新**, **修复加载项** and the **设置为开机启动项** checkbox. Updates download inside the app with progress and cancellation, then open the installer and reopen the application. The first upgrade from 1.3.x confirms the new identity once; subsequent updates retain its permissions. Reopen the app from Applications to restore a hidden icon.
 
 
 ## Paste and edit

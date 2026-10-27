@@ -67,34 +67,42 @@ elif name == 'rm':
         (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier': bundle}))
         return app
 
-    def test_fresh_install_resets_consent_before_any_app_exists(self):
+    def test_fresh_install_leaves_existing_privacy_decisions_alone(self):
         self.assertEqual(self.run_script('preinstall').returncode, 0)
-        self.assertEqual(self.calls('tccutil'), [['reset', 'SystemPolicyAppDataDetailed', self.info['CFBundleIdentifier']]])
-        self.assertEqual(self.calls('launchctl')[0][:2], ['asuser', '501'])
-        self.assertEqual(self.calls('sudo')[0][:2], ['-u', 'desktop-user'])
+        self.assertFalse(self.calls('tccutil'))
+        self.assertFalse(self.calls('launchctl'))
+        self.assertFalse(self.calls('sudo'))
 
-    def test_upgrade_also_resets_consent(self):
+    def test_upgrade_preserves_consent(self):
         self.app('ChemOffice', self.info['CFBundleIdentifier'])
         self.assertEqual(self.run_script('preinstall').returncode, 0)
-        self.assertEqual(len(self.calls('tccutil')), 1)
+        self.assertFalse(self.calls('tccutil'))
 
     def test_bundle_identity_is_read_from_payload_metadata(self):
         self.info['CFBundleIdentifier'] = 'com.example.renamed-addins'
+        self.info['CFBundleDisplayName'] = 'Renamed Add-in'
         self.write_info()
-        self.assertEqual(self.run_script('preinstall').returncode, 0)
-        self.assertEqual(self.calls('tccutil')[0][-1], 'com.example.renamed-addins')
+        new = self.app(self.info['CFBundleDisplayName'], self.info['CFBundleIdentifier'])
+        self.assertEqual(self.run_script('postinstall').returncode, 0)
+        self.assertEqual(self.calls('open'), [[str(new), '--args', '--setup']])
 
-    def test_unregistered_first_install_can_continue(self):
+    def test_an_unavailable_reset_tool_does_not_affect_installation(self):
         self.env.update(TEST_RESET_STATUS='1', TEST_RESET_MESSAGE='No such bundle identifier')
         self.assertEqual(self.run_script('preinstall').returncode, 0)
-        self.assertEqual(len(self.calls('tccutil')), 1)
+        self.assertFalse(self.calls('tccutil'))
 
-    def test_real_reset_failure_blocks_replacement_and_names_the_step(self):
+    def test_preinstall_keeps_manifests_and_user_settings(self):
         self.env.update(TEST_RESET_STATUS='1', TEST_RESET_MESSAGE='Failed to reset: permission denied')
+        manifest = self.root / 'Office/wef/chemoffice-for-mac.xml'
+        manifest.parent.mkdir(parents=True)
+        manifest.write_bytes(b'previous registration')
+        settings = self.root / 'preferences.json'
+        settings.write_bytes(b'{"authorized":true}')
         result = self.run_script('preinstall')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn('could not reset Office file access', result.stderr)
-        self.assertIn('permission denied', result.stderr)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(manifest.read_bytes(), b'previous registration')
+        self.assertEqual(settings.read_bytes(), b'{"authorized":true}')
+        self.assertFalse(self.calls('tccutil'))
         self.assertFalse(self.calls('open'))
 
     def test_offline_target_touches_neither_permissions_nor_applications(self):
