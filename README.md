@@ -2,7 +2,9 @@
 
 ![ChemOffice for Mac — Draw. Close. Carry on.](assets/banner.svg)
 
-**Copy from ChemDraw. Paste into Office. Double-click to keep drawing.**
+# ChemOffice Plugin for Mac
+
+
 
 [Download v0.1.0-beta.2](https://github.com/BoeingART/chemoffice-for-mac/releases/tag/v0.1.0-beta.2) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
 
