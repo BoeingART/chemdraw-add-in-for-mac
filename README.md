@@ -5,7 +5,7 @@
 # ChemDraw Add-in for Mac
 
 
-[Download v1.2.0 installer](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/tag/v1.2.0) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
+[Download v1.3.0 installer](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/tag/v1.3.0) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
 
 </div>
 
@@ -15,10 +15,10 @@ ChemDraw Add-in for Mac connects ChemDraw with Microsoft Office. Copy a chemical
 
 Requires **macOS 12 or later**, **ChemDraw** and **Word and/or PowerPoint for Mac**, installed and activated separately. The installer includes Apple Silicon and Intel executables. 
 
-1. Finish any active ChemDraw edit and quit the helper before installing or upgrading. Open **ChemDraw-Add-in-for-Mac-1.2.0-universal.pkg**. If macOS blocks opening it, use **System Settings → Privacy & Security → Open Anyway**.
+1. Finish any active ChemDraw edit and quit the helper before installing or upgrading. Open **ChemDraw-Add-in-for-Mac-1.3.0-universal.pkg**. If macOS blocks opening it, use **System Settings → Privacy & Security → Open Anyway**.
 2. The installer opens **设置加载项** with four checks: Word file access, PowerPoint file access, Accessibility and paste-helper readiness. Grant the requested system permissions; setup continues automatically. Choose **完成** after all checks pass.
 3. The app runs in the menu bar with a transparent C outline. Its menu shows the version, **检查更新**, **打开界面**, **隐藏图标** and **退出应用**.
-4. Choose **打开界面** to access **设置加载项**, **检查更新**, **修复加载项**, **退出应用** and the **设置为开机启动项** checkbox. Update checks use this repository's latest stable GitHub Release. Reopen the app from Applications to restore a hidden icon.
+4. Choose **打开界面** to access **设置加载项**, **检查更新**, **修复加载项** and the **设置为开机启动项** checkbox. Update checks use this repository's latest stable GitHub Release. Reopen the app from Applications to restore a hidden icon.
 
 
 ## Paste and edit
@@ -26,12 +26,12 @@ Requires **macOS 12 or later**, **ChemDraw** and **Word and/or PowerPoint for Ma
 1. Open a new or existing Word document or PowerPoint presentation.
 2. Select a structure in ChemDraw and copy it with **⌘C**.
 3. Paste in Office with **⌘V**, right-click **Paste**, or the panel's **Paste editable drawing** button.
-4. Double-click the drawing to edit it in ChemDraw. Press **⌘W** to update the original Office drawing and return.
+4. Double-click the drawing to edit it in ChemDraw. Save in ChemDraw with **⌘S** or **Save** to update the original Office drawing while continuing to edit. Press **⌘W** to finish and return.
 5. Save the Office document when you choose. New, unsaved documents support direct paste, opening and write-back.
 
 Pasting during an existing edit creates an independent figure while the original edit retains its Office document and ChemDraw target. Document identities keep write-back attached to its target through Save As and window switches. The panel and configuration window display operation failures and the next action.
 
-Choose **退出应用** in the configuration window, or press **⌘Q**, when finished. Open the app again for the next session.
+Choose **退出应用** in the menu bar, or press **⌘Q**, when finished. Open the app again for the next session.
 
 ## Local data and recovery
 

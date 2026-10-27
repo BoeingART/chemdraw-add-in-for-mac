@@ -1,6 +1,6 @@
 # Install ChemDraw Add-in for Mac
 
-Download the v1.2.0 universal installer from [Releases](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/tag/v1.2.0). It supports Apple Silicon and Intel Macs running macOS 12 or later. Install and activate ChemDraw and Word and/or PowerPoint first.
+Download the v1.3.0 universal installer from [Releases](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/tag/v1.3.0). It supports Apple Silicon and Intel Macs running macOS 12 or later. Install and activate ChemDraw and Word and/or PowerPoint first.
 
 ## Install and start
 
@@ -8,7 +8,7 @@ Download the v1.2.0 universal installer from [Releases](https://github.com/Boein
 2. Every installation first resets this app's Office-container file-access permissions in the signed-in user's session. The installer then installs **/Applications/ChemDraw Add-in for Mac.app**, removes matching applications under their previous names and opens the visible **设置加载项** window.
 3. Choose **打开文件访问设置**. Under **Privacy & Security → Files & Folders → ChemDraw Add-in for Mac**, enable **Microsoft Word** and **Microsoft PowerPoint** for the applications you use. Setup automatically registers each installed host's add-in and verifies its drawing cache by writing and reading a temporary probe.
 4. Choose **打开辅助功能设置** and enable **ChemDraw Add-in for Mac**. On macOS 27 this setting is also called **Device Control and Data Access**. Setup detects the grant and starts the helper automatically. The **完成** button becomes available after all checks pass and keyboard/mouse monitoring is ready.
-5. Copy a structure in ChemDraw, then use **⌘V**, right-click **Paste**, or **Paste editable drawing** in Word or PowerPoint. Allow Automation access when macOS requests it. Double-click a drawing to edit it; press **⌘W** in ChemDraw to return changes. Save your Office document when you choose.
+5. Copy a structure in ChemDraw, then use **⌘V**, right-click **Paste**, or **Paste editable drawing** in Word or PowerPoint. Allow Automation access when macOS requests it. Double-click a drawing to edit it; **⌘S** or **Save** in ChemDraw updates the Office figure while keeping the editor open. Press **⌘W** to finish editing and return. Save your Office document when you choose.
 
 Setup automatically retries after authorization. Each permission failure names its affected step. Keep the window open while granting access. If startup fails, resolve the displayed cause and click **重新检查**.
 
@@ -16,12 +16,11 @@ Setup automatically retries after authorization. Each permission failure names i
 
 The application runs as a menu bar app, with a transparent C outline and no Dock entry. Its menu starts with the current version and has exactly four actions: **检查更新**, **打开界面**, **隐藏图标** and **退出应用**. Closing windows keeps the helper running. Reopen the app from Applications to restore a hidden icon and the main window.
 
-The main window has four buttons:
+The main window has three buttons and no readiness/version paragraph:
 
 - **设置加载项**: open the separate Word, PowerPoint, Accessibility and paste-helper checklist. Installation opens this window automatically.
 - **检查更新**: query the latest stable Release in `BoeingART/chemdraw-add-in-for-mac`; when a newer version exists, open its GitHub page to download the installer.
 - **修复加载项**: repeat registration, permissions and local panel connection setup.
-- **退出应用**: stop the helper and quit.
 
 The **设置为开机启动项** checkbox controls login startup. On macOS 13 and later it reads and changes the system login-item status; if approval is required, it opens Login Items settings. On macOS 12 it uses a per-user launch agent. Registration happens only when the checkbox is selected. Completed startup stays in the menu bar; missing setup or an explicit installer request opens **设置加载项**.
 
@@ -35,7 +34,7 @@ If Office reports a local certificate problem, choose **修复加载项**, finis
 
 ## Permissions after an upgrade
 
-v1.2.0 automatically runs `tccutil reset SystemPolicyAppDataDetailed com.chemdraw_addin.mac` before replacing the application, including a first installation. The bundle identifier is `com.chemdraw_addin.mac`; the visible application name is **ChemDraw Add-in for Mac**. Installer scripts read the identifier and display name from the packaged application's metadata.
+v1.3.0 automatically runs `tccutil reset SystemPolicyAppDataDetailed com.chemdraw_addin.mac` before replacing the application, including a first installation. The bundle identifier is `com.chemdraw_addin.mac`; the visible application name is **ChemDraw Add-in for Mac**. Installer scripts read the identifier and display name from the packaged application's metadata.
 
 After installation, grant Word and PowerPoint file access when prompted. If Accessibility shows an enabled old entry while the setup reports missing permission, remove that old entry, add **/Applications/ChemDraw Add-in for Mac.app**, enable it, and click **重新检查**.
 
@@ -54,7 +53,7 @@ Setup configures `Documents/wef/chemoffice-for-mac.xml` and `Library/Caches/Chem
 
 New, unsaved Office documents support direct paste, editing and write-back. Stable document identities keep modifications attached to the original document through Save As and window switches. The user controls Office saving.
 
-The panel shows paste progress and specific errors. Pasting while an edit is open creates an independent figure; the original edit retains its Office and ChemDraw targets. Closed drafts remain recoverable.
+A spinning indicator follows the pointer during opening and write-back, without taking focus or mouse clicks. Saving in ChemDraw updates the figure through the same source and preview verification used for closing. The panel shows paste progress and specific errors. Pasting while an edit is open creates an independent figure; the original edit retains its Office and ChemDraw targets. Closed drafts remain recoverable.
 
 ## Upgrade or remove
 
@@ -64,6 +63,6 @@ To remove, quit the app, move **/Applications/ChemDraw Add-in for Mac.app** to T
 
 ## Build and verification
 
-Run `zsh scripts/build.sh` for the current architecture, `zsh scripts/build.sh --universal` for both, or `zsh scripts/package.sh` for `dist/ChemDraw-Add-in-for-Mac-1.2.0-universal.pkg`. The application uses macOS frameworks and system zlib.
+Run `zsh scripts/build.sh` for the current architecture, `zsh scripts/build.sh --universal` for both, or `zsh scripts/package.sh` for `dist/ChemDraw-Add-in-for-Mac-1.3.0-universal.pkg`. The application uses macOS frameworks and system zlib.
 
 See [v1.1.0 verification](release-1.1.0-results.md), [installation readiness](installation-readiness-results.md), and [unsaved Office checks](unsaved-office-results.md) for completed scenarios and application versions.

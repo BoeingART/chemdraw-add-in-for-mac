@@ -5,6 +5,8 @@ struct EditingSession: Codable {
     var host: String, document: String, id: String, path: String, originalTag: String
     var windowTitle: String, chemBundle: String, busy: Bool
     var chemApplication: ChemDrawApplication?
+    var syncedSourceRevision: String? = nil
+    var previewWindowTitle: String? = nil
 }
 class NativeBridge {
     let root: URL, work: URL, home: URL
@@ -178,19 +180,42 @@ class NativeBridge {
         try decoded.source.write(to:path)
         try decoded.source.write(to:directory.appendingPathComponent("original."+ext))
         session = EditingSession(host:host,document:document,id:decoded.id,path:path.path,originalTag:envelope,windowTitle:path.lastPathComponent,chemBundle:app.bundle,busy:false,chemApplication:app)
+        session?.syncedSourceRevision = sha256(decoded.source)
         try writeState()
         try automation.open(path)
         editingOpen = true
         record("opened",["host":host,"document":document,"drawing_id":decoded.id,"chem_version":app.version,"chem_path":app.path])
     }
-    func finish(_ gesture:String) throws {
+    func finish(_ gesture:String) throws { try synchronize(gesture,closing:true,savedSource:nil) }
+    func save(_ change:SavedDrawingChange) throws {
+        guard let current = session, current.id == change.id, current.path == change.path,
+              try automation.isOpen(URL(fileURLWithPath:current.path)) else { return }
+        try validateSource(change.source)
+        if current.syncedSourceRevision == sha256(change.source) { return }
+        try synchronize("document-save",closing:false,savedSource:change.source)
+    }
+    private func synchronize(_ gesture:String,closing:Bool,savedSource:Data?) throws {
         guard var current = session else { return }
+        if current.syncedSourceRevision == nil { current.syncedSourceRevision = try sha256(decodeSource(current.originalTag).source) }
         current.busy = true; session = current; try writeState()
         let path = URL(fileURLWithPath:current.path), directory = path.deletingLastPathComponent()
         let image = directory.appendingPathComponent("preview-\(UUID().uuidString).png")
         do {
-            try automation.snapshot(path,image)
-            let source = try Data(contentsOf:path); try validateSource(source)
+            let source: Data
+            if let savedSource {
+                source = savedSource
+                let snapshot = directory.appendingPathComponent("saved-\(UUID().uuidString)").appendingPathExtension(path.pathExtension)
+                try source.write(to:snapshot,options:.atomic)
+                current.previewWindowTitle = snapshot.lastPathComponent; session = current; try writeState()
+                if let app = current.chemApplication { automation.useApplication(app) }
+                try automation.savedSnapshot(snapshot,image)
+                try require(try Data(contentsOf:snapshot) == source,"Saved source changed during preview export")
+                current.previewWindowTitle = nil; session = current; try writeState()
+            } else {
+                try automation.snapshot(path,image)
+                source = try Data(contentsOf:path)
+            }
+            try validateSource(source)
             let expected = try Data(contentsOf:image)
             try require(expected.starts(with:[137,80,78,71,13,10,26,10]),"ChemDraw did not produce a valid PNG preview")
             let newTag = try encodeSource(source,id:current.id)
@@ -206,13 +231,20 @@ class NativeBridge {
             let evidence = try verify(current.document,current.host,current.id,source,expected)
             try JSONSerialization.data(withJSONObject:evidence,options:[.prettyPrinted,.sortedKeys]).write(to:directory.appendingPathComponent("verification.json"))
             try source.write(to:directory.appendingPathComponent(source.starts(with:Data("VjCD0100".utf8)) ? "committed.cdx" : "committed.cdxml"))
-            try automation.close(path)
-            editingOpen = false
-            let front = try automation.activateOffice(current.host,current.document,current.id)
-            record("committed",["host":current.host,"drawing_id":current.id,"gesture":gesture,"source_sha256":sha256(source),"bytes":source.count,"frontmost_app":front])
-            session = nil; try writeState()
+            current.syncedSourceRevision = sha256(source)
+            if closing {
+                try automation.close(path)
+                editingOpen = false
+                let front = try automation.activateOffice(current.host,current.document,current.id)
+                record("committed",["host":current.host,"drawing_id":current.id,"gesture":gesture,"source_sha256":sha256(source),"bytes":source.count,"frontmost_app":front])
+                session = nil
+            } else {
+                current.busy = false; session = current; editingOpen = true
+                record("saved",["host":current.host,"drawing_id":current.id,"source_sha256":sha256(source),"bytes":source.count])
+            }
+            try writeState()
         } catch {
-            current.busy = false; session = current; try writeState(); throw error
+            current.busy = false; current.previewWindowTitle = nil; session = current; try writeState(); throw error
         }
     }
     func handle(_ event:[String:Any]) throws {
@@ -224,6 +256,10 @@ class NativeBridge {
             try begin(host,tag:tag)
         case "paste": try paste(event["host"] as? String ?? "",snapshot:URL(fileURLWithPath:event["snapshot"] as? String ?? ""))
         case "close": try finish(event["gesture"] as? String ?? "unknown")
+        case "save":
+            if let id = event["id"] as? String, let path = event["path"] as? String, let source = event["source"] as? Data {
+                try save(SavedDrawingChange(id:id,path:path,source:source))
+            }
         case "pasteCaptureFailed": throw ChemOfficeError(event["message"] as? String ?? "复制结构后重试粘贴。")
         default:
             var details = event; details.removeValue(forKey:"event"); record(event["event"] as? String ?? "unknown",details)

@@ -21,6 +21,13 @@ import Foundation
         check("Retry clears the old error and advances the action identity",activity.snapshot().error == nil && activity.snapshot().revision != failed.revision)
         activity.end(editing:true,recoverable:false)
         check("Pasting a copy preserves the active editing state",!activity.snapshot().busy && activity.snapshot().editing && !activity.snapshot().recoverable)
+        for operation in ["open","save","close"] {
+            activity.begin(operation)
+            let running = activity.snapshot()
+            check("\(operation) shows busy feedback and failure releases it",running.busy && HelperActivity.read(work:work,pid:running.pid)?.busy == true)
+            activity.end(editing:operation != "close",recoverable:false,error:"Retry")
+            check("\(operation) failure clears persistent busy feedback",!activity.snapshot().busy && HelperActivity.read(work:work,pid:running.pid)?.busy == false)
+        }
         print("Passed \(count) operation status checks")
     }
 }

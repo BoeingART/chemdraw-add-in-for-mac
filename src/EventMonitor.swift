@@ -388,7 +388,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     guard let title = current["windowTitle"] as? String else { return Unmanaged.passUnretained(event) }
     let candidateWindow: AXUIElement?
     if matchesSessionApplication(front, current) {
-        candidateWindow = managedWindow(front, title)
+        candidateWindow = managedWindow(front, title) ?? (current["previewWindowTitle"] as? String).flatMap { managedWindow(front,$0) }
     } else if bundle == "com.apple.appkit.xpc.ThemeWidgetControlViewService" && type == .leftMouseDown {
         // Newer macOS versions host traffic-light controls in a separate AppKit process.
         candidateWindow = serviceCloseWindow(event.location, title)
@@ -427,8 +427,13 @@ CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 emit(["event": "ready"])
 let parentPID = getppid()
+_ = NSApplication.shared
+NSApp.setActivationPolicy(.accessory)
+let pointer = NativeBusyPointer()
+pointer.watch(work:URL(fileURLWithPath:statePath).deletingLastPathComponent(),pid:parentPID)
 let focusObserver = NSWorkspace.shared.notificationCenter.addObserver(forName:NSWorkspace.didDeactivateApplicationNotification,object:nil,queue:.main) { _ in invalidatePasteMenu() }
 let watchdog = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-    if getppid() != parentPID || kill(parentPID, 0) != 0 { CFRunLoopStop(CFRunLoopGetCurrent()) }
+    if getppid() != parentPID || kill(parentPID, 0) != 0 { pointer.stop(); CFRunLoopStop(CFRunLoopGetCurrent()) }
 }
 CFRunLoopRun()
+pointer.stop()

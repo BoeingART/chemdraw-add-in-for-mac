@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.0 — 2026-10-27
+
+- Show a nonactivating spinning indicator beside the pointer during opening, saving and close/write-back; hide it after completion or failure.
+- Detect completed ChemDraw saves, including Command-S and menu Save, and update the original Office figure while keeping the ChemDraw edit open. Render an immutable saved snapshot so later edits remain untouched.
+- Debounce atomic saves, skip unchanged revisions, reject stale session events and retain existing conflict and source/preview verification.
+- Remove Quit and the readiness/version paragraph from the main window. Keep Quit and the version in the menu bar.
+
 ## v1.2.0 — 2026-10-27
 
 - Run in the menu bar with a transparent C outline and a version header followed by Check for Updates, Open Interface, Hide Icon and Quit.

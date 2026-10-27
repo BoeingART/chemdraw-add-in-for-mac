@@ -10,11 +10,12 @@ class NativeMonitorRuntime {
     var signals = [DispatchSourceSignal]()
     var lockFD: Int32 = -1
     var stopped = false
+    var savedChanges: NativeSavedChanges?
     var failureMessage: String?
     lazy var activity = NativeActivity(work:bridge.work)
     func perform(_ event:[String:Any]) throws {
         let name = event["event"] as? String ?? ""
-        let tracked = ["paste","pasteCaptureFailed","open","edit-selection","close"].contains(name)
+        let tracked = ["paste","pasteCaptureFailed","open","edit-selection","close","save"].contains(name)
         if tracked { activity.begin(name == "pasteCaptureFailed" ? "paste" : name) }
         do {
             try bridge.handle(event)
@@ -46,6 +47,13 @@ class NativeMonitorRuntime {
         writeStatus(.starting)
         try bridge.restore()
         activity.end(editing:false,recoverable:bridge.session != nil)
+        let changes = NativeSavedChanges(state:bridge.state) { [weak self] change in
+            self?.worker.async { [weak self] in
+                do { try self?.perform(["event":"save","id":change.id,"path":change.path,"source":change.source]) }
+                catch { /* perform publishes the error and releases busy feedback. */ }
+            }
+        }
+        changes.start(); savedChanges = changes
         let app = try bridge.automation.application()
         bridge.record("chemdraw_selected",["path":app.path,"version":app.version,"bundle":app.bundle])
         let pipe = Pipe()
@@ -106,7 +114,7 @@ class NativeMonitorRuntime {
     }
     func stop(status:Int32 = 0) -> Never {
         if stopped { exit(0) }; stopped = true
-        server?.stop(); if process.isRunning { process.terminate(); process.waitUntilExit() }
+        savedChanges?.stop(); server?.stop(); if process.isRunning { process.terminate(); process.waitUntilExit() }
         bridge.session?.busy = false; try? bridge.writeState(); bridge.record("stopped")
         writeStatus(status == 0 && failureMessage == nil ? .stopped : .failed,failureMessage)
         if lockFD >= 0 { Darwin.close(lockFD) }

@@ -19,7 +19,7 @@ async function refresh() {
         const activity = data.activity || {};
         byId('dot').className = activity.error ? 'error' : 'ready';
         byId('status').textContent = activity.error ? 'Drawing action needs attention' : activity.busy ? 'Processing your drawing…' : data.editing ? 'ChemDraw edit in progress' : activity.recoverable ? 'An editing draft is available' : 'Ready to keep drawing';
-        byId('detail').textContent = activity.error ? activity.error : activity.busy ? activity.message : data.editing ? 'Close with ⌘W to update Office.' : activity.recoverable ? 'Double-click the original drawing to resume, or paste a new structure.' : 'Paste with ⌘V, right-click → Paste, or use Paste editable drawing.';
+        byId('detail').textContent = activity.error ? activity.error : activity.busy ? activity.message : data.editing ? 'Save in ChemDraw to update Office; close with ⌘W to return.' : activity.recoverable ? 'Double-click the original drawing to resume, or paste a new structure.' : 'Paste with ⌘V, right-click → Paste, or use Paste editable drawing.';
         if (activity.error) byId('message').textContent = activity.error;
         else if (activity.message) byId('message').textContent = activity.message;
         if (awaitingClose && !data.editing && !activity.error && !activity.busy) {
@@ -44,7 +44,7 @@ async function action(kind) {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'The drawing action could not be completed.');
         awaitingClose = kind === 'edit';
-        byId('message').textContent = kind === 'paste' ? 'Editable drawing pasted.' : 'Your drawing is open in ChemDraw. Close with ⌘W to return.';
+        byId('message').textContent = kind === 'paste' ? 'Editable drawing pasted.' : 'Your drawing is open in ChemDraw. Save to update Office; close with ⌘W to return.';
     } catch (error) { byId('message').textContent = error.message; }
     finally { busy = false; refresh(); }
 }

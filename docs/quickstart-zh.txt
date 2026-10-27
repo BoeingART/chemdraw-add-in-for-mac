@@ -1,6 +1,6 @@
-ChemDraw Add-in for Mac v1.2.0 · 安装与使用
+ChemDraw Add-in for Mac v1.3.0 · 安装与使用
 
-安装包：ChemDraw-Add-in-for-Mac-1.2.0-universal.pkg（Apple Silicon与Intel通用版）
+安装包：ChemDraw-Add-in-for-Mac-1.3.0-universal.pkg（Apple Silicon与Intel通用版）
 要求：macOS 12或更新；已安装并激活ChemDraw及Word／PowerPoint。
 
 安装与升级
@@ -20,7 +20,8 @@ ChemDraw Add-in for Mac v1.2.0 · 安装与使用
 设置加载项：查看Word文件访问、PowerPoint文件访问、辅助功能和粘贴助手四项检查。
 检查更新：从GitHub正式Release检查版本，发现更新后可前往下载。
 修复加载项：重新配置所用Office加载项，并按提示完成本地面板的连接授权。
-退出应用：结束助手并退出。
+打开和回写绘图时，指针旁会显示跟随移动的转圈提示，完成或失败后自动消失。
+主界面不再显示状态段落，退出入口位于菜单栏中。
 设置为开机启动项：勾选后在登录Mac时自动启动；系统要求确认时，按提示允许。
 
 菜单栏
@@ -35,7 +36,7 @@ ChemDraw Add-in for Mac v1.2.0 · 安装与使用
 2. 在ChemDraw中选中结构并按⌘C，到Office按⌘V或右键选择“粘贴”。
    也可在面板点击Paste editable drawing。新建、尚未保存的文档也可直接粘贴。
 3. 双击结构，在ChemDraw中继续编辑。
-4. 在ChemDraw按⌘W，将修改带回原来的Office文档。
+4. 在ChemDraw按⌘S或选择“保存”，原Office图片会自动更新，编辑窗口保持打开。用⌘W结束编辑并返回原文档。
 5. 按需要手动保存Office文档。切换窗口、保存或另存为后，修改仍返回原文档。
 
 在Office中打开面板

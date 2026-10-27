@@ -65,6 +65,14 @@ import Cocoa
             try require(clear > visible && visible > 15,"Icon has no transparent outline")
             try require(pixels.colorAt(x:0,y:0)!.alphaComponent == 0,"Opaque icon corner")
         }
+        try check("Busy feedback remains visible at screen edges and on negative-origin displays") {
+            for screen in [NSRect(x:0,y:0,width:1920,height:1080),NSRect(x:-1920,y:-500,width:1920,height:1080)] {
+                for point in [screen.origin,NSPoint(x:screen.maxX,y:screen.maxY),NSPoint(x:screen.midX,y:screen.midY)] {
+                    let origin = NativeBusyPointer.origin(pointer:point,screen:screen)
+                    try require(screen.contains(NSRect(origin:origin,size:NSSize(width:26,height:26))),"Busy pointer escaped the display")
+                }
+            }
+        }
         if CommandLine.arguments.contains("--live") {
             var finished = false, failure: Error?
             NativeUpdates.check(currentVersion:"1.2.0") { result in

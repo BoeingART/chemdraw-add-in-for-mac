@@ -7,7 +7,6 @@ final class SetupChecksView: NSView { override var isFlipped: Bool { true } }
 final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     let root = Bundle.main.resourceURL!
     let setupQueue = DispatchQueue(label:"ChemDraw Add-in for Mac installation checks")
-    var status: NSTextField!
     var setupStatus: NSTextField!
     var configurationButtons = [NSButton]()
     var helperButton: NSButton!
@@ -132,14 +131,13 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         return stack
     }
     func buildMainWindow() {
-        mainWindow = window(appName,width:680,height:310)
+        mainWindow = window(appName,width:680,height:280)
         let stack = contentStack(mainWindow)
         stack.addArrangedSubview(label(appName,size:25,bold:true))
-        status = label("正在检查安装…",size:14,bold:true); stack.addArrangedSubview(status)
-        let intro = label("在ChemDraw中复制结构，到Word或PowerPoint粘贴。双击继续编辑，用⌘W将修改带回原文档。")
+        let intro = label("在ChemDraw中复制结构，到Word或PowerPoint粘贴。双击继续编辑，保存即可更新Office图片，用⌘W返回原文档。")
         stack.addArrangedSubview(intro); intro.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
         let actions = NSStackView(); actions.orientation = .horizontal; actions.spacing = 12; actions.distribution = .fillEqually
-        for (title,action) in [("设置加载项",#selector(showSetup)),("检查更新",#selector(checkUpdates)),("修复加载项",#selector(installAddins)),("退出应用",#selector(quitApp))] {
+        for (title,action) in [("设置加载项",#selector(showSetup)),("检查更新",#selector(checkUpdates)),("修复加载项",#selector(installAddins))] {
             let entry = button(title,action); actions.addArrangedSubview(entry)
             if title == "检查更新" { updateButton = entry }
         }
@@ -241,17 +239,24 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             else if latestActivity?.busy == true { setDetail("helper",latestActivity?.message ?? "正在处理…",complete:false); message = "正在处理结构" }
             else { setDetail("helper","✓ 已就绪：直接粘贴与双击编辑已启动。",complete:true); message = "已就绪" }
         } else { setDetail("helper",helperMessage,complete:false); message = startup.wantsRunning ? "待完成设置" : "粘贴助手已暂停" }
-        status.stringValue = "\(message) · v\(version)"; setupStatus.stringValue = status.stringValue
+        setupStatus.stringValue = "\(message) · v\(version)"
     }
     func runInterfaceSelfTest() {
         func buttons(_ view:NSView) -> [NSButton] { (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons($0) } }
-        let expectedMain = ["设置加载项","检查更新","修复加载项","退出应用","设置为开机启动项"]
+        let expectedMain = ["设置加载项","检查更新","修复加载项","设置为开机启动项"]
         let initiallyBlocked = !finishButton.isEnabled
         for key in ["word","powerpoint"] { setDetail(key,"✓ 已验证：加载项已配置，绘图缓存可读写。",complete:true) }
         setDetail("accessibility","✓ 已授权：可以接收复制、粘贴和双击操作。",complete:true)
         renderSetup(ready:true)
         let menu = statusItem!.menu!
-        var valid = buttons(mainWindow.contentView!).map(\.title) == expectedMain
+        func texts(_ view:NSView) -> [String] { (view as? NSTextField).map { [$0.stringValue] } ?? view.subviews.flatMap { texts($0) } }
+        let pointer = NativeBusyPointer()
+        pointer.setBusy(true)
+        let visibleBusyPointer = pointer.busy && pointer.panel.isVisible && pointer.panel.ignoresMouseEvents && !pointer.panel.canBecomeKey && !pointer.panel.canBecomeMain
+        pointer.setBusy(false)
+        var valid = visibleBusyPointer && !pointer.busy && !pointer.panel.isVisible
+            && !texts(mainWindow.contentView!).contains { $0.contains("已就绪") || $0.contains("v"+version) }
+            && buttons(mainWindow.contentView!).map(\.title) == expectedMain
             && details.count == 4 && buttons(setupWindow.contentView!).count == 5
             && menu.items.filter { $0.action != nil }.map(\.title) == ["检查更新","打开界面","隐藏图标","退出应用"]
             && menu.items.first?.title == "v\(version)" && menu.items.first?.isEnabled == false
@@ -278,7 +283,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 try icon.representation(using:.png,properties:[:])!.write(to:directory.appendingPathComponent("menu-bar-icon.png"))
             } catch { valid = false; print("FAIL UI snapshots: \(error)") }
         }
-        print(valid ? "PASS menu bar startup, four main actions, login checkbox, four setup checks, version menu, hidden-icon recovery and completion gate" : "FAIL native app interface self-test")
+        print(valid ? "PASS menu bar startup, three main actions, no main status paragraph, busy-pointer lifecycle, login checkbox, four setup checks, version menu, hidden-icon recovery and completion gate" : "FAIL native app interface self-test")
         exit(valid ? 0 : 1)
     }
     func refreshSetup(force:Bool = false) {
@@ -286,7 +291,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         if let helper {
             latestActivity = HelperActivity.read(work:work,pid:helper.processIdentifier)
             if let latestActivity, latestActivity.error != nil, shownFailure != latestActivity.revision {
-                shownFailure = latestActivity.revision; showMain()
+                shownFailure = latestActivity.revision; showSetup()
             }
         } else { latestActivity = nil }
         let ready = readyForUse

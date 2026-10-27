@@ -33,6 +33,7 @@ protocol ChemistryAutomation: AnyObject {
     func open(_ path:URL) throws
     func isOpen(_ path:URL) throws -> Bool
     func snapshot(_ path:URL, _ image:URL) throws
+    func savedSnapshot(_ source:URL, _ image:URL) throws
     func renderVector(_ source:URL, _ vector:URL) throws
     func close(_ path:URL) throws
     func activateOffice(_ host:String, _ document:String, _ id:String) throws -> String
@@ -147,11 +148,18 @@ class NativeAutomation: ChemistryAutomation {
         try renderPNG(svg).write(to:image)
     }
     func renderVector(_ source:URL, _ vector:URL) throws {
-        _ = try preferredApplication()
+        try exportVector(source,vector,application:preferredApplication())
+    }
+    func savedSnapshot(_ source:URL, _ image:URL) throws {
+        let vector = image.deletingPathExtension().appendingPathExtension("svg")
+        try exportVector(source,vector,application:application())
+        try renderPNG(Data(contentsOf:vector)).write(to:image)
+    }
+    private func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
         _ = try script("""
         set drawingFile to (POSIX file (item 1 of argv)) as alias
         set outputFile to POSIX file (item 2 of argv)
-        tell application \(appleQuote(try application().path))
+        tell application \(appleQuote(application.path))
             open drawingFile
             set matches to {}
             repeat with d in documents

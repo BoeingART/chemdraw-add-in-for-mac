@@ -4,6 +4,8 @@ import Cocoa
 class TestAutomation: ChemistryAutomation {
     let app = ChemDrawApplication(path:"/Applications/ChemDraw 30.app",bundle:"example.ChemDraw.30",version:"30")
     var document = "", savedDocument = "", tag = "", finalSource = Data("<CDXML><page><t>FINAL Z</t></page></CDXML>".utf8)
+    var renderedSavedSource: Data?
+    var inspectSavedSnapshot: ((URL) throws -> Void)?
     var calls = [String](), targets = [String](), failure = "", opened = false, dimensions = "320\t160"
     let vector = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\" viewBox=\"0 0 200 100\"><path d=\"M10 20L150 80\" stroke=\"black\"/></svg>".utf8)
     func application() throws -> ChemDrawApplication { app }
@@ -26,6 +28,13 @@ class TestAutomation: ChemistryAutomation {
     func snapshot(_ path:URL, _ image:URL) throws {
         calls.append("snapshot"); if failure == "snapshot" { throw ChemOfficeError("Injected save failure") }
         try finalSource.write(to:path)
+        try vector.write(to:image.deletingPathExtension().appendingPathExtension("svg"))
+        try renderPNG(vector).write(to:image)
+    }
+    func savedSnapshot(_ source:URL, _ image:URL) throws {
+        calls.append("savedSnapshot"); renderedSavedSource = try Data(contentsOf:source)
+        try inspectSavedSnapshot?(source)
+        if failure == "savedSnapshot" { throw ChemOfficeError("Injected saved export failure") }
         try vector.write(to:image.deletingPathExtension().appendingPathExtension("svg"))
         try renderPNG(vector).write(to:image)
     }
@@ -74,6 +83,85 @@ class TestAutomation: ChemistryAutomation {
             let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag); try bridge.finish("command-w")
             try require(bridge.session == nil,"Successful edit still active")
             try require(driver.calls.firstIndex(of:"update")! < driver.calls.firstIndex(of:"close")!,"Closed too soon")
+        }
+        func saveChange(_ bridge:NativeBridge,_ source:Data) -> SavedDrawingChange {
+            SavedDrawingChange(id:bridge.session!.id,path:bridge.session!.path,source:source)
+        }
+        for host in ["word","powerpoint"] {
+            try check("Saving \(host) updates the original drawing and keeps ChemDraw open") {
+                let (bridge,driver) = try fixture(liveVerification:true); driver.document = "cfm-document:"+UUID().uuidString.lowercased()
+                try bridge.begin(host,tag:driver.tag)
+                let original = bridge.session!, source = driver.finalSource
+                try bridge.save(saveChange(bridge,source))
+                try require(bridge.editingOpen && driver.opened && bridge.session?.busy == false,"Save closed or froze the edit")
+                try require(driver.targets == [original.document] && bridge.session?.id == original.id,"Save changed its target")
+                try require(try decodeSource(bridge.payload(host,original.document,original.id)).source == source,"Saved chemistry did not reach Office")
+                try require(!driver.calls.contains("close") && !driver.calls.contains("activate") && !driver.calls.contains("persist"),"Save closed ChemDraw, changed focus or saved Office")
+            }
+            try check("Repeated \(host) saves and the final close use the latest committed revision") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                try bridge.save(saveChange(bridge,driver.finalSource))
+                let firstCount = driver.calls.filter { $0 == "update" }.count
+                try bridge.save(saveChange(bridge,driver.finalSource))
+                try require(driver.calls.filter { $0 == "update" }.count == firstCount,"Unchanged source created an update loop")
+                let second = Data("<CDXML><page><t>SECOND</t></page></CDXML>".utf8)
+                try bridge.save(saveChange(bridge,second))
+                driver.finalSource = Data("<CDXML><page><t>FINAL AFTER SAVE</t></page></CDXML>".utf8)
+                try bridge.finish("command-w")
+                try require(bridge.session == nil && driver.calls.filter { $0 == "update" }.count == firstCount+2,"Save then close lost a revision")
+            }
+            try check("A \(host) document switch does not redirect a save") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                let original = bridge.session!.document
+                driver.document = "cfm-document:"+UUID().uuidString.lowercased()
+                try bridge.save(saveChange(bridge,driver.finalSource))
+                try require(driver.targets == [original] && bridge.session?.document == original,"Save updated the newly selected document")
+            }
+        }
+        try check("Save exports the completed save without overwriting newer editing data") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            let path = URL(fileURLWithPath:bridge.session!.path)
+            let newer = Data("<CDXML><page><t>NEW UNSAVED INPUT</t></page></CDXML>".utf8)
+            try newer.write(to:path)
+            try bridge.save(saveChange(bridge,driver.finalSource))
+            try require(driver.renderedSavedSource == driver.finalSource && Data(contentsOf:path) == newer,"Save captured or overwrote later editing data")
+            try require(!driver.calls.contains("snapshot"),"Save forced another save of the live document")
+        }
+        for failure in ["savedSnapshot","payload","update","verify"] {
+            try check("A save \(failure) failure retains the session and releases busy input") {
+                let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag); driver.failure = failure
+                if failure == "verify" { bridge.verify = { _,_,_,_,_ in throw ChemOfficeError("Saved preview differs") } }
+                try rejects { try bridge.save(saveChange(bridge,driver.finalSource)) }
+                try require(bridge.session?.busy == false && bridge.editingOpen && driver.opened,"Save failure lost or froze the drawing")
+                try require(!driver.calls.contains("close") && !driver.calls.contains("activate"),"Save failure closed or switched the editor")
+                driver.failure = ""; bridge.verify = { _,_,_,_,_ in ["verified":true] }
+                try bridge.save(saveChange(bridge,driver.finalSource))
+                try require(bridge.session?.syncedSourceRevision == sha256(driver.finalSource),"Retry did not finish the failed save")
+            }
+        }
+        try check("Saved preview protection covers the temporary document and clears afterward") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            driver.inspectSavedSnapshot = { snapshot in
+                let state = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
+                try require(state["busy"] as? Bool == true && state["previewWindowTitle"] as? String == snapshot.lastPathComponent,"Temporary preview window was not protected")
+                try require(snapshot.path != bridge.session!.path,"Rendering used the live editing file")
+            }
+            try bridge.save(saveChange(bridge,driver.finalSource))
+            try require(bridge.session?.previewWindowTitle == nil && bridge.session?.busy == false,"Temporary protection remained active")
+        }
+        try check("Independent Office edits remain protected during save") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            driver.tag = try encodeSource(Data("<CDXML><page><t>OFFICE CHANGE</t></page></CDXML>".utf8),id:bridge.session!.id)
+            try rejects { try bridge.save(saveChange(bridge,driver.finalSource)) }
+            try require(!driver.calls.contains("update") && bridge.session?.busy == false,"Save overwrote an independent Office change")
+        }
+        try check("Queued saves cannot update a replacement or already closed session") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            let stale = saveChange(bridge,driver.finalSource)
+            try bridge.save(SavedDrawingChange(id:UUID().uuidString,path:stale.path,source:stale.source))
+            try require(!driver.calls.contains("update"),"Mismatched session updated Office")
+            driver.opened = false; try bridge.save(stale)
+            try require(!driver.calls.contains("update"),"A retained closed draft updated Office")
         }
         for failure in ["snapshot","payload","update","close","verify"] {
             try check("\(failure) failure retains the draft and unfreezes input") {
@@ -245,6 +333,24 @@ class TestAutomation: ChemistryAutomation {
             let driver = ActivationProbe(root:base), document = "/drawings/Shared name.docx"
             try require(try driver.activateOffice("word",document,"figure-id") == "com.microsoft.Word","Office did not become active")
             try require(driver.activation == [document,"figure-id"],"Lost the exact document or drawing identity")
+        }
+        try check("Saved-source export stays in the pinned ChemDraw and does not save the editing document") {
+            class ExportProbe: NativeAutomation {
+                var body = "", arguments = [String]()
+                override func preferredApplication() throws -> ChemDrawApplication { throw ChemOfficeError("Save must not switch ChemDraw versions") }
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String {
+                    self.body = body; self.arguments = arguments
+                    try Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\"><path d=\"M10 20L150 80\" stroke=\"black\"/></svg>".utf8).write(to:URL(fileURLWithPath:arguments[1]))
+                    return ""
+                }
+            }
+            let driver = ExportProbe(root:root)
+            driver.selected = ChemDrawApplication(path:"/Applications/Pinned ChemDraw.app",bundle:"example.pinned",version:"22")
+            let source = root.appendingPathComponent("saved-source.cdxml"), image = root.appendingPathComponent("saved-preview.png")
+            let original = Data("<CDXML><page/></CDXML>".utf8); try original.write(to:source)
+            try driver.savedSnapshot(source,image)
+            try require(driver.body.contains("/Applications/Pinned ChemDraw.app") && !driver.body.contains("activate") && !driver.body.contains("chooseSelectionTool"),"Save export touched editor selection or switched applications")
+            try require(try Data(contentsOf:source) == original && Data(contentsOf:image).starts(with:[137,80,78,71]),"Export changed the saved source or did not render")
         }
         try check("Native cold-launch failure cannot script an unready ChemDraw") {
             class LaunchProbe: NativeAutomation {
