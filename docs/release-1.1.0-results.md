@@ -4,7 +4,7 @@ Date: 2026-10-27. Test Mac: macOS 27.0.1 (26A434), Apple Silicon. Build tools: A
 
 ## Application and identity
 
-The installed bundle is `/Applications/ChemOffice Add-ins for Mac.app`. Its name, installer pages, Office add-in and local task pane use **ChemOffice Add-ins for Mac**. The bundle identifier remains `com.chemoffice.mac`, and existing Application Support and Office cache locations remain in use.
+The installed bundle is `/Applications/ChemDraw Add-in for Mac.app`. Its name, installer pages, Office add-in and local task pane use **ChemDraw Add-in for Mac**. The bundle identifier remains `com.chemoffice.mac`, and existing Application Support and Office cache locations remain in use.
 
 `--app-self-test` passed against the extracted installer application. It verifies regular application activation, Dock eligibility, the configuration window, all 13 configuration buttons and their action targets, the completion gate, and bundled resources. The previous NSStatusBar implementation is removed. A staged application was opened with `--preview`; its configuration window was inspected visually and through Accessibility. All permission rows and configuration controls were visible.
 

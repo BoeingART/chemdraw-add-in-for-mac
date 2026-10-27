@@ -26,7 +26,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var latestActivity: HelperActivity?
     var shownFailure: String?
     var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development" }
-    var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemOffice Add-ins for Mac" }
+    var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemDraw Add-in for Mac" }
     var work: URL { NativePaths.work(root:root) }
     var helperReady: Bool {
         guard let helper, helper.isRunning else { return false }
@@ -242,7 +242,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             let installer = NativeInstaller(root:root)
             let cert = try installer.prepareTLS()
             if installer.certificateTrusted(cert) { return }
-            guard alert("启用 Office 本地面板", "请在 macOS 认证提示中确认，以便 Office 连接本机 ChemOffice Add-ins for Mac 面板。",confirm:"启用本地连接",cancel:true) else { return }
+            guard alert("启用 Office 本地面板", "请在 macOS 认证提示中确认，以便 Office 连接本机 ChemDraw Add-in for Mac 面板。",confirm:"启用本地连接",cancel:true) else { return }
             try installer.trustCertificate(cert)
             alert("Office 本地连接已启用", "请保存手头工作并重新打开 Word 和 PowerPoint。")
         } catch { alert("本地连接需要完成设置",error.localizedDescription) }
@@ -304,7 +304,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         DispatchQueue.global().async { [self] in
             let report = (try? command(root.appendingPathComponent("build/chemoffice").path,["check"])) ?? Data("Could not run installation checks.".utf8)
             let log = (try? String(contentsOf:work.appendingPathComponent("application.log"),encoding:.utf8)) ?? ""
-            DispatchQueue.main.async { [self] in alert("ChemOffice Add-ins for Mac · 安装检查",String(decoding:report,as:UTF8.self)+"\n\nRecent helper output:\n"+log.split(separator:"\n").suffix(6).joined(separator:"\n")) }
+            DispatchQueue.main.async { [self] in alert("ChemDraw Add-in for Mac · 安装检查",String(decoding:report,as:UTF8.self)+"\n\nRecent helper output:\n"+log.split(separator:"\n").suffix(6).joined(separator:"\n")) }
         }
     }
     @objc func quitApp() { NSApp.terminate(nil) }

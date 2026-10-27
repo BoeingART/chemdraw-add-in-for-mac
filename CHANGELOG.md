@@ -2,7 +2,7 @@
 
 ## v1.1.0 — 2026-10-27
 
-- Rename the application and Office add-in to ChemOffice Add-ins for Mac.
+- Rename the application and Office add-in to ChemDraw Add-in for Mac.
 - Replace the menu bar icon with a configuration window and Dock entry for permissions, helper controls, panel setup and diagnostics.
 - Reset the signed-in user's Office file-access consent before every installation, including first installs; read the application identity from packaged metadata.
 - Remove the previous application bundle after installing the renamed app, while retaining certificates, chemistry and recovery drafts.

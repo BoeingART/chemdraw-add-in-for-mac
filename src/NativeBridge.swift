@@ -105,7 +105,7 @@ class NativeBridge {
             try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
             try svg.write(to:target,options:.atomic)
         } catch {
-            throw ChemOfficeError("Cannot prepare the Office preview at \(directory.path). Open ChemOffice Add-ins for Mac and choose 修复加载项 and allow macOS access to the Office folders, then retry. Your captured source or editing draft has been retained. \(error.localizedDescription)")
+            throw ChemOfficeError("Cannot prepare the Office preview at \(directory.path). Open ChemDraw Add-in for Mac and choose 修复加载项 and allow macOS access to the Office folders, then retry. Your captured source or editing draft has been retained. \(error.localizedDescription)")
         }
         return target
     }
