@@ -3,67 +3,36 @@
 // Clipboard access is scoped to an explicit Office paste of recognized chemical data.
 import Cocoa
 import ApplicationServices
-import PDFKit
+let emitLock = NSLock()
 
-let cdxClipboardType = NSPasteboard.PasteboardType("com.perkinelmer.chemdraw.cdx-clipboard")
-
-func chemicalClipboard() -> (String, Data, Int)? {
-    let board = NSPasteboard.general
-    let generation = board.changeCount
-    if let data = board.data(forType: cdxClipboardType), data.count <= 8 * 1024 * 1024,
-       data.starts(with: Data("VjCD0100".utf8)), board.changeCount == generation { return ("cdx", data, generation) }
-    for name in ["com.microsoft.image-svg-xml", "public.svg-image"] {
-        guard let data = board.data(forType: NSPasteboard.PasteboardType(name)), data.count <= 48 * 1024 * 1024,
-              let svg = String(data: data, encoding: .utf8),
-              let regex = try? NSRegularExpression(pattern: #"(?:xlink:)?href\s*=\s*["']data:image/png;base64,([^"']+)"#) else { continue }
-        for match in regex.matches(in: svg, range: NSRange(svg.startIndex..., in: svg)) {
-            guard let range = Range(match.range(at: 1), in: svg),
-                  let png = Data(base64Encoded: String(svg[range])),
-                  png.range(of: Data("ChemOffice.Source\0".utf8)) != nil else { continue }
-            guard board.changeCount == generation else { return nil }
-            return ("svg", data, generation)
-        }
-    }
-    return nil
+if CommandLine.arguments.dropFirst().first == "--discover-chemdraw" {
+    let data = try JSONEncoder().encode(ChemDrawApplication.installed())
+    print(String(decoding: data, as: UTF8.self))
+    exit(0)
 }
 
-func captureChemicalClipboard(_ directory: URL, _ item: (String, Data, Int)) throws {
-    guard NSPasteboard.general.changeCount == item.2 else { throw NSError(domain: "ChemOffice", code: 4) }
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    if item.0 == "svg" {
-        try item.1.write(to: directory.appendingPathComponent("carrier.svg"))
-    } else {
-        guard let pdf = NSPasteboard.general.data(forType: .pdf),
-              let document = PDFDocument(data: pdf), let page = document.page(at: 0) else {
-            throw NSError(domain: "ChemOffice", code: 1, userInfo: [NSLocalizedDescriptionKey: "ChemDraw clipboard has no PDF preview"])
-        }
-        let bounds = page.bounds(for: .mediaBox)
-        guard bounds.width > 0, bounds.height > 0 else { throw NSError(domain: "ChemOffice", code: 2) }
-        let scale = min(3, 3200 / max(bounds.width, bounds.height))
-        let image = withExtendedLifetime(document) {
-            page.thumbnail(of: NSSize(width: bounds.width * scale, height: bounds.height * scale), for: .mediaBox)
-        }
-        guard let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff),
-              let png = bitmap.representation(using: .png, properties: [:]) else { throw NSError(domain: "ChemOffice", code: 3) }
-        try item.1.write(to: directory.appendingPathComponent("source.cdx"))
-        try png.write(to: directory.appendingPathComponent("preview.png"))
+func runningApplication(_ target: String) -> NSRunningApplication? {
+    if target.hasPrefix("/") {
+        return NSWorkspace.shared.runningApplications.first { $0.bundleURL?.resolvingSymlinksInPath().path == target }
     }
-    guard NSPasteboard.general.changeCount == item.2 else { throw NSError(domain: "ChemOffice", code: 4) }
+    return NSRunningApplication.runningApplications(withBundleIdentifier: target).first
 }
+
 
 if CommandLine.arguments.dropFirst().first == "--frontmost" {
     print(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none")
     exit(0)
 }
 if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--is-running" {
-    print(NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).isEmpty ? "no" : "yes")
+    print(runningApplication(CommandLine.arguments[2]) == nil ? "no" : "yes")
     exit(0)
 }
 if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-document" {
     let identifier = CommandLine.arguments[2]
     let document = URL(fileURLWithPath: CommandLine.arguments[3])
+    let applicationURL = identifier.hasPrefix("/") ? URL(fileURLWithPath: identifier) : NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
     guard FileManager.default.fileExists(atPath: document.path),
-          let application = NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier) else {
+          let application = applicationURL, FileManager.default.fileExists(atPath: application.path) else {
         fputs("ChemDraw or the managed drawing was not found.\n", stderr)
         exit(2)
     }
@@ -85,7 +54,7 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-docum
     exit(0)
 }
 if CommandLine.arguments.count == 4 && ["--activate-office", "--activate-window"].contains(CommandLine.arguments[1]) {
-    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: CommandLine.arguments[2]).first else { exit(2) }
+    guard let app = runningApplication(CommandLine.arguments[2]) else { exit(2) }
     let ax = AXUIElementCreateApplication(app.processIdentifier)
     guard let windows = attribute(ax, kAXWindowsAttribute) as? [AXUIElement] else { exit(2) }
     let expected = CommandLine.arguments[3]
@@ -110,17 +79,24 @@ if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--capture" {
     do { try captureChemicalClipboard(URL(fileURLWithPath: CommandLine.arguments[2]), item); print(item.0); exit(0) }
     catch { fputs("\(error)\n", stderr); exit(2) }
 }
+if CommandLine.arguments.count == 5 && CommandLine.arguments[1] == "--diagnose-paste-menu",
+   let app = runningApplication(CommandLine.arguments[2]),
+   let x = Double(CommandLine.arguments[3]), let y = Double(CommandLine.arguments[4]) {
+    let targets = inspectPasteMenus(app.processIdentifier)
+    for target in targets { print("paste rectangle: \(target.frame)") }
+    print(targets.contains { $0.frame.contains(CGPoint(x:x,y:y)) } ? "paste" : "other")
+    exit(0)
+}
 guard CommandLine.arguments.count == 2 else { exit(64) }
 let statePath = CommandLine.arguments[1]
 var tap: CFMachPort?
 var lastClose = Date.distantPast
+var swallowPasteMouseUp = false
 
 func emit(_ object: [String: Any]) {
-    if let data = try? JSONSerialization.data(withJSONObject: object),
-       let line = String(data: data, encoding: .utf8) {
-        print(line)
-        fflush(stdout)
-    }
+    guard let data = try? JSONSerialization.data(withJSONObject:object) else { return }
+    emitLock.lock(); defer { emitLock.unlock() }
+    FileHandle.standardOutput.write(data + Data([10]))
 }
 
 func state() -> [String: Any] {
@@ -145,6 +121,14 @@ func managedWindow(_ app: NSRunningApplication, _ expected: String) -> AXUIEleme
     return window
 }
 
+func matchesSessionApplication(_ app: NSRunningApplication, _ current: [String: Any]) -> Bool {
+    guard app.bundleIdentifier == current["chemBundle"] as? String else { return false }
+    if let application = current["chemApplication"] as? [String: Any], let path = application["path"] as? String {
+        return app.bundleURL?.resolvingSymlinksInPath().path == path
+    }
+    return true // Sessions retained by the previous release contain only a bundle ID.
+}
+
 func closeButtonContains(_ window: AXUIElement, _ point: CGPoint) -> Bool {
     guard let raw = attribute(window, kAXCloseButtonAttribute),
           CFGetTypeID(raw) == AXUIElementGetTypeID() else { return false }
@@ -166,7 +150,7 @@ func closeButtonContains(_ window: AXUIElement, _ point: CGPoint) -> Bool {
 func serviceCloseWindow(_ point: CGPoint, _ expected: String) -> AXUIElement? {
     let current = state()
     if let front = NSWorkspace.shared.frontmostApplication,
-       front.bundleIdentifier == current["chemBundle"] as? String,
+       matchesSessionApplication(front, current),
        let window = managedWindow(front, expected), closeButtonContains(window, point) { return window }
     var hit: AXUIElement?
     guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success,
@@ -216,38 +200,175 @@ func selectedManagedTag(_ host: String) -> String? {
     return value
 }
 
+struct PasteMenuTarget {
+    let frame: CGRect
+    let menu: AXUIElement
+}
+let pasteMenuQueue = DispatchQueue(label:"ChemOffice menu inspection")
+let pasteMenuLock = NSLock()
+var pasteMenuTargets = [PasteMenuTarget]()
+var pasteMenuPID: pid_t = 0
+var pasteMenuGeneration = 0
+var pasteMenuChecked = Date.distantPast
+var pasteMenuObserver: AXObserver?
+func invalidatePasteMenu() {
+    pasteMenuLock.lock(); defer { pasteMenuLock.unlock() }
+    pasteMenuGeneration += 1; pasteMenuTargets = []
+}
+func observeMenuClose(_ pid:pid_t,_ menu:AXUIElement) {
+    var observer: AXObserver?
+    guard AXObserverCreate(pid,{ _,_,_,_ in invalidatePasteMenu() },&observer) == .success, let observer,
+          AXObserverAddNotification(observer,menu,kAXMenuClosedNotification as CFString,nil) == .success else { return }
+    pasteMenuLock.lock(); defer { pasteMenuLock.unlock() }
+    if let old = pasteMenuObserver { CFRunLoopRemoveSource(CFRunLoopGetMain(),AXObserverGetRunLoopSource(old),.commonModes) }
+    pasteMenuObserver = observer
+    CFRunLoopAddSource(CFRunLoopGetMain(),AXObserverGetRunLoopSource(observer),.commonModes)
+}
+
+func elementFrame(_ element:AXUIElement) -> CGRect? {
+    guard let position = attribute(element,kAXPositionAttribute), let size = attribute(element,kAXSizeAttribute),
+          CFGetTypeID(position) == AXValueGetTypeID(), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
+    var origin = CGPoint.zero, dimensions = CGSize.zero
+    guard AXValueGetValue(unsafeBitCast(position,to:AXValue.self),.cgPoint,&origin),
+          AXValueGetValue(unsafeBitCast(size,to:AXValue.self),.cgSize,&dimensions), dimensions.width > 0, dimensions.height > 0 else { return nil }
+    return CGRect(origin:origin,size:dimensions)
+}
+func inspectPasteMenus(_ pid:pid_t) -> [PasteMenuTarget] {
+    let app = AXUIElementCreateApplication(pid)
+    var roots = attribute(app,kAXWindowsAttribute) as? [AXUIElement] ?? []
+    if let focused = attribute(app,kAXFocusedWindowAttribute), CFGetTypeID(focused) == AXUIElementGetTypeID() {
+        roots.insert(unsafeBitCast(focused,to:AXUIElement.self),at:0)
+    }
+    var pending = roots.map { ($0,0) }, index = 0, menuCount = 0
+    while index < pending.count && index < 450 {
+        let (element,depth) = pending[index]; index += 1
+        let role = attribute(element,kAXRoleAttribute) as? String ?? ""
+        if role == kAXMenuRole as String {
+            menuCount += 1
+            let items = attribute(element,kAXChildrenAttribute) as? [AXUIElement] ?? []
+            let targets = items.compactMap { item -> PasteMenuTarget? in
+                guard attribute(item,kAXEnabledAttribute) as? Bool != false,
+                      isOfficePasteMenuItem(role:attribute(item,kAXRoleAttribute) as? String ?? "",
+                        title:attribute(item,kAXTitleAttribute) as? String ?? "",
+                        command:attribute(item,kAXMenuItemCmdCharAttribute) as? String,
+                        modifiers:(attribute(item,kAXMenuItemCmdModifiersAttribute) as? NSNumber)?.intValue),
+                      let frame = elementFrame(item) else { return nil }
+                return PasteMenuTarget(frame:frame,menu:element)
+            }
+            if !targets.isEmpty { return targets }
+            continue
+        }
+        // Bound the background walk; document text is not a menu container.
+        if depth >= 12 || role == "AXTextArea" || role == "AXStaticText" { continue }
+        for child in attribute(element,kAXChildrenAttribute) as? [AXUIElement] ?? [] { pending.append((child,depth+1)) }
+    }
+    if ProcessInfo.processInfo.environment["CFM_DIAGNOSTICS"] == "1" { emit(["event":"paste_menu_scan","windows":roots.count,"elements":index,"menus":menuCount]) }
+    return []
+}
+func inspectPasteMenuSoon(_ pid:pid_t) {
+    pasteMenuLock.lock(); pasteMenuGeneration += 1; let generation = pasteMenuGeneration
+    pasteMenuTargets = []; pasteMenuPID = pid; pasteMenuChecked = Date(); pasteMenuLock.unlock()
+    pasteMenuQueue.asyncAfter(deadline:.now()+0.06) {
+        let targets = inspectPasteMenus(pid)
+        if let target = targets.first { observeMenuClose(pid,target.menu) }
+        pasteMenuLock.lock(); defer { pasteMenuLock.unlock() }
+        guard pasteMenuGeneration == generation else { return }
+        pasteMenuTargets = targets; pasteMenuChecked = Date()
+    }
+}
+func directPasteMenu(at point:CGPoint,pid:pid_t) -> PasteMenuTarget? {
+    pasteMenuLock.lock(); let recent = pasteMenuPID == pid && Date().timeIntervalSince(pasteMenuChecked) < 10; pasteMenuLock.unlock()
+    guard recent else { return nil }
+    var hit: AXUIElement?
+    guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),Float(point.x),Float(point.y),&hit) == .success else { return nil }
+    for _ in 0..<2 {
+        guard let item = hit else { return nil }
+        var owner: pid_t = 0
+        guard AXUIElementGetPid(item,&owner) == .success, owner == pid else { return nil }
+        AXUIElementSetMessagingTimeout(item,0.04)
+        let keys = [kAXRoleAttribute,kAXTitleAttribute,kAXMenuItemCmdCharAttribute,kAXMenuItemCmdModifiersAttribute,kAXEnabledAttribute,kAXParentAttribute,kAXPositionAttribute,kAXSizeAttribute]
+        var raw: CFArray?
+        guard AXUIElementCopyMultipleAttributeValues(item,keys as CFArray,[],&raw) == .success,
+              let values = raw as? [Any], values.count == keys.count else { return nil }
+        let parent = values[5] as CFTypeRef
+        guard CFGetTypeID(parent) == AXUIElementGetTypeID() else { return nil }
+        if values[0] as? String == kAXMenuItemRole as String {
+            guard isOfficePasteMenuItem(role:kAXMenuItemRole as String,title:values[1] as? String ?? "",
+                command:values[2] as? String,modifiers:(values[3] as? NSNumber)?.intValue), values[4] as? Bool != false,
+                CFGetTypeID(values[6] as CFTypeRef) == AXValueGetTypeID(), CFGetTypeID(values[7] as CFTypeRef) == AXValueGetTypeID() else { return nil }
+            var origin = CGPoint.zero, size = CGSize.zero
+            guard AXValueGetValue(unsafeBitCast(values[6] as CFTypeRef,to:AXValue.self),.cgPoint,&origin),
+                  AXValueGetValue(unsafeBitCast(values[7] as CFTypeRef,to:AXValue.self),.cgSize,&size) else { return nil }
+            return PasteMenuTarget(frame:CGRect(origin:origin,size:size),menu:unsafeBitCast(parent,to:AXUIElement.self))
+        }
+        hit = unsafeBitCast(parent,to:AXUIElement.self)
+    }
+    return nil
+}
+func cachedPasteMenu(at point:CGPoint,pid:pid_t) -> PasteMenuTarget? {
+    pasteMenuLock.lock(); defer { pasteMenuLock.unlock() }
+    guard pasteMenuPID == pid, Date().timeIntervalSince(pasteMenuChecked) < 10 else { return nil }
+    let target = pasteMenuTargets.first { $0.frame.contains(point) }
+    if target != nil { pasteMenuTargets = [] }
+    return target
+}
+
+func capturePaste(_ item:(String,Data,Int),host:String,menuPID:pid_t? = nil,menu:AXUIElement? = nil) {
+    let directory = URL(fileURLWithPath:statePath).deletingLastPathComponent().appendingPathComponent("pastes/\(UUID().uuidString)")
+    let result:[String:Any]
+    do {
+        try captureChemicalClipboard(directory,item)
+        result = ["event":"paste","host":host,"snapshot":directory.path,"gesture":menuPID == nil ? "command-v" : "menu-paste"]
+    } catch { result = ["event":"pasteCaptureFailed","host":host,"message":error.localizedDescription] }
+    if let menuPID {
+        // Dismiss the native menu before sending Office an insertion Apple event.
+        // Suppress its click pair so it cannot also paste an ordinary picture.
+        pasteMenuQueue.async {
+            let cancelled = menu.map { AXUIElementPerformAction($0,kAXCancelAction as CFString) == .success } ?? false
+            if !cancelled { for down in [true,false] { CGEvent(keyboardEventSource:nil,virtualKey:53,keyDown:down)?.postToPid(menuPID) } }
+            DispatchQueue.main.asyncAfter(deadline:.now()+0.1) { emit(result) }
+        }
+    } else { emit(result) }
+}
+
 let callback: CGEventTapCallBack = { _, type, event, _ in
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
         emit(["event": "tapResumed"])
         return Unmanaged.passUnretained(event)
     }
+    if type == .leftMouseUp && swallowPasteMouseUp { swallowPasteMouseUp = false; return nil }
     let targetPID = pid_t(event.getIntegerValueField(.eventTargetUnixProcessID))
     let recipient = targetPID > 0 ? NSRunningApplication(processIdentifier: targetPID) : nil
     guard let front = recipient ?? NSWorkspace.shared.frontmostApplication,
           let bundle = front.bundleIdentifier else { return Unmanaged.passUnretained(event) }
+    if type == .leftMouseDown && ProcessInfo.processInfo.environment["CFM_DIAGNOSTICS"] == "1" {
+        emit(["event":"paste_pointer","bundle":bundle,"front":NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "",
+              "chemical":chemicalClipboard() != nil])
+    }
 
     let current = state()
-    // The save dialog must receive typing, clicks, and paste normally. Its
-    // chemistry snapshot has already been captured by the original paste event.
-    if current["saveDialogBundle"] as? String == bundle { return Unmanaged.passUnretained(event) }
-    if current["pasteBusyBundle"] as? String == bundle { return nil }
+    if passOfficeTransactionInput(current,bundle:bundle) { return Unmanaged.passUnretained(event) }
+    if type == .keyDown { invalidatePasteMenu() }
+    if type == .leftMouseDown || type == .rightMouseDown,
+       bundle == "com.microsoft.Word" || bundle == "com.microsoft.Powerpoint", chemicalClipboard() != nil {
+        if type == .leftMouseDown, let menu = cachedPasteMenu(at:event.location,pid:front.processIdentifier) ?? directPasteMenu(at:event.location,pid:front.processIdentifier), let item = chemicalClipboard() {
+            swallowPasteMouseUp = true
+            capturePaste(item,host:bundle == "com.microsoft.Word" ? "word" : "powerpoint",menuPID:front.processIdentifier,menu:menu.menu)
+            return nil
+        }
+        if type == .leftMouseDown { invalidatePasteMenu() }
+        if type == .rightMouseDown || (type == .leftMouseDown && (event.flags.contains(.maskControl) || event.location.y < 32)) {
+            inspectPasteMenuSoon(front.processIdentifier)
+        }
+    }
     if type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 9,
        event.flags.contains(.maskCommand), !event.flags.contains(.maskShift),
        !event.flags.contains(.maskAlternate), !event.flags.contains(.maskControl),
        bundle == "com.microsoft.Word" || bundle == "com.microsoft.Powerpoint",
        let item = chemicalClipboard() {
-        let directory = URL(fileURLWithPath: statePath).deletingLastPathComponent()
-            .appendingPathComponent("pastes/\(UUID().uuidString)")
-        do {
-            try captureChemicalClipboard(directory, item)
-            emit(["event": "paste", "host": bundle == "com.microsoft.Word" ? "word" : "powerpoint",
-                  "snapshot": directory.path])
-            return nil
-        } catch {
-            emit(["event": "pasteCaptureFailed", "message": error.localizedDescription])
-            return Unmanaged.passUnretained(event)
-        }
+        capturePaste(item,host:bundle == "com.microsoft.Word" ? "word" : "powerpoint")
+        return nil
     }
 
     if type == .leftMouseDown && event.getIntegerValueField(.mouseEventClickState) == 2,
@@ -266,7 +387,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     }
     guard let title = current["windowTitle"] as? String else { return Unmanaged.passUnretained(event) }
     let candidateWindow: AXUIElement?
-    if bundle == current["chemBundle"] as? String {
+    if matchesSessionApplication(front, current) {
         candidateWindow = managedWindow(front, title)
     } else if bundle == "com.apple.appkit.xpc.ThemeWidgetControlViewService" && type == .leftMouseDown {
         // Newer macOS versions host traffic-light controls in a separate AppKit process.
@@ -291,10 +412,10 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
 }
 
 guard AXIsProcessTrusted() else {
-    emit(["event": "fatal", "message": "Accessibility permission is required for the local prototype launcher."])
+    emit(["event": "fatal", "message": "请在系统设置 → 辅助功能中启用 ChemOffice Add-ins for Mac，完成安装窗口会自动继续。"])
     exit(2)
 }
-let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.keyDown.rawValue)
+let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.leftMouseUp.rawValue) | (1 << CGEventType.rightMouseDown.rawValue) | (1 << CGEventType.keyDown.rawValue)
 tap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
                         eventsOfInterest: CGEventMask(mask), callback: callback, userInfo: nil)
 guard let tap else {
@@ -306,6 +427,7 @@ CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 emit(["event": "ready"])
 let parentPID = getppid()
+let focusObserver = NSWorkspace.shared.notificationCenter.addObserver(forName:NSWorkspace.didDeactivateApplicationNotification,object:nil,queue:.main) { _ in invalidatePasteMenu() }
 let watchdog = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
     if getppid() != parentPID || kill(parentPID, 0) != 0 { CFRunLoopStop(CFRunLoopGetCurrent()) }
 }

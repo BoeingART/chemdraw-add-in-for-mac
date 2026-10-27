@@ -1,0 +1,26 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+set -eu
+# Reset the desktop user's Office-container consent before replacing the app.
+# Run for every live installation, including a first installation.
+if [ "${3:-/}" != / ]; then exit 0; fi
+CFM_USER=$(/usr/bin/stat -f %Su /dev/console)
+case "$CFM_USER" in root|loginwindow|_mbsetupuser|"") exit 0 ;; esac
+CFM_UID=$(/usr/bin/id -u "$CFM_USER")
+CFM_INFO="$(/usr/bin/dirname "$0")/app-info.plist"
+CFM_BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CFM_INFO")
+CFM_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$CFM_INFO")
+if CFM_RESULT=$(/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/tccutil reset SystemPolicyAppDataDetailed "$CFM_BUNDLE" 2>&1); then
+    printf '%s\n' "$CFM_RESULT"
+else
+    case "$CFM_RESULT" in
+        *"No such bundle identifier"*|*"kLSApplicationNotFoundErr"*)
+            # On a fresh Mac LaunchServices has no identity or consent to reset.
+            printf '%s: first installation; application identity is not yet registered.\n' "$CFM_NAME"
+            ;;
+        *)
+            printf '%s: could not reset Office file access for %s: %s\n' "$CFM_NAME" "$CFM_USER" "$CFM_RESULT" >&2
+            exit 1
+            ;;
+    esac
+fi

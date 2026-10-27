@@ -3,10 +3,10 @@
   
 
   <Id>1079b757-4a92-4997-9e74-514af3e78e2a</Id>
-  <Version>1.0.0.0</Version>
-  <ProviderName>ChemOffice for Mac</ProviderName>
+  <Version>1.1.0.0</Version>
+  <ProviderName>ChemOffice Add-ins for Mac</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="ChemOffice for Mac"/>
+  <DisplayName DefaultValue="ChemOffice Add-ins for Mac"/>
   <Description DefaultValue="Edit source-carrying vector chemistry with your installed ChemDraw."/>
   <IconUrl DefaultValue="https://localhost:17524/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:17524/icon-80.png"/>
@@ -103,12 +103,12 @@
         <bt:Url id="PanelUrl" DefaultValue="https://localhost:17524/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="TabLabel" DefaultValue="ChemOffice"/>
+        <bt:String id="TabLabel" DefaultValue="ChemOffice Add-ins for Mac"/>
         <bt:String id="GroupLabel" DefaultValue="ChemDraw drawings"/>
-        <bt:String id="ButtonLabel" DefaultValue="Open ChemOffice"/>
+        <bt:String id="ButtonLabel" DefaultValue="Open ChemOffice Add-ins for Mac"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="ButtonHelp" DefaultValue="Open the ChemOffice panel to edit the selected drawing, check connection status, and view instructions."/>
+        <bt:String id="ButtonHelp" DefaultValue="Open the ChemOffice Add-ins for Mac panel to edit the selected drawing, check connection status, and view instructions."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

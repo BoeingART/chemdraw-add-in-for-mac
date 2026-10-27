@@ -1,5 +1,67 @@
 # Changelog
 
+## v1.1.0 — 2026-10-27
+
+- Rename the application and Office add-in to ChemOffice Add-ins for Mac.
+- Replace the menu bar icon with a configuration window and Dock entry for permissions, helper controls, panel setup and diagnostics.
+- Reset the signed-in user's Office file-access consent before every installation, including first installs; read the application identity from packaged metadata.
+- Remove the previous application bundle after installing the renamed app, while retaining certificates, chemistry and recovery drafts.
+- Preserve an explicit helper pause when reopening configuration.
+
+## v1.0.6 — 2026-10-26
+
+- Handle right-click Paste through the editable chemistry pipeline and add a Paste editable drawing panel action.
+- Capture ChemDraw source without requiring or rendering a PDF preview on the input callback; recognize the CambridgeSoft clipboard identifier.
+- Allow an independent paste during an existing edit and retain closed drafts before clearing stale sessions.
+- Report paste progress and failures in the panel and native app without blocking status reads behind Office automation.
+- Distinguish recoverable drafts from live ChemDraw editing.
+
+## v1.0.5 — 2026-10-26
+
+- Open a visible setup checklist after installation for Word/PowerPoint file access and Accessibility.
+- Automatically verify add-in registration and preview writes, retry after authorization, and start the paste helper.
+- Show completion only after the keyboard and mouse monitor confirms readiness; retain an explicit retry for startup failures.
+- Keep manual Stop Helper paused and expose setup from the menu and by reopening the app.
+
+## v1.0.4 — 2026-10-26
+
+- Paste and edit ChemDraw structures directly in new, unsaved Word documents and PowerPoint presentations.
+- Keep Office saving under user control; paste and write-back update the open document.
+- Track the original document through Save As and window switches with a stable identity.
+- Retain drawing revisions locally and restore editing sessions after helper restarts.
+- Simplify installer and release copy and record the writing rules in AGENTS.md.
+
+## v1.0.3 — 2026-10-26
+
+- Place generated SVGs in the target Office application's sandbox cache, avoiding Word/PowerPoint Grant File Access dialogs for ChemOffice's private preview files.
+- Pass mouse and keyboard input through during Office paste/write-back transactions so modal authorization and save dialogs remain usable. Keep protection of the managed ChemDraw window during write-back.
+- Verify installed manifest bytes, repair missing/outdated manifests on launch, retry partial failures, and mark setup complete only after both hosts succeed. Preserve unrelated add-ins.
+- Include Office 2021 / 16.78 Insert / My Add-ins activation instructions and report Office versions, manifest mismatches and unavailable preview folders in installation diagnostics.
+- Preserve private source/certificate/recovery data in Application Support. If Office cache preparation fails, retain chemistry and report the setup problem before asking Office to read a preview.
+
+## v0.1.2 — 2026-10-26
+
+- Activate the original Office document through its adapter and full path after write-back, avoiding a failing AX lookup when Word hides the filename extension.
+- Complete live Word clipboard, unsaved-document save-and-resume, double-click, ⌘W write-back and return-to-Word checks on the installed app.
+
+## v0.1.1 — 2026-10-26 (local testing build, not published)
+
+- Recognize ChemDraw 26 Revvity CDX and legacy PerkinElmer/Carbon CDIF clipboard formats.
+- Deliver short native monitor events immediately, without waiting for a full pipe buffer or process exit.
+- Offer save-and-resume for the first paste into an unsaved Word document; preserve cancellation and the original capture.
+- Recheck localhost certificate trust after deferred setup and verify trust before reporting success. Keep local diagnostic requests outside proxy routing.
+- Add clipboard capture, live event-delivery, and Word save/cancel/failure regressions.
+
+## v0.1.0 — 2026-10-26
+
+- Discover installed ChemDraw applications and prefer the newest numeric version; use exact application paths and pin active sessions.
+- Replace the Python bridge, image dependencies, installer, and HTTPS panel with native Swift using macOS frameworks and system zlib. Setup no longer downloads packages.
+- Preserve CFM1/CFM2 source envelopes, existing example documents, source and preview validation, recovery drafts, and unsaved-PowerPoint save-and-resume behavior.
+- Ship a universal Apple Silicon / Intel pkg installing ChemOffice.app in Applications. Runtime requires no source checkout or developer tools.
+- Replace all eight root `.command` launchers with a native menu bar app for helper control, per-user add-in installation, local certificate trust, diagnostics, and guides.
+- Preserve per-user certificates and chemistry in Application Support across app upgrades. The pkg opens first-run setup in the signed-in user session and never trusts certificates as root.
+- Source builds target macOS 12+ and require Apple's command-line tools with Swift 5.7+. The app uses ad-hoc code signatures; the pkg has no Developer ID signature or Apple notarization. Real Office/ChemDraw acceptance of this rewrite remains pending.
+
 ## v0.1.0-beta.2 — 2026-10-26
 
 ### Paste into a new PowerPoint deck
@@ -27,14 +89,14 @@ First public source preview for ChemDraw 22, Word for Mac, and PowerPoint for Ma
 ### Sharp artwork and a visible Office panel
 
 - Render bonds and labels with ChemDraw's native SVG paths and text.
-- Preserve native CDX/CDXML source inside each managed graphic, with checksum checks.
+- Preserve native CDX/CDXML source inside each managed graphic, with source validation.
 - Keep PowerPoint picture proportions correct at insertion and write-back.
 - Open a ChemOffice task pane from Developer Add-ins or the ChemOffice ribbon tab in both Word and PowerPoint.
 - Edit the selected drawing from the panel and check local connection status with the supplied launcher.
 
 ### Installation and validation
 
-The release is a source ZIP with English and Chinese installation instructions and SHA-256 checksums. Setup requires Python 3.10 or later and Apple's command-line tools. The Office panel uses local sideloading and a per-Mac localhost certificate approved by the user.
+The release is a source ZIP with English and Chinese installation instructions and installation guides. Setup requires Python 3.10 or later and Apple's command-line tools. The Office panel uses local sideloading and a per-Mac localhost certificate approved by the user.
 
 Twenty-four automated tests passed during implementation. Live tests used macOS 27.0, ChemDraw 22.0.0.22, Word 16.114, and PowerPoint 16.114. See [launch and panel results](docs/launch-and-installation-results.md) and [vector and recovery results](docs/vector-and-recovery-results.md) for exact scenarios.
 
