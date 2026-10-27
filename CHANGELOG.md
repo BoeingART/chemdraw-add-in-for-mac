@@ -1,8 +1,18 @@
 # Changelog
 
+## v1.2.0 — 2026-10-27
+
+- Run in the menu bar with a transparent C outline and a version header followed by Check for Updates, Open Interface, Hide Icon and Quit.
+- Simplify the main window to four actions and an Open at Login checkbox; move the four installation checks into a separate setup window opened after installation.
+- Query the latest stable GitHub Release, compare numeric versions and open its release page when an update is available.
+- Use system login-item registration on macOS 13 and later, with a per-user launch agent on macOS 12. Report pending system approval.
+- Preserve existing chemistry, certificates and recovery drafts across upgrades and application renames.
+
 ## v1.1.0 — 2026-10-27
 
 - Rename the application and Office add-in to ChemDraw Add-in for Mac.
+- Use the same name for the installer, native prompts, task pane, banner and current guides; remove spaces between Chinese text and English words.
+- Package the executable and icon named in application metadata, and clean up matching bundles under all previous display names during upgrades.
 - Replace the menu bar icon with a configuration window and Dock entry for permissions, helper controls, panel setup and diagnostics.
 - Reset the signed-in user's Office file-access consent before every installation, including first installs; read the application identity from packaged metadata.
 - Remove the previous application bundle after installing the renamed app, while retaining certificates, chemistry and recovery drafts.
@@ -33,7 +43,7 @@
 
 ## v1.0.3 — 2026-10-26
 
-- Place generated SVGs in the target Office application's sandbox cache, avoiding Word/PowerPoint Grant File Access dialogs for ChemOffice's private preview files.
+- Place generated SVGs in the target Office application's sandbox cache, avoiding Word/PowerPoint Grant File Access dialogs for the app's private preview files.
 - Pass mouse and keyboard input through during Office paste/write-back transactions so modal authorization and save dialogs remain usable. Keep protection of the managed ChemDraw window during write-back.
 - Verify installed manifest bytes, repair missing/outdated manifests on launch, retry partial failures, and mark setup complete only after both hosts succeed. Preserve unrelated add-ins.
 - Include Office 2021 / 16.78 Insert / My Add-ins activation instructions and report Office versions, manifest mismatches and unavailable preview folders in installation diagnostics.
@@ -91,7 +101,7 @@ First public source preview for ChemDraw 22, Word for Mac, and PowerPoint for Ma
 - Render bonds and labels with ChemDraw's native SVG paths and text.
 - Preserve native CDX/CDXML source inside each managed graphic, with source validation.
 - Keep PowerPoint picture proportions correct at insertion and write-back.
-- Open a ChemOffice task pane from Developer Add-ins or the ChemOffice ribbon tab in both Word and PowerPoint.
+- Open a ChemDraw Add-in for Mac task pane from Developer Add-ins or the ChemDraw Add-in for Mac ribbon tab in both Word and PowerPoint.
 - Edit the selected drawing from the panel and check local connection status with the supplied launcher.
 
 ### Installation and validation

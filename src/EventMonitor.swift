@@ -204,7 +204,7 @@ struct PasteMenuTarget {
     let frame: CGRect
     let menu: AXUIElement
 }
-let pasteMenuQueue = DispatchQueue(label:"ChemOffice menu inspection")
+let pasteMenuQueue = DispatchQueue(label:"ChemDraw Add-in for Mac menu inspection")
 let pasteMenuLock = NSLock()
 var pasteMenuTargets = [PasteMenuTarget]()
 var pasteMenuPID: pid_t = 0
@@ -412,7 +412,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
 }
 
 guard AXIsProcessTrusted() else {
-    emit(["event": "fatal", "message": "请在系统设置 → 辅助功能中启用 ChemDraw Add-in for Mac，完成安装窗口会自动继续。"])
+    emit(["event": "fatal", "message": "请在系统设置 → 辅助功能中启用ChemDraw Add-in for Mac，设置加载项窗口会自动继续。"])
     exit(2)
 }
 let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.leftMouseUp.rawValue) | (1 << CGEventType.rightMouseDown.rawValue) | (1 << CGEventType.keyDown.rawValue)

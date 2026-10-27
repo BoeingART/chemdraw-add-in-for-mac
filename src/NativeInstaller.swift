@@ -20,7 +20,7 @@ class NativeInstaller {
     }
     func trustCertificate(_ cert:URL) throws {
         try command("/usr/bin/security",["add-trusted-cert","-r","trustRoot","-p","ssl","-s","localhost","-k",home.appendingPathComponent("Library/Keychains/login.keychain-db").path,cert.path],timeout:300)
-        try require(certificateTrusted(cert),"macOS has not trusted the localhost certificate. Open ChemDraw Add-in for Mac, choose 启用 Office 面板 and complete the macOS authentication prompt, then restart Office.")
+        try require(certificateTrusted(cert),"macOS has not trusted the localhost certificate. Open ChemDraw Add-in for Mac, choose “修复加载项” and complete the macOS authentication prompt, then restart Office.")
     }
     func prepareTLS() throws -> URL {
         let directory = NativePaths.work(root:root,home:home).appendingPathComponent("tls"), fm = FileManager.default
@@ -36,7 +36,7 @@ class NativeInstaller {
         x509_extensions=ext
         prompt=no
         [dn]
-        CN=ChemOffice Localhost
+        CN=ChemDraw Add-in for Mac Localhost
         O=ChemDraw Add-in for Mac Local Preview
         [ext]
         subjectAltName=DNS:localhost,IP:127.0.0.1
@@ -82,7 +82,7 @@ class NativeInstaller {
                 try FileManager.default.createDirectory(at:previews,withIntermediateDirectories:true)
                 let probe = previews.appendingPathComponent(".setup-\(UUID().uuidString)")
                 defer { try? FileManager.default.removeItem(at:probe) }
-                let probeData = Data("ChemOffice setup".utf8)
+                let probeData = Data("ChemDraw Add-in for Mac setup".utf8)
                 try probeData.write(to:probe,options:.atomic)
                 try require(try Data(contentsOf:probe) == probeData,"The Office preview cache could not be read back")
                 if report { print("Installed and verified: \(target.path)") }
@@ -94,7 +94,7 @@ class NativeInstaller {
             }
         }
         if report {
-            if !installationIssues.isEmpty { print("Open ChemDraw Add-in for Mac → 完成安装. Allow Microsoft Word and Microsoft PowerPoint under Privacy & Security → Files & Folders → ChemDraw Add-in for Mac; setup retries automatically.") }
+            if !installationIssues.isEmpty { print("Open ChemDraw Add-in for Mac → 设置加载项. Allow Microsoft Word and Microsoft PowerPoint under Privacy & Security → Files & Folders → ChemDraw Add-in for Mac; setup retries automatically.") }
             print(Self.activationInstructions)
         }
         return installationIssues.isEmpty
@@ -103,7 +103,7 @@ class NativeInstaller {
         for target in destinations() {
             do {
                 let actual = try Data(contentsOf:target), expected = try Data(contentsOf:root.appendingPathComponent("office/addin/manifest.xml"))
-                print("Manifest \(actual == expected ? "verified" : "OUTDATED / INVALID — open ChemDraw Add-in for Mac and choose 修复加载项"): \(target.path)")
+                print("Manifest \(actual == expected ? "verified" : "OUTDATED / INVALID — open ChemDraw Add-in for Mac and choose “修复加载项”"): \(target.path)")
             }
             catch let error as NSError where error.domain == NSCocoaErrorDomain && [NSFileReadNoPermissionError,NSFileWriteNoPermissionError].contains(error.code) { print("macOS protects this folder; confirm the entry in Office: \(target.path)") }
             catch { print("Manifest missing or unreadable: \(target.path) — \(error.localizedDescription)") }
@@ -114,7 +114,7 @@ class NativeInstaller {
                 print("\(name) version: \(app.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "unknown")")
             }
             if let previews = try? NativePaths.officePreviews(host,home:home) {
-                print("Office preview cache: \(previews.path)\(FileManager.default.isWritableFile(atPath:previews.path) ? "" : " — unavailable; open ChemDraw Add-in for Mac and choose 修复加载项 and allow folder access")")
+                print("Office preview cache: \(previews.path)\(FileManager.default.isWritableFile(atPath:previews.path) ? "" : " — unavailable; open ChemDraw Add-in for Mac and choose “修复加载项” and allow folder access")")
             }
         }
         for name in ["Word","PowerPoint"] where FileManager.default.fileExists(atPath:"/Applications/Microsoft \(name).app/Contents/_MASReceipt/receipt") { print("Mac App Store build detected: \(name); confirm activation inside Office.") }
@@ -122,7 +122,7 @@ class NativeInstaller {
         else { print("ChemDraw: no installed application found") }
         let cert = NativePaths.work(root:root,home:home).appendingPathComponent("tls/localhost.pem")
         if FileManager.default.fileExists(atPath:cert.path) {
-            print("Local certificate: " + (certificateTrusted(cert) ? "trusted for localhost" : "NOT TRUSTED — choose 启用 Office 面板 in ChemDraw Add-in for Mac, authenticate, then restart Office"))
+            print("Local certificate: " + (certificateTrusted(cert) ? "trusted for localhost" : "NOT TRUSTED — choose “修复加载项” in ChemDraw Add-in for Mac, authenticate, then restart Office"))
             print("Local helper: " + ((try? command("/usr/bin/curl",["--noproxy","*","--silent","--fail","--max-time","3","--cacert",cert.path,"https://localhost:17524/api/status"])) != nil ? "running" : "open ChemDraw Add-in for Mac from Applications"))
         }
         print(Self.activationInstructions)

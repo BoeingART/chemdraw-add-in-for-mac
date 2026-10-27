@@ -1,61 +1,59 @@
-ChemDraw Add-in for Mac v1.1.0 · 安装与使用
+ChemDraw Add-in for Mac v1.2.0 · 安装与使用
 
-安装包：ChemOffice-Add-ins-for-Mac-1.1.0-universal.pkg（Apple Silicon 与 Intel 通用版）
-要求：macOS 12 或更新；已安装并激活 ChemDraw 及 Word／PowerPoint。
+安装包：ChemDraw-Add-in-for-Mac-1.2.0-universal.pkg（Apple Silicon与Intel通用版）
+要求：macOS 12或更新；已安装并激活ChemDraw及Word／PowerPoint。
 
 安装与升级
 
-1. 完成当前 ChemDraw 编辑并退出助手，然后打开安装包。
-   macOS 提示拦截时，在“系统设置 → 隐私与安全性”中选择“仍要打开”。
-2. 每次安装都会先重置本应用的 Office 文件访问权限。
-   安装器将应用安装为“ChemDraw Add-in for Mac”，升级时清理原 ChemOffice.app。
-3. 安装后自动打开“完成安装”窗口，也可从“应用程序”或 Dock 打开。
-4. 点击“打开文件访问设置”，在“文件与文件夹 → ChemDraw Add-in for Mac”中
-   启用所用的 Microsoft Word 和 Microsoft PowerPoint。
-5. 点击“打开辅助功能设置”，启用 ChemDraw Add-in for Mac。
-   macOS 27 的对应入口为“设备控制和数据访问”。
-6. 授权后会自动配置加载项、验证目录读写并启动粘贴助手。
-   全部通过后点击“开始使用”。首次编辑时允许 ChemDraw 和 Office 自动化控制。
+1. 完成当前编辑并退出应用，然后打开安装包。
+   macOS提示拦截时，在“系统设置 → 隐私与安全性”中选择“仍要打开”。
+2. 安装后自动打开“设置加载项”，显示四项检查。
+3. 点击“打开文件访问设置”，在“文件与文件夹 → ChemDraw Add-in for Mac”中
+   启用所用的Microsoft Word和Microsoft PowerPoint。
+4. 点击“打开辅助功能设置”，启用ChemDraw Add-in for Mac。
+   macOS 27的对应入口为“设备控制和数据访问”。
+5. 授权后会自动配置加载项、验证目录读写并启动粘贴助手。
+   四项检查通过后点击“完成”。首次编辑时允许ChemDraw和Office自动化控制。
 
-配置窗口
+主界面
 
-应用显示在 Dock 中，关闭窗口后助手继续运行，点击 Dock 图标即可重新打开。
-重新检查／启动助手：检查权限并启动或恢复助手。
-暂停助手：暂停编辑助手；重新打开窗口会保留暂停状态，点击“启动助手”恢复。
-启用 Office 面板：完成本机连接设置，之后保存手头工作并重新打开 Office。
-打开面板：在浏览器查看面板；编辑所选绘图请使用 Office 内的面板。
-检查安装：查看加载项、Office 版本、预览目录、连接状态和近期日志。
-修复加载项：重新检查权限并配置所用 Office 加载项。
-本机数据：打开绘图源数据、恢复草稿、证书和日志。
-使用说明：打开本指南。
-退出应用：结束助手；也可按 ⌘Q。下次打开应用会自动检查并启动助手。
+设置加载项：查看Word文件访问、PowerPoint文件访问、辅助功能和粘贴助手四项检查。
+检查更新：从GitHub正式Release检查版本，发现更新后可前往下载。
+修复加载项：重新配置所用Office加载项，并按提示完成本地面板的连接授权。
+退出应用：结束助手并退出。
+设置为开机启动项：勾选后在登录Mac时自动启动；系统要求确认时，按提示允许。
+
+菜单栏
+
+应用默认显示在右上角，使用透明背景的白色轮廓图标。菜单顶部显示当前版本。
+菜单仅提供检查更新、打开界面、隐藏图标和退出应用。
+关闭窗口后助手继续运行。隐藏图标后，从“应用程序”重新打开即可恢复图标和主界面。
 
 直接粘贴与编辑
 
-1. 新建或打开 Word 文档／PowerPoint 演示文稿。
-2. 在 ChemDraw 中选中结构并按 ⌘C，到 Office 按 ⌘V 或右键选择“粘贴”。
-   也可在面板点击 Paste editable drawing。新建、尚未保存的文档也可直接粘贴。
-3. 双击结构，在 ChemDraw 中继续编辑。
-4. 在 ChemDraw 按 ⌘W，将修改带回原来的 Office 文档。
-5. 按需要手动保存 Office 文档。切换窗口、保存或另存为后，修改仍返回原文档。
+1. 新建或打开Word文档／PowerPoint演示文稿。
+2. 在ChemDraw中选中结构并按⌘C，到Office按⌘V或右键选择“粘贴”。
+   也可在面板点击Paste editable drawing。新建、尚未保存的文档也可直接粘贴。
+3. 双击结构，在ChemDraw中继续编辑。
+4. 在ChemDraw按⌘W，将修改带回原来的Office文档。
+5. 按需要手动保存Office文档。切换窗口、保存或另存为后，修改仍返回原文档。
 
-在 Office 中打开面板
+在Office中打开面板
 
-在配置窗口点击“启用 Office 面板”，完成认证后保存手头工作并重新打开 Office。
+在主界面点击“修复加载项”，按提示完成本地连接授权，然后重新打开Office。
 Office 2021 / 16.78：插入 → 我的加载项下拉菜单 → 开发人员加载项 → ChemDraw Add-in for Mac。
-新版 Office：开始 → 加载项 → 开发人员加载项 → ChemDraw Add-in for Mac。
-激活后，从 ChemDraw Add-in for Mac 功能区打开右侧面板。
-如出现本地连接证书错误，重新点击“启用 Office 面板”并完成认证，再重新打开 Office。
+新版Office：开始 → 加载项 → 开发人员加载项 → ChemDraw Add-in for Mac。
+激活后，从ChemDraw Add-in for Mac功能区打开右侧面板。
 
 授权与恢复
 
-每次安装后重新确认 Word 和 PowerPoint 文件访问授权，窗口会自动继续。
+每次安装后重新确认Word和PowerPoint文件访问授权，“设置加载项”窗口会自动继续。
 辅助功能授权后如仍显示监听失败，移除旧项，重新添加“应用程序”中的
-ChemDraw Add-in for Mac 并启用，再点“重新检查”。
+ChemDraw Add-in for Mac并启用，再点“重新检查”。
 
-本机数据保存在 ~/Library/Application Support/ChemOffice/work。
+本机数据保存在~/Library/Application Support/ChemOffice/work。
 升级和更名继续使用已有的绘图、证书和恢复草稿。
-Office 预览位于各自沙盒的 Library/Caches/ChemOffice 中。
+Office预览位于各自沙盒的Library/Caches/ChemOffice中。
 
-面板和配置窗口显示处理进度及具体失败原因。按提示处理后重新复制粘贴。
-编辑中的结构可粘贴为独立副本；原编辑仍回写原文档。已关闭的草稿保留在 recovery 中。
+面板和主界面显示处理进度及具体失败原因。按提示处理后重新复制粘贴。
+编辑中的结构可粘贴为独立副本；原编辑仍回写原文档。已关闭的草稿保留在recovery中。

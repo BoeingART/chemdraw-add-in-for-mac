@@ -5,20 +5,20 @@
 # ChemDraw Add-in for Mac
 
 
-[Download v1.1.0 installer](https://github.com/BoeingART/chemoffice-plugin-for-mac/releases/download/v1.1.0/ChemOffice-Add-ins-for-Mac-1.1.0-universal.pkg) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
+[Download v1.2.0 installer](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/tag/v1.2.0) · [Installation guide](docs/installation.md) · [中文安装指南](docs/quickstart-zh.txt)
 
 </div>
 
-ChemDraw Add-ins for Mac connects your ChemDraw with Microsft Office softwares. Copy a chemical structure, paste an editable drawing, double-click to edit it in ChemDraw, and save to return changes to the original document. Drawings carry their editable source and ChemDraw's native SVG file.
+ChemDraw Add-in for Mac connects ChemDraw with Microsoft Office. Copy a chemical structure, paste an editable drawing, double-click to edit it in ChemDraw, and save to return changes to the original document. Drawings carry their editable source and ChemDraw's native SVG file.
 
 ## Install and configure
 
 Requires **macOS 12 or later**, **ChemDraw** and **Word and/or PowerPoint for Mac**, installed and activated separately. The installer includes Apple Silicon and Intel executables. 
 
-1. Finish any active ChemDraw edit and quit the helper before installing or upgrading. Open **ChemDraw-Add-in-for-Mac-x.x.x.pkg**. If macOS blocks opening it, use **System Settings → Privacy & Security → Open Anyway**.
-2. The installer opens **ChemOffice Add-in for Mac**. Enable the Office applications you use in **Files & Folders → ChemDraw Add-in for Mac**, and enable the app in **Accessibility**. The window provides buttons for these settings.
-3. Setup verifies the add-ins and drawing-cache read/write access, then automatically starts the helper. Choose **开始使用** after all checks pass. Allow ChemDraw and Office Automation access when macOS requests it.
-4. Open the app from Applications or its Dock icon whenever you need the configuration window. **暂停助手** pauses the helper; **启动助手** resumes it. Reopening the window keeps a deliberate pause in effect.
+1. Finish any active ChemDraw edit and quit the helper before installing or upgrading. Open **ChemDraw-Add-in-for-Mac-1.2.0-universal.pkg**. If macOS blocks opening it, use **System Settings → Privacy & Security → Open Anyway**.
+2. The installer opens **设置加载项** with four checks: Word file access, PowerPoint file access, Accessibility and paste-helper readiness. Grant the requested system permissions; setup continues automatically. Choose **完成** after all checks pass.
+3. The app runs in the menu bar with a transparent C outline. Its menu shows the version, **检查更新**, **打开界面**, **隐藏图标** and **退出应用**.
+4. Choose **打开界面** to access **设置加载项**, **检查更新**, **修复加载项**, **退出应用** and the **设置为开机启动项** checkbox. Update checks use this repository's latest stable GitHub Release. Reopen the app from Applications to restore a hidden icon.
 
 
 ## Paste and edit

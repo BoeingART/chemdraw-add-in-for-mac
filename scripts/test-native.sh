@@ -18,3 +18,6 @@ xcrun swiftc -O "$PROJECT_DIR/src/NativeSetup.swift" "$PROJECT_DIR/tests/native/
 
 xcrun swiftc -O "$PROJECT_DIR/src/NativeActivity.swift" "$PROJECT_DIR/tests/native/ActivityTests.swift" -o "$PROJECT_DIR/build/test-activity"
 "$PROJECT_DIR/build/test-activity"
+
+xcrun swiftc -O "$PROJECT_DIR/src/NativeUpdates.swift" "$PROJECT_DIR/src/NativeLoginItem.swift" "$PROJECT_DIR/src/NativeMenuIcon.swift" "$PROJECT_DIR/tests/native/DesktopTests.swift" -o "$PROJECT_DIR/build/test-desktop" -framework Cocoa -framework ServiceManagement
+"$PROJECT_DIR/build/test-desktop"

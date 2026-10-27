@@ -131,6 +131,29 @@ elif name == 'rm':
         self.assertEqual(self.run_script('postinstall').returncode, 0)
         self.assertTrue(old.exists())
 
+    def test_upgrade_removes_all_legacy_display_names_and_retains_new_bundle(self):
+        legacy = [self.app(name, self.info['CFBundleIdentifier']) for name in
+                  ['ChemOffice', 'ChemOffice Add-ins for Mac', 'ChemOffice Add-in for Mac']]
+        new = self.app(self.info['CFBundleDisplayName'], self.info['CFBundleIdentifier'])
+        self.assertEqual(self.run_script('postinstall').returncode, 0)
+        self.assertTrue(new.exists())
+        self.assertTrue(all(not app.exists() for app in legacy))
+        self.assertEqual(self.calls('open'), [[str(new), '--args', '--setup']])
+
+    def test_cleanup_preserves_unrelated_app_at_previous_full_name(self):
+        old = self.app('ChemOffice Add-ins for Mac', 'com.example.unrelated')
+        self.app(self.info['CFBundleDisplayName'], self.info['CFBundleIdentifier'])
+        self.assertEqual(self.run_script('postinstall').returncode, 0)
+        self.assertTrue(old.exists())
+
+    def test_upgrade_from_original_bundle_identifier(self):
+        old = self.app('ChemOffice Add-ins for Mac', 'com.chemoffice.mac')
+        new = self.app(self.info['CFBundleDisplayName'], self.info['CFBundleIdentifier'])
+        self.assertEqual(self.run_script('postinstall').returncode, 0)
+        self.assertFalse(old.exists())
+        self.assertTrue(new.exists())
+        self.assertEqual(self.calls('open'), [[str(new), '--args', '--setup']])
+
     def test_setup_launch_failure_is_visible_to_installer(self):
         self.env['TEST_OPEN_STATUS'] = '1'
         self.assertNotEqual(self.run_script('postinstall').returncode, 0)

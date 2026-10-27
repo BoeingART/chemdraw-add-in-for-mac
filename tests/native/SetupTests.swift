@@ -9,6 +9,12 @@ import Foundation
             count += 1; print("PASS \(title)")
         }
         let complete = SetupRequirements(word:true,powerpoint:true,accessibility:true,applications:true)
+        check("First launch and installer requests open settings; completed login launches stay in the menu bar") {
+            ApplicationLaunchPolicy.showsSetup(requested:false,completedVersion:nil,currentVersion:"1.2.0")
+                && ApplicationLaunchPolicy.showsSetup(requested:true,completedVersion:"1.2.0",currentVersion:"1.2.0")
+                && ApplicationLaunchPolicy.showsSetup(requested:false,completedVersion:"1.1.0",currentVersion:"1.2.0")
+                && !ApplicationLaunchPolicy.showsSetup(requested:false,completedVersion:"1.2.0",currentVersion:"1.2.0")
+        }
         var policy = SetupStartupPolicy()
         check("Each prerequisite blocks helper startup until actually granted") {
             for requirements in [SetupRequirements(),SetupRequirements(word:true,powerpoint:false,accessibility:true),SetupRequirements(word:false,powerpoint:true,accessibility:true),SetupRequirements(word:true,powerpoint:true,accessibility:false),SetupRequirements(word:true,powerpoint:true,accessibility:true,applications:false)] {

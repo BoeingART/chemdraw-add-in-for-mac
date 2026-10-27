@@ -32,7 +32,7 @@ final class NativeActivity {
     func begin(_ operation:String) {
         update {
             $0.revision = UUID().uuidString; $0.operation = operation; $0.busy = true; $0.error = nil
-            $0.message = operation == "paste" ? "正在准备可编辑结构…" : operation == "close" ? "正在更新 Office 中的结构…" : "正在 ChemDraw 中打开结构…"
+            $0.message = operation == "paste" ? "正在准备可编辑结构…" : operation == "close" ? "正在更新Office中的结构…" : "正在ChemDraw中打开结构…"
         }
     }
     func end(editing:Bool,recoverable:Bool,error:String? = nil) {

@@ -105,7 +105,7 @@ class NativeBridge {
             try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
             try svg.write(to:target,options:.atomic)
         } catch {
-            throw ChemOfficeError("Cannot prepare the Office preview at \(directory.path). Open ChemDraw Add-in for Mac and choose 修复加载项 and allow macOS access to the Office folders, then retry. Your captured source or editing draft has been retained. \(error.localizedDescription)")
+            throw ChemOfficeError("Cannot prepare the Office preview at \(directory.path). Open ChemDraw Add-in for Mac and choose “修复加载项” and allow macOS access to the Office folders, then retry. Your captured source or editing draft has been retained. \(error.localizedDescription)")
         }
         return target
     }
@@ -220,7 +220,7 @@ class NativeBridge {
         case "open": try begin(event["host"] as? String ?? "",tag:event["tag"] as? String ?? "")
         case "edit-selection":
             let host = event["host"] as? String ?? "", tag = try automation.office("selected",host,[])
-            try require(!tag.isEmpty,"Select one ChemOffice drawing in your document, then choose Edit selected drawing")
+            try require(!tag.isEmpty,"Select one editable ChemDraw drawing in your document, then choose Edit selected drawing")
             try begin(host,tag:tag)
         case "paste": try paste(event["host"] as? String ?? "",snapshot:URL(fileURLWithPath:event["snapshot"] as? String ?? ""))
         case "close": try finish(event["gesture"] as? String ?? "unknown")

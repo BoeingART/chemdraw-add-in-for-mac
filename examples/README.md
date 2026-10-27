@@ -1,12 +1,12 @@
 # Try a drawing that has already made the trip
 
-**Start with the [current vector drawing examples](vector/README.md).** They contain genuine vector bonds and labels, a recognizable ChemOffice identity, and portable native source.
+**Start with the [current vector drawing examples](vector/README.md).** They contain genuine vector bonds and labels, a recognizable drawing identity, and portable native source.
 
 The [earlier portable examples](portable/README.md) preserve the first four-direction copy/paste run. Those older files have raster artwork inside their carrier and are retained as historical evidence.
 
 The earlier examples below preserve the original close-test evidence. They predate the portable format; their copy behavior is not the current workflow.
 
-Start **Start ChemOffice.command**, then open one of these documents and double-click its figure. The editable source is stored inside the document. Edit in ChemDraw and use **⌘W** to return.
+Open **ChemDraw Add-in for Mac** from Applications, then open one of these documents and double-click its figure. The editable source is stored inside the document. Edit in ChemDraw and use **⌘W** to return.
 
 | Example | Word | PowerPoint |
 | --- | --- | --- |

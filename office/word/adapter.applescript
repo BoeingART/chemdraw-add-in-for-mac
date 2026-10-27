@@ -64,7 +64,7 @@ on run argv
         if actionName is "demo" then
             if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
             set d to make new document
-            set content of text object of d to "ChemOffice for Mac" & return & "Double-click the structure. Edit in ChemDraw. Close to return." & return & return
+            set content of text object of d to "ChemDraw Add-in for Mac" & return & "Double-click the structure. Edit in ChemDraw. Close to return." & return & return
             make new inline picture at end of text object of d with properties {file name:item 2 of argv, link to file:false, save with document:true}
             set pic to inline shape (count of inline shapes of d) of d
             set alternative text of pic to "ChemOffice Drawing:" & (item 5 of argv)

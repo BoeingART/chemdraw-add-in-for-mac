@@ -52,6 +52,6 @@ vm.runInContext(fs.readFileSync('office/addin/taskpane.js','utf8'),context);
   health = {ready:false,editing:false};
   await vm.runInContext('refresh()',context);
   assert.equal(elements.edit.disabled,true);
-  assert.match(elements.detail.textContent,/完成安装/);
+  assert.match(elements.detail.textContent,/设置加载项/);
   console.log('PASS Lost readiness guides the user back to installation');
 })().catch(error=>{console.error(error);process.exitCode=1;});

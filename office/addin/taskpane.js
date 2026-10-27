@@ -31,7 +31,7 @@ async function refresh() {
     } catch (_) {
         byId('dot').className = '';
         byId('status').textContent = 'Local helper is unavailable';
-        byId('detail').textContent = 'Open ChemDraw Add-in for Mac → 完成安装 to finish permissions and start the paste helper.';
+        byId('detail').textContent = 'Open ChemDraw Add-in for Mac → “设置加载项” to finish permissions and start the paste helper.';
         byId('edit').disabled = true;
         byId('paste').disabled = true;
     }

@@ -2,7 +2,7 @@
 
 > Historical examples from the first portable-source run. Their visible artwork is raster. Use the [current vector examples](../vector/README.md) to try the latest version.
 
-Start **Start ChemOffice.command**, then open an example below. Double-click a figure to edit it in ChemDraw, and use **⌘W** to update Office. Select just the figure and use **⌘C / ⌘V** to copy it to another saved Word or PowerPoint document while the helper is running.
+Open **ChemDraw Add-in for Mac** from Applications, then open an example below. Double-click a figure to edit it in ChemDraw, and use **⌘W** to update Office. Select just the figure and use **⌘C / ⌘V** to copy it to another saved Word or PowerPoint document while the helper is running.
 
 | Example | What it demonstrates |
 | --- | --- |

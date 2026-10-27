@@ -4,7 +4,7 @@ import Darwin
 
 class NativeMonitorRuntime {
     let bridge: NativeBridge
-    let worker = DispatchQueue(label:"ChemOffice editing transactions")
+    let worker = DispatchQueue(label:"ChemDraw Add-in for Mac editing transactions")
     let process = Process()
     var server: NativeOfficeServer?
     var signals = [DispatchSourceSignal]()
@@ -27,7 +27,7 @@ class NativeMonitorRuntime {
     }
     func pasteClipboard(_ host:String) throws {
         guard let item = chemicalClipboard() else {
-            try perform(["event":"pasteCaptureFailed","message":"请先在 ChemDraw 中选择结构并复制，再粘贴可编辑结构。"])
+            try perform(["event":"pasteCaptureFailed","message":"请先在ChemDraw中选择结构并复制，再粘贴可编辑结构。"])
             return
         }
         let directory = bridge.work.appendingPathComponent("pastes/\(UUID().uuidString)")
@@ -42,7 +42,7 @@ class NativeMonitorRuntime {
     func run() throws -> Never {
         try bridge.prepare()
         lockFD = Darwin.open(bridge.work.appendingPathComponent("monitor.lock").path,O_CREAT|O_WRONLY,0o600)
-        try require(lockFD >= 0 && flock(lockFD,LOCK_EX|LOCK_NB) == 0,"A ChemOffice monitor is already running")
+        try require(lockFD >= 0 && flock(lockFD,LOCK_EX|LOCK_NB) == 0,"A ChemDraw Add-in for Mac monitor is already running")
         writeStatus(.starting)
         try bridge.restore()
         activity.end(editing:false,recoverable:bridge.session != nil)
@@ -119,8 +119,11 @@ class NativeMonitorRuntime {
         setbuf(stdout,nil)
         let root = URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent().deletingLastPathComponent()
         let args = Array(CommandLine.arguments.dropFirst())
-        if (args.isEmpty || args == ["--setup"] || args == ["--preview"] || args == ["--app-self-test"]) && Bundle.main.bundleIdentifier == "com.chemoffice.mac" {
-            ChemOfficeApplication.run(preview:args == ["--preview"],selfTest:args == ["--app-self-test"])
+        let isApplication = Bundle.main.bundleURL.pathExtension == "app"
+            && Bundle.main.object(forInfoDictionaryKey:"CFBundlePackageType") as? String == "APPL"
+            && Bundle.main.executableURL?.standardizedFileURL == URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL
+        if (args.isEmpty || ["--setup","--login","--preview","--preview-setup","--app-self-test"].contains(args.first ?? "") && args.count == 1) && isApplication {
+            ChemOfficeApplication.run(preview:args == ["--preview"] || args == ["--preview-setup"],selfTest:args == ["--app-self-test"],setup:args == ["--setup"] || args == ["--preview-setup"])
             return
         }
         do {
@@ -138,7 +141,7 @@ class NativeMonitorRuntime {
             if args.first == "run" {
                 try? HelperStatus(pid:getpid(),monitorPID:nil,phase:.failed,message:error.localizedDescription).write(work:NativePaths.work(root:root))
             }
-            FileHandle.standardError.write(Data(("ChemOffice: "+error.localizedDescription+"\n").utf8)); exit(1)
+            FileHandle.standardError.write(Data(("ChemDraw Add-in for Mac: "+error.localizedDescription+"\n").utf8)); exit(1)
         }
     }
 }

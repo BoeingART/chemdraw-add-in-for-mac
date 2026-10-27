@@ -72,7 +72,7 @@ func decodeSource(_ tag: String) throws -> (id: String, source: Data) {
     try require(tag.utf8.count <= maxCarrierBytes, "Source envelope is too large")
     let parts = tag.components(separatedBy: ":")
     let native = parts.first == "CFM2"
-    try require((parts.count == 4 && parts[0] == "CFM1") || (parts.count == 5 && native && parts[2] == "cdx"), "This figure has no ChemOffice source")
+    try require((parts.count == 4 && parts[0] == "CFM1") || (parts.count == 5 && native && parts[2] == "cdx"), "This figure has no editable ChemDraw source")
     guard let id = UUID(uuidString: parts[1]), let compressed = Data(base64Encoded: parts.last!) else { throw ChemOfficeError("Invalid source envelope") }
     let source = try inflateData(compressed, limit: maxSourceBytes)
     try validateSource(source)
@@ -204,7 +204,7 @@ func readCarrier(_ svg: Data) throws -> String {
         let href = localAttribute(image,"href")
         if href.hasPrefix("data:image/png;base64,"), let png = Data(base64Encoded: String(href.dropFirst(22))), let tag = try pngSource(png) { _ = try decodeSource(tag); tags.append(tag) }
     }
-    try require(tags.count == 1, "Expected one ChemOffice source inside the graphic")
+    try require(tags.count == 1, "Expected one editable ChemDraw source inside the graphic")
     return tags[0]
 }
 

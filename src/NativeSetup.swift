@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 import Foundation
 
+enum ApplicationLaunchPolicy {
+    static func showsSetup(requested:Bool, completedVersion:String?, currentVersion:String) -> Bool {
+        requested || completedVersion != currentVersion
+    }
+}
+
 struct SetupRequirements: Equatable {
     var word = false
     var powerpoint = false

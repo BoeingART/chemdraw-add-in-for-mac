@@ -39,7 +39,7 @@ class PanelRouter {
             return PanelResponse(403,["error":"Open this action from the ChemDraw Add-in for Mac panel"])
         }
         do {
-            try require(ready(),"Open ChemDraw Add-in for Mac → 完成安装 to finish permissions and start the paste helper.")
+            try require(ready(),"Open ChemDraw Add-in for Mac → “设置加载项” to finish permissions and start the paste helper.")
             try require(!body.isEmpty && body.count <= 128,"Invalid request")
             let object = try JSONSerialization.jsonObject(with:body) as? [String:Any]
             guard let host = object?["host"] as? String, ["word","powerpoint"].contains(host) else { throw ChemOfficeError("Select a drawing in Word or PowerPoint") }
