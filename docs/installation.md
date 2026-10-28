@@ -5,7 +5,7 @@ Download the latest published universal installer from [Releases](https://github
 ## Install and start
 
 1. Finish the current ChemDraw edit and quit the helper before upgrading. Open the pkg. If macOS blocks opening it, use **System Settings → Privacy & Security → Open Anyway**.
-2. Installation and upgrades retain existing system permissions. The installer installs **/Applications/ChemDraw Add-in for Mac.app**, removes matching applications under their previous names and opens the visible **设置加载项** window.
+2. Installation and upgrades renew this app’s Word/PowerPoint file-access consent while keeping Accessibility and Automation settings. The installer installs **/Applications/ChemDraw Add-in for Mac.app**, removes matching applications under their previous names and opens the visible **设置加载项** window.
 3. Choose **打开文件访问设置**. Under **Privacy & Security → Files & Folders → ChemDraw Add-in for Mac**, enable **Microsoft Word** and **Microsoft PowerPoint** for the applications you use. Setup automatically registers each installed host's add-in and verifies its drawing cache by writing and reading a temporary probe.
 4. Choose **打开辅助功能设置** and enable **ChemDraw Add-in for Mac**. On macOS 27 this setting is also called **Device Control and Data Access**. Setup detects the grant and starts the helper automatically. The **完成** button becomes available after all checks pass and keyboard/mouse monitoring is ready.
 5. Copy a structure in ChemDraw, then use **⌘V**, right-click **Paste**, or **Paste editable drawing** in Word or PowerPoint. Allow Automation access when macOS requests it. Double-click a drawing to edit it; **⌘S** or **Save** in ChemDraw updates the Office figure while keeping the editor open. Press **⌘W** to finish editing and return. Save your Office document when you choose.
@@ -34,7 +34,9 @@ If Office reports a local certificate problem, choose **修复加载项**, finis
 
 ## Permissions after an upgrade
 
-v1.3.1 removes automatic privacy resets and uses a fixed signing identity. The first upgrade from v1.3.x changes that identity; complete the system permission prompts once during this transition. Subsequent builds signed with the same project identity reuse existing Word, PowerPoint, Accessibility and Automation permissions.
+v1.3.2 restores Office file-access prompts during installation and upgrades. Confirm access to the installed Word and/or PowerPoint applications when macOS asks. Existing Accessibility and Automation settings remain available.
+
+If a previous denial or stale authorization prevents access, open **设置加载项** and choose **重新授权文件访问**, or choose **修复加载项** from the main window. Allow Word/PowerPoint access in the new prompts or **Privacy & Security → Files & Folders → ChemDraw Add-in for Mac**. Setup retries automatically, verifies both add-in and preview directory writing/read-back, and starts the helper when all prerequisites pass. Other filesystem errors display their specific cause for correction and retry.
 
 Setup checks actual access after every installation and automatically starts the helper once the checks pass. If access is missing, the affected row opens the corresponding system settings. An offline target leaves user settings untouched.
 
@@ -61,6 +63,6 @@ To remove, quit the app, move **/Applications/ChemDraw Add-in for Mac.app** to T
 
 ## Build and verification
 
-Run `zsh scripts/build.sh` for the current architecture, `zsh scripts/build.sh --universal` for both, or `zsh scripts/package.sh` for `dist/ChemDraw-Add-in-for-Mac-1.3.1-universal.pkg`. The application uses macOS frameworks and system zlib. Packaging reuses the fixed project identity from the login keychain; see [in-app updates and signing](in-app-updates.md).
+Run `zsh scripts/build.sh` for the current architecture, `zsh scripts/build.sh --universal` for both, or `zsh scripts/package.sh` for `dist/ChemDraw-Add-in-for-Mac-1.3.3-universal.pkg`. The application uses macOS frameworks and system zlib. Packaging reuses the fixed project identity from the login keychain; see [in-app updates and signing](in-app-updates.md).
 
 See [v1.1.0 verification](release-1.1.0-results.md), [installation readiness](installation-readiness-results.md), and [unsaved Office checks](unsaved-office-results.md) for completed scenarios and application versions.

@@ -2,7 +2,7 @@
 
 Starting with v1.3.1, **检查更新** downloads the latest published version inside the app. The progress window supports cancellation. When the download is ready, **安装并重新打开** opens the system installer and exits the old app; postinstall automatically reopens setup and starts the helper after its checks pass. An active drawing edit defers installation and keeps the downloaded package available under **安装更新**. Office documents remain under the user's save control.
 
-Install v1.3.1 once to replace the updater included in v1.3.x. During this first transition, confirm the system permission prompts for the fixed application identity. Later versions signed with that same identity reuse existing permissions. The installer never clears Office, Accessibility or Automation consent, and setup checks actual access before starting editing operations.
+Install v1.3.3 to restore Word/PowerPoint file-access prompts after updating. The installer renews only this app’s Office-container consent; Accessibility and Automation settings stay in place. The fixed application identity is reused across builds. Setup checks actual directory writing and read-back before starting editing operations. A previous refusal can also be renewed with **重新授权文件访问** or **修复加载项**.
 
 ## Maintainer signing identity
 
@@ -20,10 +20,10 @@ The update flow does not alter certificates used by the local Office panel, Offi
 
 ## Verification
 
-- `python3 tests/installer.test.py`: fresh installs and upgrades do not call privacy-reset tools; registration, legacy cleanup, retained data, offline targets and relaunch remain covered.
+- `python3 tests/installer.test.py`: fresh installs and upgrades renew only the payload identity’s Office-container consent in the desktop session; unknown first-install identities, reset errors, retained data, offline targets, legacy cleanup and relaunch are covered.
 - `zsh scripts/test-signing.sh`: two different executables signed with the fixed certificate satisfy the same application requirement. A temporary signature with the same identifier fails that requirement.
 - `zsh scripts/test-native.sh`: update asset validation, redirect rules, incomplete/changed downloads, edit deferral and the native progress/cancel interface are covered alongside editing regressions.
 - `build/test-updates --live`: fetches a real published release and downloads and verifies its package, without invoking installation.
-- `zsh scripts/test-package.sh`: checks the universal installer, packaged application identity, removal of consent reset, and the native interface self-test.
+- `zsh scripts/test-package.sh`: checks the universal installer, packaged application identity, scoped Office-consent renewal, and the native interface self-test.
 
 The first signed installer is v1.3.1. The next public release will be offered once its matching package asset is published. No release is published by the local build or tests.

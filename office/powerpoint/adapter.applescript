@@ -50,8 +50,19 @@ end contextID
 
 on run argv
     set actionName to item 1 of argv
+    if actionName is "document-status" then
+        if application id "com.microsoft.Powerpoint" is not running then return "closed"
+    end if
     tell application id "com.microsoft.Powerpoint"
-        if actionName is "demo" then
+        if actionName is "document-status" then
+            set matchingCount to 0
+            repeat with documentIndex from 1 to (count of presentations)
+                if my matchesDocument(presentation documentIndex, item 2 of argv) then set matchingCount to matchingCount + 1
+            end repeat
+            if matchingCount is 0 then return "closed"
+            if matchingCount is 1 then return "open"
+            return "ambiguous"
+        else if actionName is "demo" then
             if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
             set p to make new presentation
             set s to make new slide at end of p with properties {layout:slide layout blank}

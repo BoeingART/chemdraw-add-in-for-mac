@@ -13,6 +13,7 @@ class NativeBridge {
     let automation: ChemistryAutomation
     var session: EditingSession?
     var editingOpen = false
+    private var missingDocumentSession: String?
     var state: URL { work.appendingPathComponent("monitor-state.json") }
     lazy var verify: (String,String,String,Data,Data) throws -> [String:Any] = { [unowned self] in try self.verifyOpenFigure($0,host:$1,id:$2,source:$3,expected:$4) }
     var savedFigure: (String,String,String) throws -> SavedFigure = { try readSavedFigure($0,host:$1,id:$2) }
@@ -160,6 +161,7 @@ class NativeBridge {
     }
     func begin(_ host:String, tag:String) throws {
         let document = try automation.office("context",host,[UUID().uuidString.lowercased()]), requestedID = try objectID(tag)
+        _ = try reconcileDocumentLifecycle(confirmImmediately:true)
         if let previous = session {
             let path = URL(fileURLWithPath:previous.path)
             if previous.host == host && previous.document == document && previous.id == requestedID {
@@ -189,6 +191,39 @@ class NativeBridge {
         record("opened",["host":host,"document":document,"drawing_id":decoded.id,"chem_version":app.version,"chem_path":app.path])
     }
     func finish(_ gesture:String) throws { try synchronize(gesture,closing:true,savedSource:nil) }
+    @discardableResult func reconcileDocumentLifecycle(confirmImmediately:Bool = false) throws -> Bool {
+        guard var current = session, !current.busy else { missingDocumentSession = nil; return false }
+        let key = current.host + ":" + current.document + ":" + current.id + ":" + current.path
+        let status: String
+        do { status = try automation.office("document-status",current.host,[current.document]) }
+        catch { missingDocumentSession = nil; throw error }
+        guard status == "closed" else {
+            missingDocumentSession = nil
+            try require(["open","ambiguous"].contains(status),"Office文档状态检查未返回有效结果。")
+            return false
+        }
+        // Two periodic observations avoid closing for a transient enumeration
+        // change. An explicit save/close can act on the current closed result.
+        guard confirmImmediately || missingDocumentSession == key else { missingDocumentSession = key; return false }
+        missingDocumentSession = nil
+        current.busy = true; session = current; try writeState()
+        do {
+            if let app = current.chemApplication { automation.useApplication(app) }
+            let path = URL(fileURLWithPath:current.path)
+            if try automation.isOpen(path) {
+                _ = try automation.saveDetachedSource(path)
+                try automation.closeWithoutActivation(path)
+            }
+            editingOpen = false
+            current.busy = false; current.previewWindowTitle = nil
+            try archiveSession(current)
+            record("office_document_closed",["host":current.host,"document":current.document,"drawing_id":current.id])
+            return true
+        } catch {
+            current.busy = false; current.previewWindowTitle = nil; session = current
+            try writeState(); throw error
+        }
+    }
     func save(_ change:SavedDrawingChange) throws {
         guard let current = session, current.id == change.id, current.path == change.path,
               try automation.isOpen(URL(fileURLWithPath:current.path)) else { return }
@@ -197,6 +232,7 @@ class NativeBridge {
         try synchronize("document-save",closing:false,savedSource:change.source)
     }
     private func synchronize(_ gesture:String,closing:Bool,savedSource:Data?) throws {
+        if try reconcileDocumentLifecycle(confirmImmediately:true) { return }
         guard var current = session else { return }
         if current.syncedSourceRevision == nil { current.syncedSourceRevision = try sha256(decodeSource(current.originalTag).source) }
         current.busy = true; session = current; try writeState()
@@ -240,7 +276,12 @@ class NativeBridge {
             }
             try writeState()
         } catch {
-            current.busy = false; current.previewWindowTitle = nil; session = current; try writeState(); throw error
+            current.busy = false; current.previewWindowTitle = nil; session = current; try writeState()
+            // Office may close while the saved snapshot is being rendered or
+            // written back. Complete the detached close instead of retrying an
+            // update against the vanished document.
+            if (try? reconcileDocumentLifecycle(confirmImmediately:true)) == true { return }
+            throw error
         }
     }
     func handle(_ event:[String:Any]) throws {

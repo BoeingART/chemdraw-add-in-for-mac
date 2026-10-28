@@ -28,6 +28,22 @@ on matchesDocument(d, referenceText)
     return my documentPath(d) is referenceText
 end matchesDocument
 
+-- Lifecycle checks must propagate failed reads instead of interpreting them
+-- as an absent document. Enumerate properties so a missing ID is distinct
+-- from a failed property request.
+on matchesOpenDocument(d, referenceText)
+    tell application id "com.microsoft.Word"
+        if referenceText starts with "cfm-document:" then
+            repeat with propertyIndex from 1 to (count of custom document properties of d)
+                set identityProperty to custom document property propertyIndex of d
+                if name of identityProperty is "ChemOfficeDocumentID" then return "cfm-document:" & (value of identityProperty) is referenceText
+            end repeat
+            return false
+        end if
+        return POSIX path of ((full name of d) as alias) is referenceText
+    end tell
+end matchesOpenDocument
+
 on findDocument(referenceText)
     tell application id "com.microsoft.Word"
         set matches to {}
@@ -60,8 +76,19 @@ end contextID
 
 on run argv
     set actionName to item 1 of argv
+    if actionName is "document-status" then
+        if application id "com.microsoft.Word" is not running then return "closed"
+    end if
     tell application id "com.microsoft.Word"
-        if actionName is "demo" then
+        if actionName is "document-status" then
+            set matchingCount to 0
+            repeat with documentIndex from 1 to (count of documents)
+                if my matchesOpenDocument(document documentIndex, item 2 of argv) then set matchingCount to matchingCount + 1
+            end repeat
+            if matchingCount is 0 then return "closed"
+            if matchingCount is 1 then return "open"
+            return "ambiguous"
+        else if actionName is "demo" then
             if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
             set d to make new document
             set content of text object of d to "ChemDraw Add-in for Mac" & return & "Double-click the structure. Edit in ChemDraw. Close to return." & return & return

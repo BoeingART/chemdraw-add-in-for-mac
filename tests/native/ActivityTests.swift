@@ -28,6 +28,19 @@ import Foundation
             activity.end(editing:operation != "close",recoverable:false,error:"Retry")
             check("\(operation) failure clears persistent busy feedback",!activity.snapshot().busy && HelperActivity.read(work:work,pid:running.pid)?.busy == false)
         }
+        var presentation = FailurePresentationPolicy()
+        activity.begin("close"); activity.end(editing:true,recoverable:false,error:"Original document unavailable")
+        check("The first operation failure can open setup",presentation.shouldPresent(activity.snapshot()))
+        activity.begin("close")
+        check("A retry in progress does not reset failure presentation",!presentation.shouldPresent(activity.snapshot()))
+        activity.end(editing:true,recoverable:false,error:"Original document unavailable")
+        check("Repeated failures do not reopen setup for each activity revision",!presentation.shouldPresent(activity.snapshot()))
+        activity.end(editing:false,recoverable:false)
+        check("Successful detached cleanup does not open the plugin window",!presentation.shouldPresent(activity.snapshot()))
+        activity.begin("close"); activity.end(editing:true,recoverable:false,error:"Original document unavailable")
+        check("A new failure after successful work is presented",presentation.shouldPresent(activity.snapshot()))
+        activity.end(editing:true,recoverable:false,error:"Different failure")
+        check("A different failure remains visible",presentation.shouldPresent(activity.snapshot()))
         print("Passed \(count) operation status checks")
     }
 }

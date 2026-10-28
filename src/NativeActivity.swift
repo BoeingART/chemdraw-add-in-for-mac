@@ -18,6 +18,20 @@ struct HelperActivity: Codable {
     }
 }
 
+struct FailurePresentationPolicy {
+    private var shown: String?
+    mutating func shouldPresent(_ activity:HelperActivity?) -> Bool {
+        guard let activity else { return false }
+        guard let error = activity.error else {
+            if !activity.busy { shown = nil }
+            return false
+        }
+        let key = "\(activity.pid):\(activity.operation):\(error)"
+        guard key != shown else { return false }
+        shown = key; return true
+    }
+}
+
 final class NativeActivity {
     private let lock = NSLock()
     private var value = HelperActivity()

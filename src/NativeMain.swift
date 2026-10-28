@@ -11,6 +11,8 @@ class NativeMonitorRuntime {
     var lockFD: Int32 = -1
     var stopped = false
     var savedChanges: NativeSavedChanges?
+    var documentTimer: DispatchSourceTimer?
+    var documentCheckFailure: String?
     var failureMessage: String?
     lazy var activity = NativeActivity(work:bridge.work)
     func perform(_ event:[String:Any]) throws {
@@ -54,6 +56,23 @@ class NativeMonitorRuntime {
             }
         }
         changes.start(); savedChanges = changes
+        let documentTimer = DispatchSource.makeTimerSource(queue:worker)
+        documentTimer.schedule(deadline:.now()+1,repeating:1)
+        documentTimer.setEventHandler { [weak self] in
+            guard let self else { return }
+            do {
+                if try self.bridge.reconcileDocumentLifecycle() { self.activity.end(editing:false,recoverable:false) }
+                self.documentCheckFailure = nil
+            } catch {
+                // A timeout or denied query is unknown availability. Retain
+                // the edit and record one diagnostic without raising windows.
+                let message = error.localizedDescription
+                if self.documentCheckFailure != message {
+                    self.bridge.record("document_lifecycle_retry",["message":message]); self.documentCheckFailure = message
+                }
+            }
+        }
+        self.documentTimer = documentTimer; documentTimer.resume()
         let app = try bridge.automation.application()
         bridge.record("chemdraw_selected",["path":app.path,"version":app.version,"bundle":app.bundle])
         let pipe = Pipe()
@@ -120,6 +139,7 @@ class NativeMonitorRuntime {
     }
     func stop(status:Int32 = 0) -> Never {
         if stopped { exit(0) }; stopped = true
+        documentTimer?.cancel(); documentTimer = nil
         savedChanges?.stop(); server?.stop(); if process.isRunning { process.terminate(); process.waitUntilExit() }
         bridge.session?.busy = false; try? bridge.writeState(); bridge.record("stopped")
         writeStatus(status == 0 && failureMessage == nil ? .stopped : .failed,failureMessage)

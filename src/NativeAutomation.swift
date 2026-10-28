@@ -33,10 +33,12 @@ protocol ChemistryAutomation: AnyObject {
     func open(_ path:URL) throws
     func isOpen(_ path:URL) throws -> Bool
     func saveSource(_ path:URL) throws -> Data
+    func saveDetachedSource(_ path:URL) throws -> Data
     func snapshot(_ path:URL, _ image:URL) throws
     func savedSnapshot(_ source:URL, _ image:URL) throws
     func renderVector(_ source:URL, _ vector:URL) throws
     func close(_ path:URL) throws
+    func closeWithoutActivation(_ path:URL) throws
     func activateOffice(_ host:String, _ document:String, _ id:String) throws -> String
 }
 extension ChemistryAutomation {
@@ -60,6 +62,8 @@ class NativeAutomation: ChemistryAutomation {
     }
     func office(_ action:String, _ host:String, _ arguments:[String] = []) throws -> String {
         try require(["word","powerpoint"].contains(host),"Unknown Office host")
+        // A lifecycle check must never reopen a quit Office application.
+        if action == "document-status", NSRunningApplication.runningApplications(withBundleIdentifier:NativePaths.officeBundles[host]!).isEmpty { return "closed" }
         let data = try command("/usr/bin/osascript",[root.appendingPathComponent("office/\(host)/adapter.applescript").path,action]+arguments)
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }
@@ -157,6 +161,26 @@ class NativeAutomation: ChemistryAutomation {
         try source.write(to:snapshot,options:.atomic)
         try savedSnapshot(snapshot,image)
     }
+    func saveDetachedSource(_ path:URL) throws -> Data {
+        _ = try script("""
+        tell application \(appleQuote(try application().path))
+            set targetPath to item 1 of argv
+            set matches to {}
+            repeat with documentIndex from 1 to (count of documents)
+                set candidate to document documentIndex
+                try
+                    if POSIX path of ((file of candidate) as alias) is targetPath then set end of matches to (documentIndex as integer)
+                end try
+            end repeat
+            if (count matches) is not 1 then error "Expected exactly one managed ChemDraw document"
+            set d to document (item 1 of matches)
+            save d
+            if modified of d then error "ChemDraw still reports unsaved changes; draft kept open"
+        end tell
+        """,[path.path])
+        let source = try Data(contentsOf:path); try validateSource(source)
+        return source
+    }
     func renderVector(_ source:URL, _ vector:URL) throws {
         try exportVector(source,vector,application:preferredApplication())
     }
@@ -194,6 +218,9 @@ class NativeAutomation: ChemistryAutomation {
     }
     func close(_ path:URL) throws {
         try focus(path,application:application())
+        try closeWithoutActivation(path)
+    }
+    func closeWithoutActivation(_ path:URL) throws {
         _ = try script("""
         tell application \(appleQuote(try application().path))
             repeat with d in documents

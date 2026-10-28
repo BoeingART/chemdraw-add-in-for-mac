@@ -6,6 +6,9 @@ class TestAutomation: ChemistryAutomation {
     var document = "", savedDocument = "", tag = "", finalSource = Data("<CDXML><page><t>FINAL Z</t></page></CDXML>".utf8)
     var renderedSavedSource: Data?
     var inspectSavedSnapshot: ((URL) throws -> Void)?
+    var documentStatus = "open"
+    var statusTargets = [(String,String)]()
+    var closedPaths = [URL]()
     var calls = [String](), targets = [String](), failure = "", opened = false, dimensions = "320\t160"
     var vector = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\" viewBox=\"0 0 200 100\"><path d=\"M10 20L150 80\" stroke=\"black\"/></svg>".utf8)
     func application() throws -> ChemDrawApplication { app }
@@ -14,6 +17,7 @@ class TestAutomation: ChemistryAutomation {
         calls.append(action)
         if action == failure { throw ChemOfficeError("Injected "+action+" failure") }
         switch action {
+        case "document-status": statusTargets.append((host,arguments[0])); return documentStatus
         case "context": return document
         case "payload": return tag
         case "path": return savedDocument.isEmpty ? (document.hasPrefix("/") ? document : "") : savedDocument
@@ -44,6 +48,17 @@ class TestAutomation: ChemistryAutomation {
     }
     func renderVector(_ source:URL, _ path:URL) throws { calls.append("render"); try vector.write(to:path) }
     func close(_ path:URL) throws { calls.append("close"); if failure == "close" { throw ChemOfficeError("Injected dirty close") }; opened = false }
+    func saveDetachedSource(_ path:URL) throws -> Data {
+        calls.append("saveDetachedSource")
+        if failure == "saveDetachedSource" { throw ChemOfficeError("Injected draft save failure") }
+        try finalSource.write(to:path); return finalSource
+    }
+    func closeWithoutActivation(_ path:URL) throws {
+        calls.append("closeWithoutActivation")
+        if failure == "closeWithoutActivation" { throw ChemOfficeError("Injected dirty close") }
+        closedPaths.append(path)
+        opened = false
+    }
     func activateOffice(_ host:String, _ document:String, _ id:String) throws -> String { calls.append("activate"); return "com.microsoft.Word" }
 }
 
@@ -92,6 +107,51 @@ class TestAutomation: ChemistryAutomation {
             SavedDrawingChange(id:bridge.session!.id,path:bridge.session!.path,source:source)
         }
         for host in ["word","powerpoint"] {
+            try check("Closing an unsaved \(host) document saves its draft and closes only the managed editor") {
+                let (bridge,driver) = try fixture()
+                driver.document = "cfm-document:"+UUID().uuidString.lowercased()
+                try bridge.begin(host,tag:driver.tag)
+                let original = bridge.session!, path = URL(fileURLWithPath:original.path)
+                driver.documentStatus = "closed"
+                try require(try !bridge.reconcileDocumentLifecycle() && driver.opened,"One transient missing observation closed the editor")
+                try require(try bridge.reconcileDocumentLifecycle(),"Closed document left ChemDraw open")
+                try require(bridge.session == nil && !bridge.editingOpen && !driver.opened,"Detached session remained intercepted")
+                try require(driver.closedPaths == [path],"Cleanup closed a different ChemDraw document")
+                try require(driver.calls.firstIndex(of:"saveDetachedSource")! < driver.calls.firstIndex(of:"closeWithoutActivation")!,"Closed without retaining the latest chemistry")
+                try require(!driver.calls.contains("update") && !driver.calls.contains("savedSnapshot") && !driver.calls.contains("activate") && !driver.calls.contains("persist"),"Document closure wrote Office, exported or changed focus")
+                let recovery = try fm.contentsOfDirectory(at:bridge.work.appendingPathComponent("recovery"),includingPropertiesForKeys:nil)
+                try require(recovery.count == 1 && Data(contentsOf:recovery[0].appendingPathComponent(path.lastPathComponent)) == driver.finalSource,"The unsaved ChemDraw edit was not retained")
+                let cleared = try JSONSerialization.jsonObject(with:Data(contentsOf:bridge.state)) as! [String:Any]
+                try require(cleared.isEmpty,"Closed editor still intercepted close gestures")
+                let queries = driver.statusTargets.count
+                for _ in 0..<3 { try require(try !bridge.reconcileDocumentLifecycle(),"Completed close was repeated") }
+                try bridge.handle(["event":"close","id":original.id,"path":original.path])
+                try bridge.save(SavedDrawingChange(id:original.id,path:original.path,source:driver.finalSource))
+                try require(driver.statusTargets.count == queries && driver.calls.filter { $0 == "closeWithoutActivation" }.count == 1,"Stale events retried the detached close")
+            }
+            try check("Switching or renaming \(host) documents leaves the original edit open") {
+                let (bridge,driver) = try fixture(); driver.document = "cfm-document:"+UUID().uuidString.lowercased()
+                try bridge.begin(host,tag:driver.tag); let original = bridge.session!
+                driver.document = "cfm-document:"+UUID().uuidString.lowercased(); driver.savedDocument = "/renamed/document"
+                for _ in 0..<3 { try require(try !bridge.reconcileDocumentLifecycle(),"Switching documents closed the original editor") }
+                try require(driver.statusTargets.allSatisfy { $0.0 == host && $0.1 == original.document } && driver.opened,"Lifecycle checks followed the active document instead of the pinned identity")
+            }
+            try check("An explicit ChemDraw close after \(host) closes completes without Office write-back") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                driver.documentStatus = "closed"; try bridge.finish("command-w")
+                try require(bridge.session == nil && !driver.opened && !driver.calls.contains("payload") && !driver.calls.contains("update"),"Explicit close became trapped in missing-target synchronization")
+            }
+            try check("Closing \(host) during preview export completes detached cleanup") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                let newer = Data("<CDXML><page><t>NEWER LOCAL INPUT</t></page></CDXML>".utf8)
+                driver.inspectSavedSnapshot = { _ in driver.documentStatus = "closed"; driver.failure = "payload"; driver.finalSource = newer }
+                try bridge.save(saveChange(bridge,Data("<CDXML><page><t>SAVED SNAPSHOT</t></page></CDXML>".utf8)))
+                try require(bridge.session == nil && !driver.opened && !driver.calls.contains("update") && !driver.calls.contains("activate"),"A mid-save document close surfaced as a retrying write-back failure")
+                let recovery = try fm.contentsOfDirectory(at:bridge.work.appendingPathComponent("recovery"),includingPropertiesForKeys:nil)
+                let files = try fm.contentsOfDirectory(at:recovery[0],includingPropertiesForKeys:nil)
+                let draft = files.first { $0.pathExtension == "cdxml" }!
+                try require(try Data(contentsOf:draft) == newer,"Detached cleanup overwrote newer input with the exported snapshot")
+            }
             try check("Saving \(host) updates the original drawing and keeps ChemDraw open") {
                 let (bridge,driver) = try fixture(liveVerification:true); driver.document = "cfm-document:"+UUID().uuidString.lowercased()
                 try bridge.begin(host,tag:driver.tag)
@@ -137,6 +197,39 @@ class TestAutomation: ChemistryAutomation {
                 try require(bridge.session == nil && !driver.opened,"Empty drawing could not close")
                 try bridge.begin(host,tag:driver.tag)
                 try require(bridge.session?.id == original.id && Data(contentsOf:URL(fileURLWithPath:bridge.session!.path)) == driver.finalSource,"Blank figure could not be reopened")
+            }
+        }
+        try check("Unknown, denied and ambiguous document checks cannot close an editing window") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            driver.documentStatus = "closed"; _ = try bridge.reconcileDocumentLifecycle()
+            driver.failure = "document-status"; try rejects { _ = try bridge.reconcileDocumentLifecycle() }
+            driver.failure = ""; driver.documentStatus = "ambiguous"
+            for _ in 0..<2 { try require(try !bridge.reconcileDocumentLifecycle(),"Ambiguous copies were treated as a closed document") }
+            driver.documentStatus = "unexpected"; try rejects { _ = try bridge.reconcileDocumentLifecycle() }
+            try require(driver.opened && !driver.calls.contains("saveDetachedSource") && bridge.session?.busy == false,"An unavailable status destroyed a live edit")
+            driver.documentStatus = "closed"
+            try require(try !bridge.reconcileDocumentLifecycle(),"An uncertain observation did not reset closure confirmation")
+            try require(try bridge.reconcileDocumentLifecycle(),"A confirmed later close was lost")
+        }
+        for failure in ["saveDetachedSource","closeWithoutActivation"] {
+            try check("\(failure) failure retains the detached draft and allows a later close") {
+                let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+                let original = bridge.session!; driver.documentStatus = "closed"; driver.failure = failure
+                try rejects { _ = try bridge.reconcileDocumentLifecycle(confirmImmediately:true) }
+                try require(bridge.session?.path == original.path && bridge.session?.busy == false && driver.opened,"Failed detached cleanup lost the session or froze input")
+                if failure == "saveDetachedSource" { try require(!driver.calls.contains("closeWithoutActivation"),"Failed save discarded unsaved chemistry") }
+                driver.failure = ""; try require(try bridge.reconcileDocumentLifecycle(confirmImmediately:true),"Retained close could not be retried")
+                try require(bridge.session == nil && !driver.opened && !driver.calls.contains("update"),"Retry wrote the closed Office target")
+            }
+        }
+        try check("Restarted helpers close an orphaned live editor and archive already-closed drafts") {
+            for editorOpen in [true,false] {
+                let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+                driver.opened = editorOpen; driver.documentStatus = "closed"
+                let restarted = NativeBridge(root:bridge.root,automation:driver,home:bridge.home); try restarted.restore()
+                _ = try restarted.reconcileDocumentLifecycle(); try require(try restarted.reconcileDocumentLifecycle(),"Restored orphan blocked a new edit")
+                try require(restarted.session == nil && !driver.opened,"Restored orphan remained active")
+                try require(driver.calls.contains("saveDetachedSource") == editorOpen,"A closed editor was reopened during cleanup")
             }
         }
         try check("Save exports the completed save without overwriting newer editing data") {
@@ -436,6 +529,25 @@ class TestAutomation: ChemistryAutomation {
             try require(try driver.saveSource(source) == bytes,"Managed save read another source")
             try require(driver.focused == source && driver.arguments == [source.path] && driver.body.contains("set d to document (item 1 of matches)") && !driver.body.contains("document 1"),"Save depends on ChemDraw document collection order")
             try require(!driver.body.contains("Scalable Vector Graphics"),"Native save changed the editing format")
+        }
+        try check("Detached native save and close preserve the pinned path without focusing another document") {
+            class DetachedProbe: NativeAutomation {
+                var argumentsSeen = [[String]](), bodies = [String]()
+                let latest = Data("<CDXML><page><t>RETAINED INPUT</t></page></CDXML>".utf8)
+                override func focus(_ path:URL,application:ChemDrawApplication) throws { throw ChemOfficeError("Detached cleanup stole focus") }
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String {
+                    argumentsSeen.append(arguments); bodies.append(body)
+                    if body.contains("save d") { try latest.write(to:URL(fileURLWithPath:arguments[0])) }
+                    return "closed"
+                }
+            }
+            let driver = DetachedProbe(root:root)
+            driver.selected = ChemDrawApplication(path:"/Applications/Pinned ChemDraw.app",bundle:"example.pinned",version:"22")
+            let source = root.appendingPathComponent("detached.cdxml")
+            try require(try driver.saveDetachedSource(source) == driver.latest,"Detached save did not retain the actual saved file")
+            try driver.closeWithoutActivation(source)
+            try require(driver.argumentsSeen == [[source.path],[source.path]] && driver.bodies.allSatisfy { $0.contains("/Applications/Pinned ChemDraw.app") && !$0.contains("activate") && !$0.contains("document 1") },"Detached cleanup changed the application, document or focus")
+            try require(try Data(contentsOf:source) == driver.latest,"Close altered the retained draft")
         }
         try check("Native cold-launch failure cannot script an unready ChemDraw") {
             class LaunchProbe: NativeAutomation {

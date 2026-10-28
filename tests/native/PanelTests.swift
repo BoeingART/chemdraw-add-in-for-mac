@@ -26,6 +26,25 @@ import Foundation
             try require(NativePaths.work(root:old,home:home) == NativePaths.work(root:new,home:home),"Upgrade lost the data location")
             try require(NativePaths.work(root:new,home:home) != NativePaths.work(root:new,home:root.appendingPathComponent("other-user")),"User data is shared")
         }
+        try check("Office access repair targets only the running app's container consent") {
+            var calls = [(String,[String])]()
+            try NativeInstaller.resetOfficeFileAccess(bundleIdentifier:"com.example.installed") { calls.append(($0,$1)) }
+            try require(calls.count == 1 && calls[0].0 == "/usr/bin/tccutil" && calls[0].1 == ["reset","SystemPolicyAppDataDetailed","com.example.installed"],"Repair reset unrelated permissions or the wrong application")
+            do {
+                try NativeInstaller.resetOfficeFileAccess(bundleIdentifier:"") { calls.append(($0,$1)) }
+                throw ChemOfficeError("Missing identity accepted")
+            } catch { try require(calls.count == 1,"Missing identity performed an unscoped reset") }
+            do {
+                try NativeInstaller.resetOfficeFileAccess(bundleIdentifier:"com.example.installed") { _,_ in throw ChemOfficeError("reset denied") }
+                throw ChemOfficeError("Failed reset was ignored")
+            } catch { try require(error.localizedDescription.contains("reset denied") && error.localizedDescription.contains("修复加载项"),"Reset failure lost its reason or retry action") }
+        }
+        try check("Access-denied detection covers Cocoa and wrapped POSIX errors") {
+            for error in [NSError(domain:NSCocoaErrorDomain,code:NSFileReadNoPermissionError),NSError(domain:NSCocoaErrorDomain,code:NSFileWriteNoPermissionError),NSError(domain:NSPOSIXErrorDomain,code:Int(EACCES)),NSError(domain:NSCocoaErrorDomain,code:NSFileWriteUnknownError,userInfo:[NSUnderlyingErrorKey:POSIXError(.EPERM)])] {
+                try require(NativeInstaller.isAccessDenied(error),"A denied container cannot offer permission recovery")
+            }
+            try require(!NativeInstaller.isAccessDenied(POSIXError(.ENOSPC)) && !NativeInstaller.isAccessDenied(POSIXError(.ENOENT)),"Ordinary filesystem failures were mislabeled as consent failures")
+        }
         let cert = try installer.prepareTLS()
         try check("Certificate setup preserves existing certificate and private-key permissions") {
             let original = try Data(contentsOf:cert); _ = try installer.prepareTLS()
@@ -41,13 +60,14 @@ import Foundation
             try require(try String(contentsOf:other,encoding:.utf8) == "keep","Other add-in changed")
             for target in installer.destinations() { try require(try String(contentsOf:target,encoding:.utf8) == "<manifest/>","Wrong manifest") }
         }
-        try check("Protected Office containers produce a Finder fallback") {
+        try check("Protected Office containers identify the host needing renewed consent") {
             try fm.removeItem(at:installer.destinations()[0])
             installer.copy = { _,_ in throw NSError(domain:NSCocoaErrorDomain,code:NSFileWriteNoPermissionError) }
             try require(try !installer.install(),"Protected installation falsely succeeded")
             try require(fm.fileExists(atPath:root.appendingPathComponent("work/install/chemoffice-for-mac.xml").path),"Staging manifest missing")
             try require(installer.installationIssues.count == 1 && installer.installationIssues[0].hasPrefix("word:"),"Failed host was not reported accurately")
             try require(installer.hostIssues["word"] != nil && installer.hostIssues["powerpoint"] == nil,"Per-host setup state is inaccurate")
+            try require(installer.deniedHosts == ["word"],"Denied host cannot offer renewed consent")
             try require(installer.needsInstallation(version:"test",installedVersion:"test"),"Failed installation was marked current")
         }
         try check("Partial failures are retried even with the old success marker") {
@@ -57,6 +77,7 @@ import Foundation
             try require(copied == [installer.destinations()[0]],"Retry replaced an already-current host")
             try require(installer.installationIssues.isEmpty && !installer.needsInstallation(version:"test",installedVersion:"test"),"Successful retry is still incomplete")
             try require(installer.hostIssues.isEmpty,"Permission error remained after successful retry")
+            try require(installer.deniedHosts.isEmpty,"Successful authorization still offers a reset")
             try require(installer.needsInstallation(version:"next",installedVersion:"test"),"Upgrade setup was skipped")
         }
         try check("Missing, outdated, empty and silently failed manifest copies are repaired") {
@@ -85,9 +106,36 @@ import Foundation
             try fm.removeItem(at:cache); try Data("not a directory".utf8).write(to:cache)
             try require(installer.needsInstallation(version:"test",installedVersion:"test"),"Broken cache was marked ready")
             try require(try !installer.install(),"Cache setup failure was reported as success")
+            try require(installer.deniedHosts.isEmpty,"A damaged cache incorrectly requests new privacy consent")
             try fm.removeItem(at:cache)
             try require(try installer.install(),"Cache repair failed")
             try require(try fm.contentsOfDirectory(atPath:cache.path).isEmpty,"Setup left probe files in the cache")
+        }
+        try check("Current manifests still require real write and read-back in both Office directories") {
+            let blocked = installer.destinations()[0].deletingLastPathComponent()
+            var verified = [URL]()
+            installer.verifyDirectory = { directory in
+                if directory == blocked { throw POSIXError(.EACCES) }
+                try NativeInstaller.verifyDirectoryAccess(directory)
+            }
+            try require(try !installer.install() && installer.deniedHosts == ["word"],"A readable manifest hid a denied add-in directory")
+            installer.verifyDirectory = { directory in verified.append(directory); try NativeInstaller.verifyDirectoryAccess(directory) }
+            try require(try installer.install() && installer.deniedHosts.isEmpty,"Granting access did not resume setup")
+            for host in installer.hosts {
+                let manifestDirectory = installer.destinations()[installer.hosts.firstIndex(of:host)!].deletingLastPathComponent()
+                let cache = try NativePaths.officePreviews(host,home:installer.home)
+                try require(verified.contains(manifestDirectory) && verified.contains(cache),"A host skipped actual write/read-back")
+                try require(try fm.contentsOfDirectory(atPath:manifestDirectory.path).allSatisfy { !$0.hasPrefix(".setup-") },"Setup left add-in probes")
+            }
+        }
+        try check("Only installed Office hosts are configured") {
+            let wordOnly = NativeInstaller(root:root,home:root.appendingPathComponent("word-only"),hosts:["word"])
+            try require(try wordOnly.install(report:false),"Word-only installation failed")
+            try require(wordOnly.destinations().count == 1 && wordOnly.destinations()[0].path.contains("com.microsoft.Word"),"Wrong host configured")
+            try require(!fm.fileExists(atPath:wordOnly.home.appendingPathComponent("Library/Containers/com.microsoft.Powerpoint").path),"Setup created an uninstalled Office container")
+        }
+        if CommandLine.arguments.contains("--installer-only") {
+            print("Passed \(count) native installer checks"); return
         }
         let server = try NativeOfficeServer(root:root,port:0)
         var edited = [String](); server.router.edit = { edited.append($0) }
@@ -110,12 +158,6 @@ import Foundation
             let valid = headers.merging(["x-chemoffice-token":server.router.token]) { _,new in new }
             let response = server.router.response(method:"POST",target:"/api/paste",headers:valid,body:Data("{\"host\":\"word\"}".utf8))
             try require(response.status == 400 && String(decoding:response.body,as:UTF8.self).contains("Allow Office file access"),"Native paste failure was hidden")
-        }
-        try check("Only installed Office hosts are configured") {
-            let wordOnly = NativeInstaller(root:root,home:root.appendingPathComponent("word-only"),hosts:["word"])
-            try require(try wordOnly.install(report:false),"Word-only installation failed")
-            try require(wordOnly.destinations().count == 1 && wordOnly.destinations()[0].path.contains("com.microsoft.Word"),"Wrong host configured")
-            try require(!fm.fileExists(atPath:wordOnly.home.appendingPathComponent("Library/Containers/com.microsoft.Powerpoint").path),"Setup created an uninstalled Office container")
         }
         try check("Listening HTTPS alone does not mark the paste helper ready") {
             server.router.ready = { false }

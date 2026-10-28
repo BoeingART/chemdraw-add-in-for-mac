@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.3 — 2026-10-28
+
+- Close the matching ChemDraw editing window when its original Word/PowerPoint document closes, retaining the latest local draft and clearing the editing session. Check the pinned document identity without activating or reopening Office.
+- Handle document closure during save/write-back and deduplicate repeated operation-failure windows.
+- Include the Office file-access recovery prepared for v1.3.2.
+
+## v1.3.2 — 2026-10-28
+
+- Restore Office file-access prompts during installation and upgrades by renewing this app’s Office-container consent. Keep Accessibility and Automation settings.
+- Offer **重新授权文件访问** for denied Word/PowerPoint access and resume setup automatically after authorization. **修复加载项** also renews blocked file access.
+- Verify actual writing and read-back in both the add-in and preview directories for each installed Office app before starting the paste helper.
+
 ## v1.3.1 — 2026-10-27
 
 - Download updates inside the app with progress and cancellation, then open the installer and relaunch automatically after installation. Active drawing edits defer installation while retaining the download.

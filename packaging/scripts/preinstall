@@ -1,6 +1,28 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 set -eu
-# Keep existing Office, Accessibility and Automation decisions during upgrades.
-# Setup probes current access after installation and requests only missing grants.
+# Renew only this application's Office-container consent before replacement.
+# A stale or denied app-data decision otherwise suppresses the consent prompt.
+# Accessibility and Automation decisions remain intact.
+if [ "${3:-/}" != / ]; then exit 0; fi
+CFM_USER=$(/usr/bin/stat -f %Su /dev/console)
+case "$CFM_USER" in root|loginwindow|_mbsetupuser|"") exit 0 ;; esac
+CFM_UID=$(/usr/bin/id -u "$CFM_USER")
+CFM_INFO="$(/usr/bin/dirname "$0")/app-info.plist"
+CFM_BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CFM_INFO")
+CFM_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$CFM_INFO")
+if CFM_RESULT=$(/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/tccutil reset SystemPolicyAppDataDetailed "$CFM_BUNDLE" 2>&1); then
+    printf '%s\n' "$CFM_RESULT"
+else
+    case "$CFM_RESULT" in
+        *"No such bundle identifier"*|*"kLSApplicationNotFoundErr"*)
+            # A first installation has no registered identity to renew yet.
+            printf '%s: first installation; file access will be requested during setup.\n' "$CFM_NAME"
+            ;;
+        *)
+            printf '%s: could not renew Office file access for %s: %s. Retry installation.\n' "$CFM_NAME" "$CFM_USER" "$CFM_RESULT" >&2
+            exit 1
+            ;;
+    esac
+fi
 exit 0

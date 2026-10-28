@@ -7,10 +7,31 @@ class NativeInstaller {
     let hosts: [String]
     private(set) var installationIssues = [String]()
     private(set) var hostIssues = [String:String]()
+    private(set) var deniedHosts = Set<String>()
     static let activationInstructions = "Office 2021 / 16.78: Insert → Add-ins → My Add-ins (▼) → Developer Add-ins → ChemDraw Add-in for Mac. Newer Office: Home → Add-ins → Developer Add-ins. Open a document first; the ChemDraw Add-in for Mac ribbon tab appears after activating the add-in."
     var copy: (URL,URL) throws -> Void = { source,target in
         // Replace only this manifest; retain every unrelated add-in.
         try Data(contentsOf:source).write(to:target,options:.atomic)
+    }
+    var verifyDirectory: (URL) throws -> Void = NativeInstaller.verifyDirectoryAccess
+    static func verifyDirectoryAccess(_ directory:URL) throws {
+        let probe = directory.appendingPathComponent(".setup-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at:probe) }
+        let data = Data("ChemDraw Add-in for Mac setup".utf8)
+        try data.write(to:probe,options:.atomic)
+        try require(try Data(contentsOf:probe) == data,"Office目录写入后无法读回：\(directory.path)")
+    }
+    static func isAccessDenied(_ error:Error) -> Bool {
+        let error = error as NSError
+        if error.domain == NSCocoaErrorDomain && [NSFileReadNoPermissionError,NSFileWriteNoPermissionError].contains(error.code) { return true }
+        if error.domain == NSPOSIXErrorDomain && [Int(EPERM),Int(EACCES)].contains(error.code) { return true }
+        if let underlying = error.userInfo[NSUnderlyingErrorKey] as? NSError { return isAccessDenied(underlying) }
+        return false
+    }
+    static func resetOfficeFileAccess(bundleIdentifier:String, run:(String,[String]) throws -> Void = { _ = try command($0,$1) }) throws {
+        try require(!bundleIdentifier.isEmpty,"无法识别当前应用，请重新安装ChemDraw Add-in for Mac。")
+        do { try run("/usr/bin/tccutil",["reset","SystemPolicyAppDataDetailed",bundleIdentifier]) }
+        catch { throw ChemOfficeError("重新请求Office文件访问失败：\(error.localizedDescription)。请重试“修复加载项”，或重新安装当前版本。") }
     }
     init(root:URL,home:URL = FileManager.default.homeDirectoryForCurrentUser,hosts:[String] = ["word","powerpoint"]) {
         self.root = root; self.home = home; self.hosts = hosts.filter { NativePaths.officeBundles[$0] != nil }
@@ -66,6 +87,7 @@ class NativeInstaller {
     func install(report:Bool = true) throws -> Bool {
         installationIssues.removeAll()
         hostIssues.removeAll()
+        deniedHosts.removeAll()
         _ = try prepareTLS()
         let source = root.appendingPathComponent("office/addin/manifest.xml"), staging = NativePaths.work(root:root,home:home).appendingPathComponent("install")
         let expected = try Data(contentsOf:source)
@@ -74,27 +96,25 @@ class NativeInstaller {
         for (host,target) in zip(hosts,destinations()) {
             do {
                 try FileManager.default.createDirectory(at:target.deletingLastPathComponent(),withIntermediateDirectories:true)
+                try verifyDirectory(target.deletingLastPathComponent())
                 if (try? Data(contentsOf:target)) != expected { try copy(source,target) }
                 try require(try Data(contentsOf:target) == expected,"The installed manifest does not match this version")
                 // Prepare the sandbox exchange folder during setup, before any
                 // synchronous Office insertion could open a permission dialog.
                 let previews = try NativePaths.officePreviews(host,home:home)
                 try FileManager.default.createDirectory(at:previews,withIntermediateDirectories:true)
-                let probe = previews.appendingPathComponent(".setup-\(UUID().uuidString)")
-                defer { try? FileManager.default.removeItem(at:probe) }
-                let probeData = Data("ChemDraw Add-in for Mac setup".utf8)
-                try probeData.write(to:probe,options:.atomic)
-                try require(try Data(contentsOf:probe) == probeData,"The Office preview cache could not be read back")
+                try verifyDirectory(previews)
                 if report { print("Installed and verified: \(target.path)") }
             } catch {
                 let issue = "\(host): \(target.path) — \(error.localizedDescription)"
                 hostIssues[host] = error.localizedDescription
+                if Self.isAccessDenied(error) { deniedHosts.insert(host) }
                 installationIssues.append(issue)
                 if report { print("Office setup incomplete: \(issue)") }
             }
         }
         if report {
-            if !installationIssues.isEmpty { print("Open ChemDraw Add-in for Mac → 设置加载项. Allow Microsoft Word and Microsoft PowerPoint under Privacy & Security → Files & Folders → ChemDraw Add-in for Mac; setup retries automatically.") }
+            if !installationIssues.isEmpty { print("Open ChemDraw Add-in for Mac → 设置加载项. Choose 重新授权文件访问 for a blocked Office host, then allow Microsoft Word and Microsoft PowerPoint in the macOS prompts or Files & Folders; setup retries automatically.") }
             print(Self.activationInstructions)
         }
         return installationIssues.isEmpty

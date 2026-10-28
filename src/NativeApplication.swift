@@ -34,12 +34,16 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var finishButton: NSButton!
     var timer: Timer?
     var checking = false
+    var officeAccessDenied = Set<String>()
+    var officeAccessRepairRequested = false
+    var officeAccessRepairInProgress = false
+    var officeAccessButtons = [String:NSButton]()
     var lastCheck = Date.distantPast
     var requirements = SetupRequirements()
     var startup = SetupStartupPolicy()
     var helperMessage = "等待完成上方授权，随后自动启动。"
     var latestActivity: HelperActivity?
-    var shownFailure: String?
+    var failurePresentation = FailurePresentationPolicy()
     var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development" }
     var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemDraw Add-in for Mac" }
     var work: URL { NativePaths.work(root:root) }
@@ -176,6 +180,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             details[key] = detail
             let words = NSStackView(views:[heading,detail]); words.orientation = .vertical; words.alignment = .leading; words.spacing = 5
             let actionButton = button(buttonTitle,action)
+            if key == "word" || key == "powerpoint" { actionButton.identifier = NSUserInterfaceItemIdentifier(key); officeAccessButtons[key] = actionButton }
             if key == "helper" { helperButton = actionButton }
             let row = NSStackView(views:[words,actionButton]); row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 16
             checks.addArrangedSubview(row); row.widthAnchor.constraint(equalTo:checks.widthAnchor).isActive = true
@@ -227,7 +232,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             switch result {
             case .success(let release):
                 if let latest = release.version, let current = ReleaseVersion(self.version), latest > current {
-                    if self.alert("发现新版本\(release.tag_name)","当前版本为v\(self.version)。下载更新后可直接安装，已有绘图和授权会保留。",confirm:"下载更新",cancel:true) { self.downloadUpdate(release) }
+                    if self.alert("发现新版本\(release.tag_name)","当前版本为v\(self.version)。下载更新后可直接安装，已有绘图会保留。安装后按提示确认Office文件访问。",confirm:"下载更新",cancel:true) { self.downloadUpdate(release) }
                 } else { self.alert("当前没有更新的正式版本","当前版本：v\(self.version)\nGitHub最新正式版：\(release.tag_name)") }
             case .failure(let error): self.alert("检查更新失败",error.localizedDescription)
             }
@@ -362,29 +367,45 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         guard !preview && !quitting else { return }
         if let helper {
             latestActivity = HelperActivity.read(work:work,pid:helper.processIdentifier)
-            if let latestActivity, latestActivity.error != nil, shownFailure != latestActivity.revision {
-                shownFailure = latestActivity.revision; showSetup()
-            }
+            if failurePresentation.shouldPresent(latestActivity) { showSetup() }
         } else { latestActivity = nil }
         let ready = readyForUse
         renderSetup(ready:ready)
-        guard !checking, force || Date().timeIntervalSince(lastCheck) >= (ready ? 15 : 1) else { return }
+        guard !checking, force || officeAccessRepairRequested || Date().timeIntervalSince(lastCheck) >= (ready ? 15 : 1) else { return }
         checking = true; lastCheck = Date()
+        let repairOfficeAccess = officeAccessRepairRequested
+        officeAccessRepairRequested = false
+        officeAccessRepairInProgress = repairOfficeAccess
+        if repairOfficeAccess { officeAccessButtons.values.forEach { $0.isEnabled = false } }
+        let bundleIdentifier = Bundle.main.bundleIdentifier ?? ""
         // Protected-container requests can wait for macOS consent. Keep the UI responsive.
         setupQueue.async { [self] in
             let hosts = ["word","powerpoint"].filter { NSWorkspace.shared.urlForApplication(withBundleIdentifier:NativePaths.officeBundles[$0]!) != nil }
             let hasChemDraw = !ChemDrawApplication.installed().isEmpty
             let installer = NativeInstaller(root:root,hosts:hosts)
             var failure: String?
+            var repairFailure: String?
+            if repairOfficeAccess {
+                do { try NativeInstaller.resetOfficeFileAccess(bundleIdentifier:bundleIdentifier) }
+                catch { repairFailure = error.localizedDescription }
+            }
             do { _ = try installer.install(report:false) } catch { failure = error.localizedDescription }
             DispatchQueue.main.async { [self] in
                 checking = false
+                officeAccessRepairInProgress = false
+                officeAccessButtons.values.forEach { $0.isEnabled = true }
+                officeAccessDenied = installer.deniedHosts
                 let word = !hosts.contains("word") || (failure == nil && installer.hostIssues["word"] == nil)
                 let powerpoint = !hosts.contains("powerpoint") || (failure == nil && installer.hostIssues["powerpoint"] == nil)
                 requirements = SetupRequirements(word:word,powerpoint:powerpoint,accessibility:AXIsProcessTrusted(),applications:hasChemDraw && !hosts.isEmpty)
                 for (host,name,ok) in [("word","Word",word),("powerpoint","PowerPoint",powerpoint)] {
-                    let text = !hosts.contains(host) ? "未安装\(name)，已跳过。" : ok ? "✓ 已验证：加载项已配置，绘图缓存可读写。" : "需要授权：文件与文件夹 → \(appName) → Microsoft \(name)。\(installer.hostIssues[host] ?? "")"
+                    let text: String
+                    if !hosts.contains(host) { text = "未安装\(name)，已跳过。" }
+                    else if ok { text = "✓ 已验证：加载项已配置，绘图缓存可读写。" }
+                    else if officeAccessDenied.contains(host) { text = "文件访问被拒绝：点击“重新授权文件访问”，在系统提示中允许Microsoft \(name)。\(installer.hostIssues[host] ?? "")" }
+                    else { text = "配置失败：\(installer.hostIssues[host] ?? "")。处理后点击“重新检查”。" }
                     setDetail(host,failure ?? text,complete:ok && failure == nil)
+                    officeAccessButtons[host]?.title = officeAccessDenied.contains(host) ? "重新授权文件访问" : "打开文件访问设置"
                 }
                 setDetail("accessibility",requirements.accessibility ? "✓ 已授权：可以接收复制、粘贴和双击操作。" : "需要授权：在辅助功能中启用\(appName)；若开关已打开，请移除旧项并重新添加本应用。",complete:requirements.accessibility)
                 if word && powerpoint && failure == nil { UserDefaults.standard.set(version,forKey:"installedVersion") }
@@ -404,6 +425,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                     }
                 }
                 renderSetup(ready:ready)
+                if let repairFailure { alert("Office文件访问修复未完成",repairFailure) }
             }
         }
     }
@@ -417,7 +439,9 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     @objc func installAddins() {
         showSetup()
         guard !preview else { return }
-        startup.resume(); trustConnection(); refreshSetup(force:true)
+        startup.resume(); trustConnection()
+        if !officeAccessDenied.isEmpty { requestOfficeAccessRepair() }
+        else { refreshSetup(force:true) }
     }
     @objc func trustConnection() {
         guard !preview else { return }
@@ -469,7 +493,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         if let helper, helper.isRunning { helper.terminate() }
         renderSetup(ready:false)
     }
-    @objc func officeFolderSettings() {
+    func requestOfficeAccessRepair() {
+        guard !preview && !officeAccessRepairRequested && !officeAccessRepairInProgress else { return }
+        officeAccessRepairRequested = true; startup.resume()
+        helperMessage = "正在重新请求Word和PowerPoint文件访问，请在系统提示中允许；授权后自动继续。"
+        renderSetup(ready:false); refreshSetup(force:true)
+    }
+    @objc func officeFolderSettings(_ sender:NSButton) {
+        if let host = sender.identifier?.rawValue, officeAccessDenied.contains(host) { requestOfficeAccessRepair() }
         NSWorkspace.shared.open(URL(string:"x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders")!)
     }
     func requestAccessibility() {

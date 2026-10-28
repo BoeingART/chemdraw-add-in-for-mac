@@ -39,10 +39,10 @@ print 'PASS packaged helper discovers ChemDraw without source checkout or develo
 /bin/sh "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/postinstall" unused unused "$CFM_TEMP/offline-target"
 print 'PASS installer scripts skip permissions and user setup for an offline target'
 cmp "$PROJECT_DIR/packaging/Info.plist" "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/app-info.plist"
-print 'PASS installer keeps consent and uses the packaged application identity for launch'
-if /usr/bin/grep -q 'tccutil' "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/preinstall"; then
-    print 'FAIL installer still resets privacy consent'; exit 1
-fi
+cmp "$PROJECT_DIR/packaging/scripts/preinstall" "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/preinstall"
+cmp "$PROJECT_DIR/packaging/scripts/postinstall" "$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Scripts/postinstall"
+python3 "$PROJECT_DIR/tests/installer.test.py"
+print 'PASS installer renews only Office file access, retains other consent and launches the packaged identity'
 CFM_REQUIREMENT="$(/usr/bin/codesign -d -r- "$CFM_APP" 2>&1 | /usr/bin/sed -n 's/^designated => //p')"
 [[ "$CFM_REQUIREMENT" == *'certificate'* ]]
 /usr/bin/codesign --verify --strict -R "=$CFM_REQUIREMENT" "$CFM_APP"
