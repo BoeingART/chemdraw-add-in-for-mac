@@ -1,3 +1,5 @@
+English | [简体中文](README_CN.md)
+
 <div align="center">
 
 ![ChemDraw Add-in for Mac — Draw. Close. Carry on.](assets/banner.svg)
@@ -10,32 +12,14 @@
 
 Copy a chemical structure in ChemDraw, paste an editable drawing into Word or PowerPoint, and double-click it to keep editing. Saving in ChemDraw updates the original Office image while keeping the editor open. Each drawing carries its editable source and ChemDraw's native SVG artwork.
 
-## Interface language in v1.3.4
-
-The app follows the first preferred system language: Chinese language variants use Simplified Chinese, and other languages use English. This covers app windows, menus, setup, updates, the Office panel and ribbon, installer pages, and operation messages.
-
-After changing the system language, quit the app from its menu bar, then reopen the app and Office. Reopen the installer to check its language.
-
 ## Install and configure
 
 Requires **macOS 12 or later**, **ChemDraw** and **Office for Mac**, installed and activated separately. Word and PowerPoint are supported.
 
 1. Finish the current ChemDraw edit and quit the app before installing or upgrading. Download the latest published universal installer from [Releases](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest).
-2. The installer opens **Add-in Setup / 设置加载项**, showing four checks: Word file access, PowerPoint file access, Accessibility, and paste-helper readiness.
-3. Allow access to the Office apps you use and enable Accessibility when prompted. Setup automatically configures the add-ins, checks directory access, and starts the helper. Click **Done / 完成** when all four checks pass.
-4. If Office file access was denied, choose **Authorize File Access Again / 重新授权文件访问** or **Repair Add-in / 修复加载项**, then allow access in the system prompt. Setup continues automatically.
-
-## Main window and menu bar
-
-| English | 中文 | Action |
-| --- | --- | --- |
-| Add-in Setup | 设置加载项 | Open the four setup checks. |
-| Check for Updates | 检查更新 | Download and install a newer stable release. |
-| Repair Add-in | 修复加载项 | Repeat add-in registration and connection setup. |
-| Launch at Login | 设置为开机启动项 | Start the app when you log in to your Mac. |
-| Open Window | 打开界面 | Open the main window from the menu bar. |
-| Hide Icon | 隐藏图标 | Hide the menu bar icon. |
-| Quit | 退出应用 | Stop the app and its helper. |
+2. The installer opens **Add-in Setup**, showing four checks: Word file access, PowerPoint file access, Accessibility, and paste-helper readiness.
+3. Allow access to the Office apps you use and enable Accessibility when prompted. Setup automatically configures the add-ins, checks directory access, and starts the helper. Click **Done** when all four checks pass.
+4. If Office file access was denied, choose **Authorize File Access Again** or **Repair Add-in**, then allow access in the system prompt. Setup continues automatically.
 
 Closing the window keeps the helper running in the menu bar. Reopen the app from Applications to restore a hidden icon. The menu shows the current version. Updates show download progress and can be cancelled; after installation, the app reopens automatically.
 
