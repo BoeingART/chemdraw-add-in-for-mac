@@ -46,13 +46,13 @@ final class NativeActivity {
     func begin(_ operation:String) {
         update {
             $0.revision = UUID().uuidString; $0.operation = operation; $0.busy = true; $0.error = nil
-            $0.message = operation == "paste" ? "正在准备可编辑结构…" : (operation == "close" || operation == "save") ? "正在更新Office中的结构…" : "正在ChemDraw中打开结构…"
+            $0.message = operation == "paste" ? L("native.007") : (operation == "close" || operation == "save") ? L("native.008") : L("native.009")
         }
     }
     func end(editing:Bool,recoverable:Bool,error:String? = nil) {
         update {
             $0.busy = false; $0.editing = editing; $0.recoverable = recoverable; $0.error = error
-            $0.message = error ?? ($0.operation == "paste" ? "可编辑结构已粘贴。" : "")
+            $0.message = error ?? ($0.operation == "paste" ? L("native.010") : "")
         }
     }
     func dictionary() -> [String:Any] {

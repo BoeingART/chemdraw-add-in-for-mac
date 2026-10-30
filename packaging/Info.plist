@@ -6,11 +6,13 @@
 <key>CFBundleDisplayName</key><string>ChemDraw Add-in for Mac</string>
 <key>CFBundleExecutable</key><string>ChemDraw Add-in</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.3.3</string>
-<key>CFBundleVersion</key><string>15</string>
+<key>CFBundleShortVersionString</key><string>1.3.4</string>
+<key>CFBundleVersion</key><string>17</string>
 <key>CFBundleIconFile</key><string>ChemDraw Add-in</string>
 <key>LSMinimumSystemVersion</key><string>12.0</string>
 <key>LSUIElement</key><true/>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
+<key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string><string>zh-Hant</string></array>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSAppleEventsUsageDescription</key><string>ChemDraw Add-in for Mac controls ChemDraw, Word and PowerPoint to edit chemical drawings locally and write them back to your document.</string>
 </dict></plist>

@@ -41,10 +41,10 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var lastCheck = Date.distantPast
     var requirements = SetupRequirements()
     var startup = SetupStartupPolicy()
-    var helperMessage = "等待完成上方授权，随后自动启动。"
+    var helperMessage = L("native.011")
     var latestActivity: HelperActivity?
     var failurePresentation = FailurePresentationPolicy()
-    var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "development" }
+    var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? L("native.development") }
     var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemDraw Add-in for Mac" }
     var work: URL { NativePaths.work(root:root) }
     var helperReady: Bool {
@@ -66,8 +66,8 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         if selfTest { runInterfaceSelfTest(); return }
         if preview {
             requirements = SetupRequirements(word:true,powerpoint:true,accessibility:true,applications:true)
-            for key in ["word","powerpoint"] { setDetail(key,"✓ 已验证：加载项已配置，绘图缓存可读写。",complete:true) }
-            setDetail("accessibility","✓ 已授权：可以接收复制、粘贴和双击操作。",complete:true)
+            for key in ["word","powerpoint"] { setDetail(key,L("native.013"),complete:true) }
+            setDetail("accessibility",L("native.014"),complete:true)
             renderSetup(ready:true)
             if setupRequested { showSetup() } else { showMain() }
             return
@@ -93,7 +93,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         let main = NSMenu(), applicationItem = NSMenuItem()
         main.addItem(applicationItem)
         let application = NSMenu(title:appName); applicationItem.submenu = application
-        for (title,action,key) in [("打开界面",#selector(showMain),","),("退出应用",#selector(quitApp),"q")] {
+        for (title,action,key) in [(L("native.015"),#selector(showMain),","),(L("native.016"),#selector(quitApp),"q")] {
             let item = NSMenuItem(title:title,action:action,keyEquivalent:key); item.target = self; application.addItem(item)
         }
         NSApp.mainMenu = main
@@ -106,9 +106,9 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         let menu = NSMenu(); menu.autoenablesItems = false
         let versionItem = NSMenuItem(title:"v\(version)",action:nil,keyEquivalent:""); versionItem.isEnabled = false
         menu.addItem(versionItem); menu.addItem(.separator())
-        for (title,action) in [("检查更新",#selector(checkUpdates)),("打开界面",#selector(showMain)),("隐藏图标",#selector(hideStatusIcon)),("退出应用",#selector(quitApp))] {
+        for (title,action) in [(L("native.017"),#selector(checkUpdates)),(L("native.015"),#selector(showMain)),(L("native.019"),#selector(hideStatusIcon)),(L("native.016"),#selector(quitApp))] {
             let entry = NSMenuItem(title:title,action:action,keyEquivalent:""); entry.target = self
-            if title == "检查更新" { updateMenuItem = entry; entry.isEnabled = !checkingUpdates; entry.title = stagedUpdate == nil ? "检查更新" : "安装更新" }
+            if action == #selector(checkUpdates) { updateMenuItem = entry; entry.isEnabled = !checkingUpdates; entry.title = stagedUpdate == nil ? L("native.017") : L("native.023") }
             menu.addItem(entry)
         }
         item.menu = menu; statusItem = item
@@ -140,29 +140,29 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         return stack
     }
     func buildMainWindow() {
-        mainWindow = window(appName,width:680,height:280)
+        mainWindow = window(appName,width:760,height:340)
         let stack = contentStack(mainWindow)
         stack.addArrangedSubview(label(appName,size:25,bold:true))
-        let intro = label("在ChemDraw中复制结构，到Word或PowerPoint粘贴。双击继续编辑，保存即可更新Office图片，用⌘W返回原文档。")
+        let intro = label(L("native.024"))
         stack.addArrangedSubview(intro); intro.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
         let actions = NSStackView(); actions.orientation = .horizontal; actions.spacing = 12; actions.distribution = .fillEqually
-        for (title,action) in [("设置加载项",#selector(showSetup)),("检查更新",#selector(checkUpdates)),("修复加载项",#selector(installAddins))] {
+        for (title,action) in [(L("native.025"),#selector(showSetup)),(L("native.017"),#selector(checkUpdates)),(L("native.027"),#selector(installAddins))] {
             let entry = button(title,action); actions.addArrangedSubview(entry)
-            if title == "检查更新" { updateButton = entry }
+            if action == #selector(checkUpdates) { updateButton = entry }
         }
         stack.addArrangedSubview(actions); actions.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
-        loginCheckbox = NSButton(checkboxWithTitle:"设置为开机启动项",target:self,action:#selector(toggleLoginItem))
+        loginCheckbox = NSButton(checkboxWithTitle:L("native.029"),target:self,action:#selector(toggleLoginItem))
         stack.addArrangedSubview(loginCheckbox)
-        loginNote = label("关闭窗口后继续在菜单栏运行。隐藏图标后，可从“应用程序”重新打开。",size:12)
+        loginNote = label(L("native.030"),size:12)
         loginNote.textColor = .secondaryLabelColor
         stack.addArrangedSubview(loginNote); loginNote.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
     }
     func buildSetupWindow() {
-        setupWindow = window("\(appName) · 设置加载项",width:760,height:620)
+        setupWindow = window(L("native.031"),width:840,height:700)
         let stack = contentStack(setupWindow)
-        stack.addArrangedSubview(label("设置加载项",size:25,bold:true))
-        setupStatus = label("正在检查安装…",size:14,bold:true); stack.addArrangedSubview(setupStatus)
-        let intro = label("完成以下四项检查后，程序会自动配置加载项并启动粘贴助手。授权后状态会自动更新。")
+        stack.addArrangedSubview(label(L("native.025"),size:25,bold:true))
+        setupStatus = label(L("native.033"),size:14,bold:true); stack.addArrangedSubview(setupStatus)
+        let intro = label(L("native.034"))
         stack.addArrangedSubview(intro); intro.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false
         let document = SetupChecksView(); document.translatesAutoresizingMaskIntoConstraints = false; scroll.documentView = document
@@ -171,12 +171,12 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         stack.addArrangedSubview(scroll)
         NSLayoutConstraint.activate([scroll.widthAnchor.constraint(equalTo:stack.widthAnchor),scroll.heightAnchor.constraint(equalToConstant:240),document.widthAnchor.constraint(equalTo:scroll.contentView.widthAnchor),checks.leadingAnchor.constraint(equalTo:document.leadingAnchor),checks.trailingAnchor.constraint(equalTo:document.trailingAnchor),checks.topAnchor.constraint(equalTo:document.topAnchor),checks.bottomAnchor.constraint(equalTo:document.bottomAnchor)])
         for (key,title,action,buttonTitle) in [
-            ("word","Word文件访问",#selector(officeFolderSettings),"打开文件访问设置"),
-            ("powerpoint","PowerPoint文件访问",#selector(officeFolderSettings),"打开文件访问设置"),
-            ("accessibility","辅助功能",#selector(accessibilitySettings),"打开辅助功能设置"),
-            ("helper","粘贴助手",#selector(startHelper),"重新检查")
+            ("word",L("native.035"),#selector(officeFolderSettings),L("native.036")),
+            ("powerpoint",L("native.037"),#selector(officeFolderSettings),L("native.036")),
+            ("accessibility",L("native.039"),#selector(accessibilitySettings),L("native.040")),
+            ("helper",L("native.041"),#selector(startHelper),L("native.042"))
         ] {
-            let heading = label(title,size:14,bold:true), detail = label(key == "helper" ? helperMessage : "正在检查…")
+            let heading = label(title,size:14,bold:true), detail = label(key == "helper" ? helperMessage : L("native.043"))
             details[key] = detail
             let words = NSStackView(views:[heading,detail]); words.orientation = .vertical; words.alignment = .leading; words.spacing = 5
             let actionButton = button(buttonTitle,action)
@@ -184,14 +184,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             if key == "helper" { helperButton = actionButton }
             let row = NSStackView(views:[words,actionButton]); row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 16
             checks.addArrangedSubview(row); row.widthAnchor.constraint(equalTo:checks.widthAnchor).isActive = true
-            words.widthAnchor.constraint(equalTo:row.widthAnchor,constant:-172).isActive = true
+            words.widthAnchor.constraint(equalTo:row.widthAnchor,constant:-248).isActive = true
             detail.widthAnchor.constraint(equalTo:words.widthAnchor).isActive = true
-            actionButton.widthAnchor.constraint(equalToConstant:156).isActive = true
+            actionButton.widthAnchor.constraint(equalToConstant:232).isActive = true
         }
-        let note = label("在系统设置中为\(appName)启用所用Office应用的文件访问及辅助功能。全部检查通过后点击“完成”。",size:12)
+        let note = label(L("native.044",appName),size:12)
         note.textColor = .secondaryLabelColor; stack.addArrangedSubview(note)
         note.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
-        finishButton = button("完成",#selector(finishSetup)); finishButton.keyEquivalent = "\r"; finishButton.isEnabled = false
+        finishButton = button(L("native.045"),#selector(finishSetup)); finishButton.keyEquivalent = "\r"; finishButton.isEnabled = false
         stack.addArrangedSubview(finishButton)
     }
     @objc func showMain() {
@@ -210,7 +210,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         let state = loginItem.state
         loginCheckbox.allowsMixedState = state == .requiresApproval
         loginCheckbox.state = state == .enabled ? .on : state == .requiresApproval ? .mixed : .off
-        loginNote.stringValue = state == .requiresApproval ? "请在系统设置的登录项中允许本应用。" : "关闭窗口后继续在菜单栏运行。隐藏图标后，可从“应用程序”重新打开。"
+        loginNote.stringValue = state == .requiresApproval ? L("native.046") : L("native.030")
     }
     @objc func toggleLoginItem() {
         guard !preview && !selfTest else { loginCheckbox.state = .off; return }
@@ -219,7 +219,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             try loginItem.setEnabled(enabled); updateLoginState()
             if enabled && loginItem.state == .requiresApproval { loginItem.openApprovalSettings() }
         } catch {
-            updateLoginState(); alert("无法更改开机启动项",error.localizedDescription)
+            updateLoginState(); alert(L("native.048"),error.localizedDescription)
         }
     }
     @objc func checkUpdates() {
@@ -232,26 +232,26 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             switch result {
             case .success(let release):
                 if let latest = release.version, let current = ReleaseVersion(self.version), latest > current {
-                    if self.alert("发现新版本\(release.tag_name)","当前版本为v\(self.version)。下载更新后可直接安装，已有绘图会保留。安装后按提示确认Office文件访问。",confirm:"下载更新",cancel:true) { self.downloadUpdate(release) }
-                } else { self.alert("当前没有更新的正式版本","当前版本：v\(self.version)\nGitHub最新正式版：\(release.tag_name)") }
-            case .failure(let error): self.alert("检查更新失败",error.localizedDescription)
+                    if self.alert(L("native.049",release.tag_name),L("native.050",self.version),confirm:L("native.051"),cancel:true) { self.downloadUpdate(release) }
+                } else { self.alert(L("native.052"),L("native.053",self.version,release.tag_name)) }
+            case .failure(let error): self.alert(L("native.054"),error.localizedDescription)
             }
         }
     }
     func setUpdateControls(enabled:Bool) {
         updateButton.isEnabled = enabled; updateMenuItem.isEnabled = enabled
-        let title = stagedUpdate == nil ? "检查更新" : "安装更新"
+        let title = stagedUpdate == nil ? L("native.017") : L("native.023")
         updateButton.title = title; updateMenuItem.title = title
     }
     func showUpdateDownloadProgress(_ tag:String) {
-        let window = self.window("更新\(appName)",width:480,height:190)
+        let window = self.window(L("native.057",appName),width:560,height:210)
         // The download can be cancelled without affecting the running helper.
         window.styleMask.remove(.closable)
-        let stack = contentStack(window), message = label("正在下载\(tag)…",size:14,bold:true)
+        let stack = contentStack(window), message = label(L("native.058",tag),size:14,bold:true)
         let progress = NSProgressIndicator(); progress.style = .bar; progress.isIndeterminate = false; progress.maxValue = 1
         stack.addArrangedSubview(message); stack.addArrangedSubview(progress)
         progress.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
-        let cancel = NSButton(title:"取消下载",target:self,action:#selector(cancelUpdateDownload)); cancel.bezelStyle = .rounded
+        let cancel = NSButton(title:L("native.059"),target:self,action:#selector(cancelUpdateDownload)); cancel.bezelStyle = .rounded
         stack.addArrangedSubview(cancel)
         updateWindow = window; updateProgress = progress; updateMessage = message
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
@@ -263,7 +263,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             showUpdateDownloadProgress(release.tag_name)
             let download = NativeUpdateDownload(asset:asset,directory:work.appendingPathComponent("updates"),progress:{ [weak self] fraction in
                 self?.updateProgress?.doubleValue = fraction ?? 0
-                self?.updateMessage?.stringValue = "正在下载\(release.tag_name)… \(Int((fraction ?? 0)*100))%"
+                self?.updateMessage?.stringValue = L("native.060",release.tag_name,Int((fraction ?? 0)*100))
             },completion:{ [weak self] result in
                 guard let self else { return }
                 self.updateWindow?.orderOut(nil); self.updateWindow = nil; self.updateProgress = nil; self.updateMessage = nil
@@ -273,11 +273,11 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 case .success(let file): self.stagedUpdate = (release,file); self.setUpdateControls(enabled:true); self.offerUpdateInstallation(release,file)
                 case .failure(let error):
                     self.setUpdateControls(enabled:true)
-                    if (error as NSError).domain != NSURLErrorDomain || (error as NSError).code != NSURLErrorCancelled { self.alert("更新下载未完成",error.localizedDescription) }
+                    if (error as NSError).domain != NSURLErrorDomain || (error as NSError).code != NSURLErrorCancelled { self.alert(L("native.061"),error.localizedDescription) }
                 }
             })
             updateDownload = download; download.start()
-        } catch { checkingUpdates = false; setUpdateControls(enabled:true); alert("无法下载更新",error.localizedDescription) }
+        } catch { checkingUpdates = false; setUpdateControls(enabled:true); alert(L("native.062"),error.localizedDescription) }
     }
     @objc func cancelUpdateDownload() { updateDownload?.cancel() }
     func offerUpdateInstallation(_ release:GitHubRelease,_ file:URL) {
@@ -285,16 +285,16 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         let state = (try? Data(contentsOf:work.appendingPathComponent("monitor-state.json")))
             .flatMap { try? JSONSerialization.jsonObject(with:$0) as? [String:Any] } ?? [:]
         guard UpdateInstallationPolicy.canInstall(activity:activity,state:state) else {
-            alert("更新已下载","请先在ChemDraw用⌘W结束当前结构编辑，再点“安装更新”。安装包已保留。")
+            alert(L("native.063"),L("native.064"))
             return
         }
-        guard alert("安装\(release.tag_name)","应用会退出并打开安装器，安装结束后自动重新启动。Office文档由你按需要保存。",confirm:"安装并重新打开",cancel:true) else { return }
+        guard alert(L("native.065",release.tag_name),L("native.066"),confirm:L("native.067"),cancel:true) else { return }
         do {
             try NativeUpdateDownload.verify(file,asset:release.installer())
-            guard NSWorkspace.shared.open(file) else { throw UpdateCheckError(message:"无法打开已下载的安装包，请重新检查更新。") }
+            guard NSWorkspace.shared.open(file) else { throw UpdateCheckError(message:L("native.068")) }
             NSApp.terminate(nil)
         } catch {
-            stagedUpdate = nil; setUpdateControls(enabled:true); alert("更新安装未开始",error.localizedDescription)
+            stagedUpdate = nil; setUpdateControls(enabled:true); alert(L("native.069"),error.localizedDescription)
         }
     }
     func setDetail(_ key:String,_ text:String,complete:Bool) {
@@ -302,21 +302,21 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     }
     func renderSetup(ready:Bool) {
         finishButton.isEnabled = ready
-        helperButton.title = "重新检查"
+        helperButton.title = L("native.042")
         let message: String
         if ready {
-            if let error = latestActivity?.error { setDetail("helper","操作未完成："+error,complete:false); message = "操作需要处理" }
-            else if latestActivity?.busy == true { setDetail("helper",latestActivity?.message ?? "正在处理…",complete:false); message = "正在处理结构" }
-            else { setDetail("helper","✓ 已就绪：直接粘贴与双击编辑已启动。",complete:true); message = "已就绪" }
-        } else { setDetail("helper",helperMessage,complete:false); message = startup.wantsRunning ? "待完成设置" : "粘贴助手已暂停" }
+            if let error = latestActivity?.error { setDetail("helper",L("native.071")+error,complete:false); message = L("native.072") }
+            else if latestActivity?.busy == true { setDetail("helper",latestActivity?.message ?? L("native.073"),complete:false); message = L("native.074") }
+            else { setDetail("helper",L("native.075"),complete:true); message = L("native.076") }
+        } else { setDetail("helper",helperMessage,complete:false); message = startup.wantsRunning ? L("native.077") : L("native.078") }
         setupStatus.stringValue = "\(message) · v\(version)"
     }
     func runInterfaceSelfTest() {
         func buttons(_ view:NSView) -> [NSButton] { (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons($0) } }
-        let expectedMain = ["设置加载项","检查更新","修复加载项","设置为开机启动项"]
+        let expectedMain = [L("native.025"),L("native.017"),L("native.027"),L("native.029")]
         let initiallyBlocked = !finishButton.isEnabled
-        for key in ["word","powerpoint"] { setDetail(key,"✓ 已验证：加载项已配置，绘图缓存可读写。",complete:true) }
-        setDetail("accessibility","✓ 已授权：可以接收复制、粘贴和双击操作。",complete:true)
+        for key in ["word","powerpoint"] { setDetail(key,L("native.013"),complete:true) }
+        setDetail("accessibility",L("native.014"),complete:true)
         renderSetup(ready:true)
         let menu = statusItem!.menu!
         func texts(_ view:NSView) -> [String] { (view as? NSTextField).map { [$0.stringValue] } ?? view.subviews.flatMap { texts($0) } }
@@ -327,21 +327,21 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         showUpdateDownloadProgress("v1.3.2")
         let updateInterfaceValid = updateProgress?.style == .bar && updateProgress?.isIndeterminate == false
             && updateWindow?.styleMask.contains(.closable) == false
-            && buttons(updateWindow!.contentView!).map(\.title) == ["取消下载"]
+            && buttons(updateWindow!.contentView!).map(\.title) == [L("native.059")]
             && responds(to:#selector(cancelUpdateDownload))
         updateWindow?.orderOut(nil)
         var valid = visibleBusyPointer && !pointer.busy && !pointer.panel.isVisible
             && updateInterfaceValid
-            && !texts(mainWindow.contentView!).contains { $0.contains("已就绪") || $0.contains("v"+version) }
+            && !texts(mainWindow.contentView!).contains { $0.contains(L("native.076")) || $0.contains("v"+version) }
             && buttons(mainWindow.contentView!).map(\.title) == expectedMain
             && details.count == 4 && buttons(setupWindow.contentView!).count == 5
-            && menu.items.filter { $0.action != nil }.map(\.title) == ["检查更新","打开界面","隐藏图标","退出应用"]
+            && menu.items.filter { $0.action != nil }.map(\.title) == [L("native.017"),L("native.015"),L("native.019"),L("native.016")]
             && menu.items.first?.title == "v\(version)" && menu.items.first?.isEnabled == false
             && statusItem?.button?.title == "" && statusItem?.button?.image?.isTemplate == true
             && initiallyBlocked && finishButton.isEnabled && NSApp.activationPolicy() == .accessory
             && Bundle.main.object(forInfoDictionaryKey:"LSUIElement") as? Bool == true
             && configurationButtons.allSatisfy { $0.target === self && $0.action != nil && responds(to:$0.action!) }
-            && ["build/chemoffice","build/event-monitor","office/addin/manifest.xml","assets/demo.cdxml","docs/quickstart-zh.txt"].allSatisfy { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
+            && ["build/chemoffice","build/event-monitor","office/addin/manifest.xml","assets/demo.cdxml"].allSatisfy { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
         hideStatusIcon(); valid = valid && statusItem == nil
         installStatusItem(); valid = valid && statusItem != nil
         if let destination = ProcessInfo.processInfo.environment["CFM_UI_SNAPSHOTS"] {
@@ -400,20 +400,20 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 requirements = SetupRequirements(word:word,powerpoint:powerpoint,accessibility:AXIsProcessTrusted(),applications:hasChemDraw && !hosts.isEmpty)
                 for (host,name,ok) in [("word","Word",word),("powerpoint","PowerPoint",powerpoint)] {
                     let text: String
-                    if !hosts.contains(host) { text = "未安装\(name)，已跳过。" }
-                    else if ok { text = "✓ 已验证：加载项已配置，绘图缓存可读写。" }
-                    else if officeAccessDenied.contains(host) { text = "文件访问被拒绝：点击“重新授权文件访问”，在系统提示中允许Microsoft \(name)。\(installer.hostIssues[host] ?? "")" }
-                    else { text = "配置失败：\(installer.hostIssues[host] ?? "")。处理后点击“重新检查”。" }
+                    if !hosts.contains(host) { text = L("native.094",name) }
+                    else if ok { text = L("native.013") }
+                    else if officeAccessDenied.contains(host) { text = L("native.096",name) }
+                    else { text = L("native.097",installer.hostIssues[host] ?? "") }
                     setDetail(host,failure ?? text,complete:ok && failure == nil)
-                    officeAccessButtons[host]?.title = officeAccessDenied.contains(host) ? "重新授权文件访问" : "打开文件访问设置"
+                    officeAccessButtons[host]?.title = officeAccessDenied.contains(host) ? L("native.098") : L("native.036")
                 }
-                setDetail("accessibility",requirements.accessibility ? "✓ 已授权：可以接收复制、粘贴和双击操作。" : "需要授权：在辅助功能中启用\(appName)；若开关已打开，请移除旧项并重新添加本应用。",complete:requirements.accessibility)
+                setDetail("accessibility",requirements.accessibility ? L("native.014") : L("native.101",appName),complete:requirements.accessibility)
                 if word && powerpoint && failure == nil { UserDefaults.standard.set(version,forKey:"installedVersion") }
                 else { UserDefaults.standard.removeObject(forKey:"installedVersion") }
-                if !hasChemDraw { helperMessage = "请先安装并激活ChemDraw，然后点“重新检查”。" }
-                else if hosts.isEmpty { helperMessage = "请先安装Word或PowerPoint，然后点“重新检查”。" }
-                else if !startup.wantsRunning { helperMessage = "已暂停。点击“重新检查”恢复。" }
-                else if !requirements.satisfied { helperMessage = "等待完成上方授权，随后自动启动。" }
+                if !hasChemDraw { helperMessage = L("native.102") }
+                else if hosts.isEmpty { helperMessage = L("native.103") }
+                else if !startup.wantsRunning { helperMessage = L("native.104") }
+                else if !requirements.satisfied { helperMessage = L("native.011") }
                 if startup.shouldStart(requirements,processExists:helper != nil) { launchHelper() }
                 let ready = readyForUse
                 if ready { UserDefaults.standard.set(version,forKey:"setupCompletedVersion") }
@@ -421,19 +421,19 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                     UserDefaults.standard.removeObject(forKey:"setupCompletedVersion")
                     if let helper, helper.isRunning {
                         let health = HelperStatus.read(work:work,expectedPID:helper.processIdentifier)
-                        helperMessage = health?.message ?? "正在启动并检查键盘与鼠标监听…"
+                        helperMessage = health?.message ?? L("native.106")
                     }
                 }
                 renderSetup(ready:ready)
-                if let repairFailure { alert("Office文件访问修复未完成",repairFailure) }
+                if let repairFailure { alert(L("native.107"),repairFailure) }
             }
         }
     }
-    @discardableResult func alert(_ title:String,_ message:String,confirm:String = "好",cancel:Bool = false) -> Bool {
+    @discardableResult func alert(_ title:String,_ message:String,confirm:String = L("native.108"),cancel:Bool = false) -> Bool {
         NSApp.activate(ignoringOtherApps:true)
         let dialog = NSAlert(); dialog.messageText = title; dialog.informativeText = message
         dialog.addButton(withTitle:confirm)
-        if cancel { dialog.addButton(withTitle:"取消") }
+        if cancel { dialog.addButton(withTitle:L("native.109")) }
         return dialog.runModal() == .alertFirstButtonReturn
     }
     @objc func installAddins() {
@@ -449,14 +449,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             let installer = NativeInstaller(root:root)
             let cert = try installer.prepareTLS()
             if installer.certificateTrusted(cert) { return }
-            guard alert("启用Office本地面板", "请在macOS认证提示中确认，以便Office连接本机ChemDraw Add-in for Mac面板。",confirm:"启用本地连接",cancel:true) else { return }
+            guard alert(L("native.110"), L("native.111"),confirm:L("native.112"),cancel:true) else { return }
             try installer.trustCertificate(cert)
-            alert("Office本地连接已启用", "请保存手头工作并重新打开Word和PowerPoint。")
-        } catch { alert("本地连接需要完成设置",error.localizedDescription) }
+            alert(L("native.113"), L("native.114"))
+        } catch { alert(L("native.115"),error.localizedDescription) }
     }
     @objc func startHelper() {
         guard !preview else { return }
-        startup.resume(); helperMessage = "正在重新检查…"; refreshSetup(force:true)
+        startup.resume(); helperMessage = L("native.116"); refreshSetup(force:true)
     }
     func launchHelper() {
         guard helper == nil else { return }
@@ -476,27 +476,27 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                     if self.quitting { NSApp.reply(toApplicationShouldTerminate:true); return }
                     if self.startup.wantsRunning {
                         self.startup.failed(self.requirements)
-                        self.helperMessage = health?.message ?? "助手已停止。点击“重新检查”重试，或点击“修复加载项”。"
+                        self.helperMessage = health?.message ?? L("native.117")
                         self.showSetup()
-                    } else { self.helperMessage = "已暂停。点击“重新检查”恢复。" }
+                    } else { self.helperMessage = L("native.104") }
                     self.renderSetup(ready:false)
                 }
             }
-            try process.run(); helper = process; helperMessage = "正在启动并检查键盘与鼠标监听…"
+            try process.run(); helper = process; helperMessage = L("native.106")
         } catch {
             try? output?.close(); output = nil
             startup.failed(requirements); helperMessage = error.localizedDescription
         }
     }
     @objc func stopHelper() {
-        startup.pause(); helperMessage = "已暂停。点击“重新检查”恢复。"
+        startup.pause(); helperMessage = L("native.104")
         if let helper, helper.isRunning { helper.terminate() }
         renderSetup(ready:false)
     }
     func requestOfficeAccessRepair() {
         guard !preview && !officeAccessRepairRequested && !officeAccessRepairInProgress else { return }
         officeAccessRepairRequested = true; startup.resume()
-        helperMessage = "正在重新请求Word和PowerPoint文件访问，请在系统提示中允许；授权后自动继续。"
+        helperMessage = L("native.121")
         renderSetup(ready:false); refreshSetup(force:true)
     }
     @objc func officeFolderSettings(_ sender:NSButton) {

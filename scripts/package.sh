@@ -21,6 +21,7 @@ cp "$PROJECT_DIR/build/chemoffice" "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE"
 cp "$PROJECT_DIR/build/chemoffice" "$PROJECT_DIR/build/event-monitor" "$CFM_APP/Contents/Resources/build/"
 cp -R "$PROJECT_DIR/office" "$PROJECT_DIR/assets" "$PROJECT_DIR/docs" "$CFM_APP/Contents/Resources/"
 cp "$PROJECT_DIR/LICENSE" "$CFM_APP/Contents/Resources/"
+cp -R "$PROJECT_DIR/packaging/en.lproj" "$PROJECT_DIR/packaging/zh-Hans.lproj" "$PROJECT_DIR/packaging/zh-Hant.lproj" "$CFM_APP/Contents/Resources/"
 # Reuse the project's C icon for the native application.
 CFM_ICON="$CFM_STAGE/$CFM_ICON_NAME.iconset"
 mkdir -p "$CFM_ICON"
@@ -38,10 +39,11 @@ done
 for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor"; do
     cfm_verify_developer_id_code "$CFM_BINARY"
 done
-cp "$PROJECT_DIR/packaging/scripts/preinstall" "$PROJECT_DIR/packaging/scripts/postinstall" "$CFM_STAGE/scripts/"
+cp "$PROJECT_DIR/packaging/scripts/localization.sh" "$PROJECT_DIR/packaging/scripts/preinstall" "$PROJECT_DIR/packaging/scripts/postinstall" "$CFM_STAGE/scripts/"
 chmod 755 "$CFM_STAGE/scripts/preinstall" "$CFM_STAGE/scripts/postinstall"
 cp "$PROJECT_DIR/packaging/Info.plist" "$CFM_STAGE/scripts/app-info.plist"
 cp "$PROJECT_DIR/packaging/Welcome.html" "$PROJECT_DIR/packaging/Conclusion.html" "$CFM_STAGE/resources/"
+cp -R "$PROJECT_DIR/packaging/en.lproj" "$PROJECT_DIR/packaging/zh_CN.lproj" "$PROJECT_DIR/packaging/zh_TW.lproj" "$PROJECT_DIR/packaging/zh_HK.lproj" "$CFM_STAGE/resources/"
 cp "$PROJECT_DIR/LICENSE" "$CFM_STAGE/resources/LICENSE.txt"
 /usr/bin/pkgbuild --analyze --root "$CFM_STAGE/root" "$CFM_STAGE/components.plist"
 /usr/libexec/PlistBuddy -c 'Add :0:BundleIsRelocatable bool false' "$CFM_STAGE/components.plist"

@@ -37,7 +37,7 @@ import Foundation
             do {
                 try NativeInstaller.resetOfficeFileAccess(bundleIdentifier:"com.example.installed") { _,_ in throw ChemOfficeError("reset denied") }
                 throw ChemOfficeError("Failed reset was ignored")
-            } catch { try require(error.localizedDescription.contains("reset denied") && error.localizedDescription.contains("修复加载项"),"Reset failure lost its reason or retry action") }
+            } catch { try require(error.localizedDescription.contains("reset denied") && error.localizedDescription.contains(L("native.027")),"Reset failure lost its reason or retry action") }
         }
         try check("Access-denied detection covers Cocoa and wrapped POSIX errors") {
             for error in [NSError(domain:NSCocoaErrorDomain,code:NSFileReadNoPermissionError),NSError(domain:NSCocoaErrorDomain,code:NSFileWriteNoPermissionError),NSError(domain:NSPOSIXErrorDomain,code:Int(EACCES)),NSError(domain:NSCocoaErrorDomain,code:NSFileWriteUnknownError,userInfo:[NSUnderlyingErrorKey:POSIXError(.EPERM)])] {

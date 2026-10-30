@@ -33,7 +33,7 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-docum
     let applicationURL = identifier.hasPrefix("/") ? URL(fileURLWithPath: identifier) : NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
     guard FileManager.default.fileExists(atPath: document.path),
           let application = applicationURL, FileManager.default.fileExists(atPath: application.path) else {
-        fputs("ChemDraw or the managed drawing was not found.\n", stderr)
+        fputs(L("native.000"), stderr)
         exit(2)
     }
     let configuration = NSWorkspace.OpenConfiguration()
@@ -47,7 +47,7 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-docum
     let deadline = Date().addingTimeInterval(40)
     while !completed && Date() < deadline { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
     guard completed, failure == nil else {
-        fputs("\(failure?.localizedDescription ?? "ChemDraw did not finish launching in time.")\n", stderr)
+        fputs("\(failure?.localizedDescription ?? L("native.launchTimeout"))\n", stderr)
         exit(2)
     }
     print("opened")
@@ -83,7 +83,7 @@ if CommandLine.arguments.count == 5 && CommandLine.arguments[1] == "--diagnose-p
    let app = runningApplication(CommandLine.arguments[2]),
    let x = Double(CommandLine.arguments[3]), let y = Double(CommandLine.arguments[4]) {
     let targets = inspectPasteMenus(app.processIdentifier)
-    for target in targets { print("paste rectangle: \(target.frame)") }
+    for target in targets { print(L("native.pasteRectangle",target.frame)) }
     print(targets.contains { $0.frame.contains(CGPoint(x:x,y:y)) } ? "paste" : "other")
     exit(0)
 }
@@ -413,14 +413,14 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
 }
 
 guard AXIsProcessTrusted() else {
-    emit(["event": "fatal", "message": "请在系统设置 → 辅助功能中启用ChemDraw Add-in for Mac，设置加载项窗口会自动继续。"])
+    emit(["event": "fatal", "message": L("native.005")])
     exit(2)
 }
 let mask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.leftMouseUp.rawValue) | (1 << CGEventType.rightMouseDown.rawValue) | (1 << CGEventType.keyDown.rawValue)
 tap = CGEvent.tapCreate(tap: .cgAnnotatedSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
                         eventsOfInterest: CGEventMask(mask), callback: callback, userInfo: nil)
 guard let tap else {
-    emit(["event": "fatal", "message": "macOS did not allow the event monitor to start."])
+    emit(["event": "fatal", "message": L("native.006")])
     exit(3)
 }
 let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)

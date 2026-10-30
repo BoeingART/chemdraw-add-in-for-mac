@@ -2,7 +2,7 @@
 
 Starting with v1.3.1, **检查更新** downloads the latest published version inside the app. The progress window supports cancellation. When the download is ready, **安装并重新打开** opens the system installer and exits the old app; postinstall automatically reopens setup and starts the helper after its checks pass. An active drawing edit defers installation and keeps the downloaded package available under **安装更新**. Office documents remain under the user's save control.
 
-Install v1.3.3 to restore Word/PowerPoint file-access prompts after updating. The installer renews this app’s Office-container consent. When upgrading from earlier local signatures, follow the system prompts for Accessibility and Automation access. Setup checks actual directory writing and read-back before starting editing operations. A previous refusal can also be renewed with **重新授权文件访问** or **修复加载项**.
+Install v1.3.4 to restore Word/PowerPoint file-access prompts after updating. The installer renews this app’s Office-container consent. When upgrading from earlier local signatures, follow the system prompts for Accessibility and Automation access. Setup checks actual directory writing and read-back before starting editing operations. A previous refusal can also be renewed with **重新授权文件访问** or **修复加载项**.
 
 ## Developer ID signing and notarization
 

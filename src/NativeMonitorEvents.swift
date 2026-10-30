@@ -16,16 +16,16 @@ func readMonitorEvents(_ handle: FileHandle, receive: ([String:Any]) throws -> V
         if count == 0 { break }
         buffered.append(contentsOf:bytes.prefix(count))
         while let newline = buffered.firstIndex(of:10) {
-            try require(newline <= maxCarrierBytes,"Native monitor event is too large")
+            try require(newline <= maxCarrierBytes,L("native.261"))
             let line = buffered.subdata(in:0..<newline)
             buffered.removeSubrange(0...newline)
             if line.isEmpty { continue }
             guard let event = try JSONSerialization.jsonObject(with:line) as? [String:Any] else {
-                throw ChemOfficeError("Invalid native monitor event")
+                throw ChemOfficeError(L("native.262"))
             }
             try receive(event)
         }
-        try require(buffered.count <= maxCarrierBytes,"Native monitor event is too large")
+        try require(buffered.count <= maxCarrierBytes,L("native.261"))
     }
-    try require(buffered.isEmpty,"Incomplete native monitor event")
+    try require(buffered.isEmpty,L("native.264"))
 }

@@ -1,0 +1,2378 @@
+{
+  "native.000": {
+    "zh": "未找到ChemDraw或正在编辑的绘图。\n",
+    "en": "ChemDraw or the managed drawing was not found.\n",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "native.005": {
+    "zh": "请在系统设置 → 辅助功能中启用ChemDraw Add-in for Mac，设置加载项窗口会自动继续。",
+    "en": "Please enable ChemDraw Add-in for Mac in System Settings → Accessibility. Add-in Setup will continue automatically.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "native.006": {
+    "zh": "macOS未允许启动键盘与鼠标监听。",
+    "en": "macOS did not allow the event monitor to start.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "native.007": {
+    "zh": "正在准备可编辑结构…",
+    "en": "Preparing an editable drawing…",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "native.008": {
+    "zh": "正在更新Office中的结构…",
+    "en": "Updating the drawing in Office…",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "native.009": {
+    "zh": "正在ChemDraw中打开结构…",
+    "en": "Opening the drawing in ChemDraw…",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "native.010": {
+    "zh": "可编辑结构已粘贴。",
+    "en": "Editable drawing pasted.",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "native.011": {
+    "zh": "等待完成上方授权，随后自动启动。",
+    "en": "Waiting for the permissions above, then starting automatically.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.013": {
+    "zh": "✓ 已验证：加载项已配置，绘图缓存可读写。",
+    "en": "✓ Verified: add-in configured and drawing cache readable and writable.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.014": {
+    "zh": "✓ 已授权：可以接收复制、粘贴和双击操作。",
+    "en": "✓ Authorized: copy, paste, and double-click monitoring enabled.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.015": {
+    "zh": "打开界面",
+    "en": "Open Window",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.016": {
+    "zh": "退出应用",
+    "en": "Quit",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.017": {
+    "zh": "检查更新",
+    "en": "Check for Updates",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.019": {
+    "zh": "隐藏图标",
+    "en": "Hide Icon",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.023": {
+    "zh": "安装更新",
+    "en": "Install Update",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.024": {
+    "zh": "在ChemDraw中复制结构，到Word或PowerPoint粘贴。双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。",
+    "en": "Copy a structure in ChemDraw and paste it into Word or PowerPoint. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.025": {
+    "zh": "设置加载项",
+    "en": "Add-in Setup",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.027": {
+    "zh": "修复加载项",
+    "en": "Repair Add-in",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.029": {
+    "zh": "设置为开机启动项",
+    "en": "Launch at Login",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.030": {
+    "zh": "关闭窗口后继续在菜单栏运行。隐藏图标后，可从“应用程序”重新打开。",
+    "en": "Runs in the menu bar after closing the window. Reopen from Applications to restore a hidden icon.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.031": {
+    "zh": "设置加载项",
+    "en": "Add-in Setup",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.033": {
+    "zh": "正在检查安装…",
+    "en": "Checking installation…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.034": {
+    "zh": "完成以下四项检查后，程序会自动配置加载项并启动粘贴助手。授权后状态会自动更新。",
+    "en": "After these four checks, the app will configure the add-in and start the paste helper automatically. Status updates as you grant permissions.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.035": {
+    "zh": "Word文件访问",
+    "en": "Word File Access",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.036": {
+    "zh": "打开文件访问设置",
+    "en": "Open File Access Settings",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.037": {
+    "zh": "PowerPoint文件访问",
+    "en": "PowerPoint File Access",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.039": {
+    "zh": "辅助功能",
+    "en": "Accessibility",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.040": {
+    "zh": "打开辅助功能设置",
+    "en": "Open Accessibility Settings",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.041": {
+    "zh": "粘贴助手",
+    "en": "Paste Helper",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.042": {
+    "zh": "重新检查",
+    "en": "Check Again",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.043": {
+    "zh": "正在检查…",
+    "en": "Checking…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.044": {
+    "zh": "在系统设置中为{0}启用所用Office应用的文件访问及辅助功能。全部检查通过后点击“完成”。",
+    "en": "In System Settings, allow {0} to access your Office apps’ files and enable Accessibility. Click “Done” when all checks pass.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.045": {
+    "zh": "完成",
+    "en": "Done",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.046": {
+    "zh": "请在系统设置的登录项中允许本应用。",
+    "en": "Allow this app in System Settings → Login Items.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.048": {
+    "zh": "无法更改开机启动项",
+    "en": "Could Not Change Login Item",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.049": {
+    "zh": "发现新版本{0}",
+    "en": "New Version Available: {0}",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.050": {
+    "zh": "当前版本为v{0}。下载更新后可直接安装，已有绘图会保留。安装后按提示确认Office文件访问。",
+    "en": "Your current version is v{0}. Download and install the update to keep your existing drawings. Confirm Office file access when prompted after installation.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.051": {
+    "zh": "下载更新",
+    "en": "Download Update",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.052": {
+    "zh": "当前没有更新的正式版本",
+    "en": "No Newer Stable Release",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.053": {
+    "zh": "当前版本：v{0}\nGitHub最新正式版：{1}",
+    "en": "Current version: v{0}\nLatest stable release on GitHub: {1}",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.054": {
+    "zh": "检查更新失败",
+    "en": "Could Not Check for Updates",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.057": {
+    "zh": "更新{0}",
+    "en": "Update {0}",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.058": {
+    "zh": "正在下载{0}…",
+    "en": "Downloading {0}…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.059": {
+    "zh": "取消下载",
+    "en": "Cancel Download",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.060": {
+    "zh": "正在下载{0}… {1}%",
+    "en": "Downloading {0}… {1}%",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.061": {
+    "zh": "更新下载未完成",
+    "en": "Update Download Incomplete",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.062": {
+    "zh": "无法下载更新",
+    "en": "Could Not Download Update",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.063": {
+    "zh": "更新已下载",
+    "en": "Update Downloaded",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.064": {
+    "zh": "请先关闭当前ChemDraw文档以结束结构编辑，再点“安装更新”。安装包已保留。",
+    "en": "Close the current ChemDraw document to finish editing, then click “Install Update”. The installer has been retained.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.065": {
+    "zh": "安装{0}",
+    "en": "Install {0}",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.066": {
+    "zh": "应用会退出并打开安装器，安装结束后自动重新启动。Office文档由你按需要保存。",
+    "en": "The app will quit and open the installer, then reopen automatically after installation. Save your Office documents whenever you choose.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.067": {
+    "zh": "安装并重新打开",
+    "en": "Install and Reopen",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.068": {
+    "zh": "无法打开已下载的安装包，请重新检查更新。",
+    "en": "The downloaded installer could not be opened. Check for updates again.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.069": {
+    "zh": "更新安装未开始",
+    "en": "Update Installation Did Not Start",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.071": {
+    "zh": "操作未完成：",
+    "en": "Action incomplete: ",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.072": {
+    "zh": "操作需要处理",
+    "en": "Action Needs Attention",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.073": {
+    "zh": "正在处理…",
+    "en": "Processing…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.074": {
+    "zh": "正在处理结构",
+    "en": "Processing Drawing",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.075": {
+    "zh": "✓ 已就绪：直接粘贴与双击编辑已启动。",
+    "en": "✓ Ready: direct paste and double-click editing are running.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.076": {
+    "zh": "已就绪",
+    "en": "Ready",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.077": {
+    "zh": "待完成设置",
+    "en": "Setup Required",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.078": {
+    "zh": "粘贴助手已暂停",
+    "en": "Paste Helper Paused",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.094": {
+    "zh": "未安装{0}，已跳过。",
+    "en": "{0} is not installed; skipped.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.096": {
+    "zh": "文件访问被拒绝：点击“重新授权文件访问”，在系统提示中允许Microsoft {0}。",
+    "en": "File access denied: click “Authorize File Access Again” and allow Microsoft {0} in the system prompt.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.097": {
+    "zh": "配置失败：{0}。处理后点击“重新检查”。",
+    "en": "Setup failed: {0}. Resolve the issue, then click “Check Again”.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.098": {
+    "zh": "重新授权文件访问",
+    "en": "Authorize File Access Again",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.101": {
+    "zh": "需要授权：在辅助功能中启用{0}；若开关已打开，请移除旧项并重新添加本应用。",
+    "en": "Permission required: enable {0} in Accessibility. If already enabled, remove the old entry and add this app again.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.102": {
+    "zh": "请先安装并激活ChemDraw，然后点“重新检查”。",
+    "en": "Install and activate ChemDraw, then click “Check Again”.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.103": {
+    "zh": "请先安装Word或PowerPoint，然后点“重新检查”。",
+    "en": "Install Word or PowerPoint, then click “Check Again”.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.104": {
+    "zh": "已暂停。点击“重新检查”恢复。",
+    "en": "Paused. Click “Check Again” to resume.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.106": {
+    "zh": "正在启动并检查键盘与鼠标监听…",
+    "en": "Starting and checking keyboard and mouse monitoring…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.107": {
+    "zh": "Office文件访问修复未完成",
+    "en": "Office File Access Repair Incomplete",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.108": {
+    "zh": "好",
+    "en": "OK",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.109": {
+    "zh": "取消",
+    "en": "Cancel",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.110": {
+    "zh": "启用Office本地面板",
+    "en": "Enable the Local Office Panel",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.111": {
+    "zh": "请在macOS认证提示中确认，以便Office连接本机ChemDraw Add-in for Mac面板。",
+    "en": "Confirm the macOS authentication prompt so Office can connect to the local ChemDraw Add-in for Mac panel.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.112": {
+    "zh": "启用本地连接",
+    "en": "Enable Local Connection",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.113": {
+    "zh": "Office本地连接已启用",
+    "en": "Local Office Connection Enabled",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.114": {
+    "zh": "请保存手头工作并重新打开Word和PowerPoint。",
+    "en": "Save your work and reopen Word and PowerPoint.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.115": {
+    "zh": "本地连接需要完成设置",
+    "en": "Local Connection Setup Required",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.116": {
+    "zh": "正在重新检查…",
+    "en": "Checking again…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.117": {
+    "zh": "助手已停止。点击“重新检查”重试，或点击“修复加载项”。",
+    "en": "The helper has stopped. Click “Check Again” to retry, or click “Repair Add-in”.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.121": {
+    "zh": "正在重新请求Word和PowerPoint文件访问，请在系统提示中允许；授权后自动继续。",
+    "en": "Requesting Word and PowerPoint file access again. Allow access in the system prompt; setup will continue automatically.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "native.122": {
+    "zh": "命令失败或超时：{0}",
+    "en": "Command failed or timed out: {0}",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "native.123": {
+    "zh": "未找到已安装的ChemDraw。请先安装并激活ChemDraw。",
+    "en": "No installed ChemDraw was found. Install and activate ChemDraw first.",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "native.126": {
+    "zh": "无法识别Office应用。",
+    "en": "Unknown Office host",
+    "locations": [
+      "src/NativeAutomation.swift",
+      "src/NativePaths.swift"
+    ]
+  },
+  "native.127": {
+    "zh": "绘图已打开，但无法切换到该窗口。请再次双击，以继续编辑已保留的草稿。",
+    "en": "The drawing opened but could not be focused. Double-click again to resume the retained draft.",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "native.128": {
+    "zh": "Office图片标识已改变。",
+    "en": "Office figure identity changed",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.129": {
+    "zh": "缓存结构与Office图片中的结构不一致。",
+    "en": "Cached source differs from the Office figure",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.130": {
+    "zh": "绘图源数据不可用。请在ChemDraw中重新复制结构并粘贴。",
+    "en": "The drawing source is unavailable. Copy the structure from ChemDraw and paste it again.",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.131": {
+    "zh": "已保存的结构与打开的图片不一致。",
+    "en": "The saved source differs from the open figure",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.132": {
+    "zh": "Office未返回绘图的源数据版本和尺寸。",
+    "en": "Office did not return the drawing's source revision and dimensions",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.133": {
+    "zh": "Office中的结构与ChemDraw最终结构不一致。",
+    "en": "Office source differs from the final ChemDraw source",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.134": {
+    "zh": "Office返回的绘图尺寸无效。",
+    "en": "Office returned invalid drawing dimensions",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.135": {
+    "zh": "Office图片比例与ChemDraw画布不一致。",
+    "en": "Office figure proportions differ from the ChemDraw canvas",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.136": {
+    "zh": "无法在{0}准备Office预览。请打开ChemDraw Add-in for Mac，选择“修复加载项”，允许macOS访问Office文件夹后重试。已保留复制的结构或编辑草稿。{1}",
+    "en": "Could not prepare the Office preview at {0}. Open ChemDraw Add-in for Mac, choose “Repair Add-in”, allow access to the Office folders, then retry. Your captured source or editing draft has been retained. {1}",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.137": {
+    "zh": "目标Office文档已不可用。",
+    "en": "The target Office document is no longer available",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.138": {
+    "zh": "请先完成当前ChemDraw窗口中的编辑，再打开另一幅绘图。",
+    "en": "Finish the visible ChemDraw edit before opening another drawing",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.139": {
+    "zh": "图片内的结构标识与Office图片标识不一致。",
+    "en": "Graphic source identity differs from its Office figure",
+    "locations": [
+      "src/NativeBridge.swift",
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.140": {
+    "zh": "Office文档状态检查未返回有效结果。",
+    "en": "The Office document status check did not return a valid result.",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.141": {
+    "zh": "预览导出期间，已保存的结构发生了变化。",
+    "en": "Saved source changed during preview export",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.142": {
+    "zh": "ChemDraw未生成有效的PNG预览。",
+    "en": "ChemDraw did not produce a valid PNG preview",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.143": {
+    "zh": "编辑期间Office图片发生了变化，已保留两个版本。",
+    "en": "The Office figure changed during editing; kept both versions",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.144": {
+    "zh": "回写验证失败，ChemDraw窗口仍保持打开。",
+    "en": "Write-back verification failed; ChemDraw remains open",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.145": {
+    "zh": "请在文档中选择一幅可编辑的ChemDraw绘图，再点击“编辑所选绘图”。",
+    "en": "Select one editable ChemDraw drawing in your document, then choose Edit selected drawing",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.146": {
+    "zh": "复制结构后重试粘贴。",
+    "en": "Copy the structure, then try pasting again.",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "native.149": {
+    "zh": "剪贴板内容已改变，请重新复制结构后粘贴。",
+    "en": "The clipboard has changed. Copy the structure again, then paste.",
+    "locations": [
+      "src/NativeClipboard.swift"
+    ]
+  },
+  "native.150": {
+    "zh": "XML数据过大。",
+    "en": "XML is too large",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.151": {
+    "zh": "结构数据包含不支持的XML实体声明。",
+    "en": "XML entity declarations are not supported",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.152": {
+    "zh": "无法初始化源数据解压缩。",
+    "en": "Cannot initialize source decompression",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.153": {
+    "zh": "压缩的源数据无效或过大。",
+    "en": "Invalid or oversized compressed payload",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.154": {
+    "zh": "无法压缩绘图源数据。",
+    "en": "Cannot compress drawing source",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.155": {
+    "zh": "ChemDraw源数据为空或过大。",
+    "en": "Empty or oversized ChemDraw source",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.156": {
+    "zh": "保存的绘图不是CDXML文档。",
+    "en": "The saved drawing is not a CDXML document",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.157": {
+    "zh": "绘图标识无效。",
+    "en": "Invalid drawing identity",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.159": {
+    "zh": "结构源数据包过大。",
+    "en": "Source envelope is too large",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.160": {
+    "zh": "此图片没有可编辑的ChemDraw源数据。",
+    "en": "This figure has no editable ChemDraw source",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.161": {
+    "zh": "结构源数据包无效。",
+    "en": "Invalid source envelope",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.162": {
+    "zh": "绘图格式与源数据包不一致。",
+    "en": "Drawing format does not match its envelope",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.163": {
+    "zh": "绘图源数据已损坏。",
+    "en": "Drawing source checksum mismatch",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.170": {
+    "zh": "绘图版本标识无效。",
+    "en": "Invalid drawing revision",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.173": {
+    "zh": "二进制数据不完整。",
+    "en": "Truncated binary data",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.174": {
+    "zh": "PNG结构载体无效。",
+    "en": "Invalid PNG carrier",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.175": {
+    "zh": "PNG数据块不完整。",
+    "en": "Truncated PNG chunk",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.176": {
+    "zh": "PNG数据已损坏。",
+    "en": "PNG checksum mismatch",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.177": {
+    "zh": "PNG元数据无效。",
+    "en": "Invalid PNG metadata",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.178": {
+    "zh": "PNG文本压缩格式无效。",
+    "en": "Invalid PNG text compression",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.179": {
+    "zh": "PNG文本无效。",
+    "en": "Invalid PNG text",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.180": {
+    "zh": "结构源文本无效。",
+    "en": "Invalid source text",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.181": {
+    "zh": "PNG中存在多份结构源数据，无法确定使用哪一份。",
+    "en": "Ambiguous PNG source metadata",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.182": {
+    "zh": "原生矢量画布缺少可用的viewBox。",
+    "en": "Native vector canvas has no usable viewBox",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.183": {
+    "zh": "原生矢量画布尺寸必须为有限正数。",
+    "en": "Native vector canvas dimensions must be positive and finite",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.184": {
+    "zh": "SVG文档无效。",
+    "en": "Invalid SVG document",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.185": {
+    "zh": "绘图包含不支持的SVG动态内容。",
+    "en": "Active SVG content is not supported",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.186": {
+    "zh": "绘图包含不支持的SVG动态属性。",
+    "en": "Active SVG attributes are not supported",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.187": {
+    "zh": "绘图包含不支持的SVG外部资源。",
+    "en": "External SVG resources are not supported",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.189": {
+    "zh": "需要ChemDraw原生矢量绘图。请重新复制结构并粘贴。",
+    "en": "A native vector drawing is required. Copy the structure in ChemDraw and paste it again.",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.193": {
+    "zh": "图片中应包含一份可编辑的ChemDraw源数据。",
+    "en": "Expected one editable ChemDraw source inside the graphic",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.194": {
+    "zh": "无法渲染绘图预览。",
+    "en": "Cannot render drawing preview",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.195": {
+    "zh": "预览画布过大。",
+    "en": "Preview canvas is too large",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.196": {
+    "zh": "无法分配预览图像内存。",
+    "en": "Cannot allocate preview",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.197": {
+    "zh": "无法生成PNG预览。",
+    "en": "Cannot encode preview PNG",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.198": {
+    "zh": "保存的预览尺寸与原生绘图不一致。",
+    "en": "Saved preview dimensions differ from native drawing",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.199": {
+    "zh": "保存的预览与ChemDraw空白画布不一致。",
+    "en": "The saved preview differs from the blank ChemDraw canvas",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.200": {
+    "zh": "保存的空白预览与ChemDraw画布不一致。",
+    "en": "The saved blank preview does not match the ChemDraw canvas",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.201": {
+    "zh": "保存的预览与ChemDraw最终渲染结果不一致。",
+    "en": "Saved preview does not match the final ChemDraw render",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.202": {
+    "zh": "Office文档过大，无法验证。",
+    "en": "Office document is too large for verification",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.203": {
+    "zh": "Office文档压缩包无效。",
+    "en": "Invalid Office archive",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.204": {
+    "zh": "Office文档压缩包目录无效。",
+    "en": "Invalid Office archive directory",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.205": {
+    "zh": "Office文档压缩包条目无效。",
+    "en": "Invalid Office archive entry",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.206": {
+    "zh": "Office文档使用了不支持的压缩方式。",
+    "en": "Unsupported Office archive compression",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.207": {
+    "zh": "Office文档目录不完整。",
+    "en": "Truncated Office directory",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.208": {
+    "zh": "Office文档中存在重复的数据条目。",
+    "en": "Duplicate Office package entry",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.209": {
+    "zh": "Office文档缺少数据部分：{0}",
+    "en": "Missing Office package part: {0}",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.210": {
+    "zh": "Office文档的数据部分过大。",
+    "en": "Office package part is too large",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.211": {
+    "zh": "Office文档ZIP文件头无效。",
+    "en": "Invalid Office ZIP header",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.212": {
+    "zh": "Office文档数据包不完整。",
+    "en": "Truncated Office package",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.213": {
+    "zh": "Office文档数据包已损坏。",
+    "en": "Office package checksum mismatch",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.219": {
+    "zh": "保存的文档中缺少目标绘图，或存在多个匹配项。",
+    "en": "Saved document has an ambiguous or missing managed figure",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.220": {
+    "zh": "保存的绘图缺少预览关联。",
+    "en": "Saved figure has no preview relationship",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.221": {
+    "zh": "保存的预览缺失，或链接到了外部文件。",
+    "en": "Saved preview is missing or externally linked",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.222": {
+    "zh": "Office文档关联指向了数据包之外的位置。",
+    "en": "Office relationship escapes the package",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.223": {
+    "zh": "Office图片的版本与其内嵌源数据不一致。",
+    "en": "Office figure revision differs from its embedded source",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.224": {
+    "zh": "Office元数据与图片中的源数据不一致。",
+    "en": "Office metadata and graphic source disagree",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.226": {
+    "zh": "已保存Office文档中的结构与ChemDraw最终结构不一致。",
+    "en": "Saved Office source differs from the final ChemDraw source",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.227": {
+    "zh": "Office图片比例与原生矢量画布不一致。",
+    "en": "Office figure proportions differ from the native vector canvas",
+    "locations": [
+      "src/NativeCore.swift"
+    ]
+  },
+  "native.231": {
+    "zh": "Office目录写入后无法读回：{0}",
+    "en": "Could not read back the Office directory after writing: {0}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.232": {
+    "zh": "无法识别当前应用，请重新安装ChemDraw Add-in for Mac。",
+    "en": "The current app could not be identified. Reinstall ChemDraw Add-in for Mac.",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.233": {
+    "zh": "重新请求Office文件访问失败：{0}。请重试“修复加载项”，或重新安装当前版本。",
+    "en": "Could not request Office file access again: {0}. Retry “Repair Add-in”, or reinstall the current version.",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.234": {
+    "zh": "macOS尚未信任本地连接证书。请打开ChemDraw Add-in for Mac，选择“修复加载项”并完成macOS认证提示，然后重新打开Office。",
+    "en": "macOS has not trusted the localhost certificate. Open ChemDraw Add-in for Mac, choose “Repair Add-in” and complete the macOS authentication prompt, then restart Office.",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.235": {
+    "zh": "已安装的加载项配置与当前版本不一致。",
+    "en": "The installed manifest does not match this version",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.236": {
+    "zh": "已安装并验证：{0}",
+    "en": "Installed and verified: {0}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.237": {
+    "zh": "Office设置未完成：{0}",
+    "en": "Office setup incomplete: {0}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.238": {
+    "zh": "打开ChemDraw Add-in for Mac → 设置加载项。为访问被拒绝的Office应用选择“重新授权文件访问”，然后在macOS提示或“文件与文件夹”中允许Microsoft Word和Microsoft PowerPoint；设置会自动重试。",
+    "en": "Open ChemDraw Add-in for Mac → Add-in Setup. Choose “Authorize File Access Again” for a blocked Office host, then allow Microsoft Word and Microsoft PowerPoint in the macOS prompts or Files & Folders; setup retries automatically.",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.240": {
+    "zh": "macOS保护此文件夹；请在Office中确认加载项入口：{0}",
+    "en": "macOS protects this folder; confirm the entry in Office: {0}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.241": {
+    "zh": "加载项配置缺失或无法读取：{0}；{1}",
+    "en": "Manifest missing or unreadable: {0} — {1}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.243": {
+    "zh": "检测到Mac App Store版本：{0}；请在Office中确认激活。",
+    "en": "Mac App Store build detected: {0}; confirm activation inside Office.",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.244": {
+    "zh": "首选ChemDraw：{0}；{1}",
+    "en": "Preferred ChemDraw: {0} — {1}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.245": {
+    "zh": "ChemDraw：未找到已安装的应用。",
+    "en": "ChemDraw: no installed application found",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.246": {
+    "zh": "本地连接证书：",
+    "en": "Local certificate: ",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.247": {
+    "zh": "已信任localhost",
+    "en": "trusted for localhost",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.248": {
+    "zh": "尚未信任；请在ChemDraw Add-in for Mac中选择“修复加载项”，完成认证后重新打开Office。",
+    "en": "Not trusted; choose “Repair Add-in” in ChemDraw Add-in for Mac, authenticate, then reopen Office.",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.249": {
+    "zh": "本地助手：",
+    "en": "Local helper: ",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.250": {
+    "zh": "请从“应用程序”打开ChemDraw Add-in for Mac。",
+    "en": "open ChemDraw Add-in for Mac from Applications",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.251": {
+    "zh": "请先在ChemDraw中选择结构并复制，再粘贴可编辑结构。",
+    "en": "Select and copy a structure in ChemDraw, then paste an editable drawing.",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "native.252": {
+    "zh": "ChemDraw Add-in for Mac监听程序已在运行。",
+    "en": "A ChemDraw Add-in for Mac monitor is already running",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "native.253": {
+    "zh": "助手正在停止。",
+    "en": "Helper is stopping",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "native.255": {
+    "zh": "键盘与鼠标监听需要重新授权。",
+    "en": "Keyboard and mouse monitoring needs authorization again.",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "native.256": {
+    "zh": "键盘与鼠标监听意外退出（状态{0}）。编辑草稿已保留，请在设置加载项中点击“重新检查”。",
+    "en": "Keyboard and mouse monitoring stopped unexpectedly (status {0}). Your editing draft has been retained. Click “Check Again” in Add-in Setup.",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "native.257": {
+    "zh": "用法：chemoffice demo word|powerpoint",
+    "en": "Usage: chemoffice demo word|powerpoint",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "native.258": {
+    "zh": "用法：chemoffice run|demo word|demo powerpoint|install|check|discover",
+    "en": "Usage: chemoffice run|demo word|demo powerpoint|install|check|discover",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "native.261": {
+    "zh": "本机监听事件过大。",
+    "en": "Native monitor event is too large",
+    "locations": [
+      "src/NativeMonitorEvents.swift"
+    ]
+  },
+  "native.262": {
+    "zh": "本机监听事件无效。",
+    "en": "Invalid native monitor event",
+    "locations": [
+      "src/NativeMonitorEvents.swift"
+    ]
+  },
+  "native.264": {
+    "zh": "本机监听事件不完整。",
+    "en": "Incomplete native monitor event",
+    "locations": [
+      "src/NativeMonitorEvents.swift"
+    ]
+  },
+  "native.265": {
+    "zh": "本地服务器地址无效。",
+    "en": "Invalid local host",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.266": {
+    "zh": "未找到请求的内容。",
+    "en": "Not found",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.267": {
+    "zh": "请从ChemDraw Add-in for Mac面板执行此操作。",
+    "en": "Open this action from the ChemDraw Add-in for Mac panel",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.268": {
+    "zh": "打开ChemDraw Add-in for Mac →“设置加载项”，完成授权并启动粘贴助手。",
+    "en": "Open ChemDraw Add-in for Mac → “Add-in Setup” to finish permissions and start the paste helper.",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.269": {
+    "zh": "请求无效。",
+    "en": "Invalid request",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.270": {
+    "zh": "请在Word或PowerPoint中选择一幅绘图。",
+    "en": "Select a drawing in Word or PowerPoint",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.272": {
+    "zh": "无法载入本地连接凭据。",
+    "en": "Cannot load localhost TLS identity",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.273": {
+    "zh": "本地HTTPS服务启动超时。",
+    "en": "Local HTTPS listener timed out",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.274": {
+    "zh": "本地HTTPS服务未取得可用端口。",
+    "en": "Local HTTPS listener has no port",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.275": {
+    "zh": "请求过大。",
+    "en": "Request too large",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.276": {
+    "zh": "HTTP请求无效。",
+    "en": "Invalid HTTP request",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.277": {
+    "zh": "HTTP请求头无效。",
+    "en": "Invalid HTTP header",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.278": {
+    "zh": "HTTP请求头重复。",
+    "en": "Duplicate HTTP header",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.279": {
+    "zh": "请求大小无效。",
+    "en": "Invalid request size",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.280": {
+    "zh": "HTTP请求正文无效。",
+    "en": "Invalid HTTP body",
+    "locations": [
+      "src/NativeOfficeUI.swift"
+    ]
+  },
+  "native.283": {
+    "zh": "安装包下载不完整，请重新下载。",
+    "en": "The installer download is incomplete. Download it again.",
+    "locations": [
+      "src/NativeUpdateDownload.swift"
+    ]
+  },
+  "native.284": {
+    "zh": "下载的安装包与发布版本不一致，请重新下载。",
+    "en": "The downloaded installer differs from the released version. Download it again.",
+    "locations": [
+      "src/NativeUpdateDownload.swift"
+    ]
+  },
+  "native.285": {
+    "zh": "安装包大小与发布版本不一致，请重新下载。",
+    "en": "The installer size differs from the released version. Download it again.",
+    "locations": [
+      "src/NativeUpdateDownload.swift"
+    ]
+  },
+  "native.286": {
+    "zh": "安装包下载失败，请检查网络后重试。",
+    "en": "The installer download failed. Check your network connection and retry.",
+    "locations": [
+      "src/NativeUpdateDownload.swift"
+    ]
+  },
+  "native.287": {
+    "zh": "无法完成更新下载，请检查网络后重试。",
+    "en": "The update download could not be completed. Check your network connection and retry.",
+    "locations": [
+      "src/NativeUpdateDownload.swift"
+    ]
+  },
+  "native.288": {
+    "zh": "安装包下载未完成，请重试。",
+    "en": "The installer download did not finish. Try again.",
+    "locations": [
+      "src/NativeUpdateDownload.swift"
+    ]
+  },
+  "native.289": {
+    "zh": "更新版本无效，请重新检查更新。",
+    "en": "The update version is invalid. Check for updates again.",
+    "locations": [
+      "src/NativeUpdates.swift"
+    ]
+  },
+  "native.290": {
+    "zh": "这个版本的安装包尚未准备完成，请稍后重新检查更新。",
+    "en": "The installer for this release is not ready yet. Check for updates later.",
+    "locations": [
+      "src/NativeUpdates.swift"
+    ]
+  },
+  "native.291": {
+    "zh": "GitHub上还没有可用的正式版本。",
+    "en": "No stable release is available on GitHub yet.",
+    "locations": [
+      "src/NativeUpdates.swift"
+    ]
+  },
+  "native.292": {
+    "zh": "GitHub暂时限制了更新查询，请稍后重试。",
+    "en": "GitHub is temporarily limiting update requests. Try again later.",
+    "locations": [
+      "src/NativeUpdates.swift"
+    ]
+  },
+  "native.293": {
+    "zh": "GitHub返回错误（{0}），请稍后重试。",
+    "en": "GitHub returned an error ({0}). Try again later.",
+    "locations": [
+      "src/NativeUpdates.swift"
+    ]
+  },
+  "native.294": {
+    "zh": "GitHub的版本信息不完整，请稍后重试。",
+    "en": "The release information from GitHub is incomplete. Try again later.",
+    "locations": [
+      "src/NativeUpdates.swift"
+    ]
+  },
+  "native.295": {
+    "zh": "无法连接GitHub，请检查网络后重试。\n{0}",
+    "en": "Could not connect to GitHub. Check your network connection and retry.\n{0}",
+    "locations": [
+      "src/NativeUpdates.swift"
+    ]
+  },
+  "script.000": {
+    "zh": "ChemDraw未打开目标结构源文件。",
+    "en": "ChemDraw did not open the managed source",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "ChemDraw did not open the managed source"
+  },
+  "script.001": {
+    "zh": "无法唯一定位正在编辑的ChemDraw文档。",
+    "en": "Expected exactly one managed ChemDraw document",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "Expected exactly one managed ChemDraw document"
+  },
+  "script.002": {
+    "zh": "保存前绘图标识发生了变化。",
+    "en": "Managed drawing identity changed before save",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "Managed drawing identity changed before save"
+  },
+  "script.003": {
+    "zh": "ChemDraw仍有未保存的修改。",
+    "en": "ChemDraw still reports unsaved changes",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "ChemDraw still reports unsaved changes"
+  },
+  "script.004": {
+    "zh": "ChemDraw仍有未保存的修改，草稿窗口保持打开。",
+    "en": "ChemDraw still reports unsaved changes; draft kept open",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "ChemDraw still reports unsaved changes; draft kept open"
+  },
+  "script.005": {
+    "zh": "无法定位复制的结构以导出矢量图。",
+    "en": "Cannot identify captured chemistry for vector export",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "Cannot identify captured chemistry for vector export"
+  },
+  "script.006": {
+    "zh": "复制的结构源文件出现了未保存的修改。",
+    "en": "Captured source unexpectedly has pending edits",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "Captured source unexpectedly has pending edits"
+  },
+  "script.007": {
+    "zh": "导出期间复制的绘图发生变化，窗口保持打开。",
+    "en": "Captured drawing changed during export; kept open",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "Captured drawing changed during export; kept open"
+  },
+  "script.008": {
+    "zh": "关闭前绘图发生变化，窗口保持打开。",
+    "en": "Drawing changed before close; kept open",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "Drawing changed before close; kept open"
+  },
+  "script.009": {
+    "zh": "目标ChemDraw绘图已关闭。",
+    "en": "Managed drawing is no longer open",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ],
+    "script_error": "Managed drawing is no longer open"
+  },
+  "script.010": {
+    "zh": "无法唯一定位原PowerPoint演示文稿。",
+    "en": "The original PowerPoint presentation is no longer uniquely available",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ],
+    "script_error": "The original PowerPoint presentation is no longer uniquely available"
+  },
+  "script.011": {
+    "zh": "请先关闭此PowerPoint演示文稿的另一份副本，再编辑绘图。",
+    "en": "Close the other copy of this PowerPoint presentation before editing its drawing",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ],
+    "script_error": "Close the other copy of this PowerPoint presentation before editing its drawing"
+  },
+  "script.012": {
+    "zh": "缺少绘图比例，尚未插入图片。请重新复制结构后粘贴。",
+    "en": "Drawing proportions are missing; no figure inserted",
+    "locations": [
+      "office/powerpoint/adapter.applescript",
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Drawing proportions are missing; no figure inserted"
+  },
+  "script.013": {
+    "zh": "粘贴前目标PowerPoint文档发生了变化。请返回目标文档后重试。",
+    "en": "The target PowerPoint document changed before paste",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ],
+    "script_error": "The target PowerPoint document changed before paste"
+  },
+  "script.014": {
+    "zh": "原PowerPoint演示文稿未打开。",
+    "en": "Original PowerPoint presentation is not open",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ],
+    "script_error": "Original PowerPoint presentation is not open"
+  },
+  "script.015": {
+    "zh": "原PowerPoint图片缺失，或存在多个匹配项。",
+    "en": "Ambiguous or missing original PowerPoint figure",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ],
+    "script_error": "Ambiguous or missing original PowerPoint figure"
+  },
+  "script.016": {
+    "zh": "存在多份旧版ChemDraw源数据，无法确定使用哪一份。",
+    "en": "Ambiguous legacy ChemDraw source",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ],
+    "script_error": "Ambiguous legacy ChemDraw source"
+  },
+  "script.017": {
+    "zh": "无法唯一定位插入的预览，已保留结构源数据。",
+    "en": "Cannot uniquely identify the inserted preview; source retained",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ],
+    "script_error": "Cannot uniquely identify the inserted preview; source retained"
+  },
+  "script.018": {
+    "zh": "无法唯一定位原Word文档。",
+    "en": "The original Word document is no longer uniquely available",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "The original Word document is no longer uniquely available"
+  },
+  "script.019": {
+    "zh": "请先关闭此Word文档的另一份副本，再编辑绘图。",
+    "en": "Close the other copy of this Word document before editing its drawing",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Close the other copy of this Word document before editing its drawing"
+  },
+  "script.020": {
+    "zh": "粘贴前目标Word文档发生了变化。请返回目标文档后重试。",
+    "en": "The target Word document changed before paste",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "The target Word document changed before paste"
+  },
+  "script.021": {
+    "zh": "Word粘贴结果异常，已保留复制的结构。",
+    "en": "Unexpected Word paste result; kept the captured source",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Unexpected Word paste result; kept the captured source"
+  },
+  "script.022": {
+    "zh": "无法唯一定位匹配的Word图片。",
+    "en": "Expected exactly one matching Word figure",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Expected exactly one matching Word figure"
+  },
+  "script.023": {
+    "zh": "原Word文档未打开。",
+    "en": "Original Word document is not open",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Original Word document is not open"
+  },
+  "script.024": {
+    "zh": "原Word图片缺失，或存在多个匹配项。",
+    "en": "Ambiguous or missing original Word figure",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Ambiguous or missing original Word figure"
+  },
+  "script.025": {
+    "zh": "Word插入结果异常，已保留两个版本。",
+    "en": "Unexpected Word insertion result; retained both versions",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Unexpected Word insertion result; retained both versions"
+  },
+  "script.026": {
+    "zh": "原图片标识发生变化，已保留两个版本。",
+    "en": "Original image identity changed; retained both versions",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Original image identity changed; retained both versions"
+  },
+  "script.027": {
+    "zh": "Word中的图片数量出现了意外变化。",
+    "en": "Word picture count changed unexpectedly",
+    "locations": [
+      "office/word/adapter.applescript"
+    ],
+    "script_error": "Word picture count changed unexpectedly"
+  },
+  "native.launchTimeout": {
+    "zh": "ChemDraw未能及时启动。",
+    "en": "ChemDraw did not finish launching in time.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "native.manifestResult": {
+    "zh": "加载项配置{0}：{1}",
+    "en": "Manifest {0}: {1}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.manifestVerified": {
+    "zh": "已验证",
+    "en": "verified",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.manifestInvalid": {
+    "zh": "已过时或无效；请打开ChemDraw Add-in for Mac并选择“修复加载项”",
+    "en": "is outdated or invalid; open ChemDraw Add-in for Mac and choose “Repair Add-in”",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.cacheResult": {
+    "zh": "Office预览缓存：{0}{1}",
+    "en": "Office preview cache: {0}{1}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.cacheUnavailable": {
+    "zh": "；不可用，请打开ChemDraw Add-in for Mac，选择“修复加载项”并允许文件夹访问。",
+    "en": "; unavailable. Open ChemDraw Add-in for Mac, choose “Repair Add-in”, and allow folder access.",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.officeVersion": {
+    "zh": "{0}版本：{1}",
+    "en": "{0} version: {1}",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.unknown": {
+    "zh": "未知",
+    "en": "unknown",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.running": {
+    "zh": "正在运行",
+    "en": "running",
+    "locations": [
+      "src/NativeInstaller.swift"
+    ]
+  },
+  "native.development": {
+    "zh": "开发版",
+    "en": "development",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "pane.headline": {
+    "zh": "你的绘图。\n你的ChemDraw。",
+    "en": "Your drawing.\nYour ChemDraw.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.intro": {
+    "zh": "为Word和PowerPoint提供可编辑化学结构与清晰矢量图。",
+    "en": "Native chemistry and sharp vectors for Word and PowerPoint.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.connecting": {
+    "zh": "正在连接本机…",
+    "en": "Connecting to your Mac…",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.keepRunning": {
+    "zh": "请保持ChemDraw Add-in for Mac运行。点击菜单栏图标打开设置。",
+    "en": "Keep ChemDraw Add-in for Mac running. Use its menu bar icon to open settings.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.paste": {
+    "zh": "粘贴可编辑绘图",
+    "en": "Paste editable drawing",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.edit": {
+    "zh": "编辑所选绘图",
+    "en": "Edit selected drawing",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.officeNote": {
+    "zh": "请在Word或PowerPoint中打开此面板，以编辑所选绘图。",
+    "en": "Open this panel inside Word or PowerPoint to edit a selection.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.steps": {
+    "zh": "继续绘图",
+    "en": "Keep drawing",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.step1": {
+    "zh": "在ChemDraw中复制结构。",
+    "en": "Copy your structure in ChemDraw.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.step2": {
+    "zh": "按⌘V、右键选择“粘贴”，或点击此面板中的“粘贴可编辑绘图”。新建且尚未保存的文档也可使用。Office文档由你按需要保存。",
+    "en": "Paste with ⌘V, right-click → Paste, or Paste editable drawing in this panel, including a new unsaved document. Save your Office document whenever you choose.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.step3": {
+    "zh": "双击绘图即可编辑，ChemDraw未运行时也可打开。",
+    "en": "Double-click the drawing to edit, even when ChemDraw is closed.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.step4": {
+    "zh": "在ChemDraw中保存，即可更新Office中的图片并继续编辑。关闭ChemDraw文档后可返回原文档。",
+    "en": "Save in ChemDraw to update Office while editing. Close the ChemDraw document to return to your original document.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.troubleshooting": {
+    "zh": "安装与故障排查",
+    "en": "Installation and troubleshooting",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.setupHelp": {
+    "zh": "从“应用程序”或菜单栏图标打开ChemDraw Add-in for Mac。选择“设置加载项”，查看授权并自动配置本地编辑助手。",
+    "en": "Open ChemDraw Add-in for Mac from Applications or its menu bar icon. Choose “Add-in Setup” to view permissions and automatically configure the local editing helper.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.activationHelp": {
+    "zh": "在“开始 → 加载项 → 开发人员加载项 → ChemDraw Add-in for Mac”中激活。激活后也可从ChemDraw Add-in for Mac功能区选项卡打开。",
+    "en": "Find the entry under Home → Add-ins → Developer Add-ins → ChemDraw Add-in for Mac. Once activated, the ChemDraw Add-in for Mac ribbon tab also opens it.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.officeHelp": {
+    "zh": "使用已安装的Office。在每个应用中点击蓝色C图标以激活面板。若自动检查显示入口被禁用，请在Office前台实际点击确认。",
+    "en": "Use your existing Office installation. Open the blue C entry inside each app to activate the panel. If an automated check labels the entry disabled, confirm it with an actual foreground click.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.repairHelp": {
+    "zh": "若面板无法加载，请打开设置窗口并选择“修复加载项”。首次安装时还需按提示信任本地连接证书。",
+    "en": "If the panel will not load, open the configuration window and choose “Repair Add-in”. A fresh installation also needs the Mac to trust the local localhost certificate.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.previewHelp": {
+    "zh": "本地预览自动选择已安装的最新ChemDraw，并使用Office桌面应用。生成的SVG绘图包含完整的可编辑源数据。",
+    "en": "This local preview automatically selects the newest installed ChemDraw and needs the desktop Office applications. It creates managed SVG drawings with full editable source.",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.host": {
+    "zh": "{0} · 本地预览",
+    "en": "{0} · Local preview",
+    "locations": [
+      "office/addin/taskpane.html"
+    ]
+  },
+  "pane.connectionUnavailable": {
+    "zh": "连接不可用。",
+    "en": "Connection unavailable",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.starting": {
+    "zh": "粘贴助手正在启动。",
+    "en": "Paste helper is starting",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.actionError": {
+    "zh": "绘图操作需要处理",
+    "en": "Drawing action needs attention",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.processing": {
+    "zh": "正在处理绘图…",
+    "en": "Processing your drawing…",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.editing": {
+    "zh": "正在ChemDraw中编辑",
+    "en": "ChemDraw edit in progress",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.draft": {
+    "zh": "有可恢复的编辑草稿",
+    "en": "An editing draft is available",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.ready": {
+    "zh": "已就绪，可以继续绘图",
+    "en": "Ready to keep drawing",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.editHint": {
+    "zh": "在ChemDraw中保存以更新Office；关闭ChemDraw文档后可返回原文档。",
+    "en": "Save in ChemDraw to update Office; close the ChemDraw document to return to your original document.",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.draftHint": {
+    "zh": "双击原绘图继续编辑，或粘贴新的结构。",
+    "en": "Double-click the original drawing to resume, or paste a new structure.",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.pasteHint": {
+    "zh": "按⌘V、右键选择“粘贴”，或点击“粘贴可编辑绘图”。",
+    "en": "Paste with ⌘V, right-click → Paste, or use Paste editable drawing.",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.unavailable": {
+    "zh": "本地助手不可用",
+    "en": "Local helper is unavailable",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.setupHint": {
+    "zh": "打开ChemDraw Add-in for Mac →“设置加载项”，完成授权并启动粘贴助手。",
+    "en": "Open ChemDraw Add-in for Mac → “Add-in Setup” to finish permissions and start the paste helper.",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.pasting": {
+    "zh": "正在粘贴可编辑绘图…",
+    "en": "Pasting an editable drawing…",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.opening": {
+    "zh": "正在ChemDraw中打开所选绘图…",
+    "en": "Opening the selected drawing in ChemDraw…",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.failed": {
+    "zh": "无法完成绘图操作。",
+    "en": "The drawing action could not be completed.",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.pasted": {
+    "zh": "已粘贴可编辑绘图。",
+    "en": "Editable drawing pasted.",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "pane.opened": {
+    "zh": "绘图已在ChemDraw中打开。保存以更新Office；关闭ChemDraw文档后可返回原文档。",
+    "en": "Your drawing is open in ChemDraw. Save to update Office; close the ChemDraw document to return to your original document.",
+    "locations": [
+      "office/addin/taskpane.js"
+    ]
+  },
+  "manifest.description": {
+    "zh": "使用已安装的ChemDraw编辑带有源数据的矢量化学结构。",
+    "en": "Edit source-carrying vector chemistry with your installed ChemDraw.",
+    "locations": [
+      "office/addin/manifest.xml"
+    ]
+  },
+  "manifest.group": {
+    "zh": "ChemDraw绘图",
+    "en": "ChemDraw drawings",
+    "locations": [
+      "office/addin/manifest.xml"
+    ]
+  },
+  "manifest.button": {
+    "zh": "打开ChemDraw Add-in for Mac",
+    "en": "Open ChemDraw Add-in for Mac",
+    "locations": [
+      "office/addin/manifest.xml"
+    ]
+  },
+  "manifest.help": {
+    "zh": "打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。",
+    "en": "Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.",
+    "locations": [
+      "office/addin/manifest.xml"
+    ]
+  },
+  "system.automation": {
+    "zh": "ChemDraw Add-in for Mac控制ChemDraw、Word和PowerPoint，在本机编辑化学结构并回写到文档。",
+    "en": "ChemDraw Add-in for Mac controls ChemDraw, Word and PowerPoint to edit chemical drawings locally and write them back to your document.",
+    "locations": [
+      "packaging/Info.plist"
+    ],
+    "info_key": "NSAppleEventsUsageDescription"
+  },
+  "installer.welcome.0": {
+    "zh": "ChemDraw Add-in for Mac",
+    "en": "ChemDraw Add-in for Mac",
+    "locations": [
+      "packaging/Welcome.html"
+    ],
+    "installer_page": "welcome",
+    "element": "h1"
+  },
+  "installer.welcome.1": {
+    "zh": "版本1.3.4 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Version 1.3.4 · Apple Silicon + Intel · macOS 12 or later",
+    "locations": [
+      "packaging/Welcome.html"
+    ],
+    "installer_page": "welcome",
+    "element": "p"
+  },
+  "installer.welcome.2": {
+    "zh": "界面根据系统首选语言显示中文或英文，覆盖应用窗口、Office面板、功能区及安装提示。",
+    "en": "The app windows, Office panel, ribbon, and installation instructions follow your preferred system language in Chinese or English.",
+    "locations": [
+      "packaging/Welcome.html"
+    ],
+    "installer_page": "welcome",
+    "element": "p"
+  },
+  "installer.welcome.3": {
+    "zh": "更改系统首选语言后，请从菜单栏退出应用，再重新打开应用和Office以切换界面语言。",
+    "en": "After changing your preferred system language, quit the app from its menu bar, then reopen the app and Office to switch the interface language.",
+    "locations": [
+      "packaging/Welcome.html"
+    ],
+    "installer_page": "welcome",
+    "element": "p"
+  },
+  "installer.welcome.4": {
+    "zh": "安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成四项检查后即可使用。",
+    "en": "Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the four checks to start using the app.",
+    "locations": [
+      "packaging/Welcome.html"
+    ],
+    "installer_page": "welcome",
+    "element": "p"
+  },
+  "installer.welcome.5": {
+    "zh": "已有绘图、连接证书及恢复草稿继续保留。从旧版升级时，按系统提示确认辅助功能和自动化授权。",
+    "en": "Existing drawings, connection certificates, and recovery drafts are retained. When upgrading from an older version, confirm Accessibility and Automation access when prompted.",
+    "locations": [
+      "packaging/Welcome.html"
+    ],
+    "installer_page": "welcome",
+    "element": "p"
+  },
+  "installer.welcome.6": {
+    "zh": "升级前请完成当前编辑并退出应用。",
+    "en": "Finish editing and quit the app before upgrading.",
+    "locations": [
+      "packaging/Welcome.html"
+    ],
+    "installer_page": "welcome",
+    "element": "p"
+  },
+  "installer.conclusion.0": {
+    "zh": "完成ChemDraw Add-in for Mac安装",
+    "en": "ChemDraw Add-in for Mac Installation Complete",
+    "locations": [
+      "packaging/Conclusion.html"
+    ],
+    "installer_page": "conclusion",
+    "element": "h1"
+  },
+  "installer.conclusion.1": {
+    "zh": "应用将自动打开“设置加载项”，分别检查Word文件访问、PowerPoint文件访问、辅助功能和粘贴助手。",
+    "en": "The app will open Add-in Setup automatically to check Word file access, PowerPoint file access, Accessibility, and the paste helper.",
+    "locations": [
+      "packaging/Conclusion.html"
+    ],
+    "installer_page": "conclusion",
+    "element": "p"
+  },
+  "installer.conclusion.2": {
+    "zh": "请在系统提示中允许访问所用的Word／PowerPoint。程序会自动验证目录读写并启动助手，四项检查通过后点击“完成”。",
+    "en": "Allow access to the Word and PowerPoint apps you use when prompted. The app will verify directory access and start the helper automatically. Click “Done” when all four checks pass.",
+    "locations": [
+      "packaging/Conclusion.html"
+    ],
+    "installer_page": "conclusion",
+    "element": "p"
+  },
+  "installer.conclusion.3": {
+    "zh": "从旧版升级时，按系统提示确认辅助功能和自动化授权。",
+    "en": "When upgrading from an older version, confirm Accessibility and Automation access when prompted.",
+    "locations": [
+      "packaging/Conclusion.html"
+    ],
+    "installer_page": "conclusion",
+    "element": "p"
+  },
+  "installer.conclusion.4": {
+    "zh": "文件访问被拒绝时，点击“重新授权文件访问”或主界面的“修复加载项”，按提示允许后程序会自动继续。",
+    "en": "If file access is denied, click “Authorize File Access Again” or “Repair Add-in” in the main window. Allow access when prompted; setup will continue automatically.",
+    "locations": [
+      "packaging/Conclusion.html"
+    ],
+    "installer_page": "conclusion",
+    "element": "p"
+  },
+  "installer.conclusion.5": {
+    "zh": "后续点击“检查更新”即可在应用内下载并安装新版本，安装结束后自动重新打开。",
+    "en": "Use “Check for Updates” to download and install new versions in the app. The app will reopen automatically after installation.",
+    "locations": [
+      "packaging/Conclusion.html"
+    ],
+    "installer_page": "conclusion",
+    "element": "p"
+  },
+  "installer.conclusion.6": {
+    "zh": "在ChemDraw中复制结构，到Word或PowerPoint粘贴；双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。",
+    "en": "Copy a structure in ChemDraw and paste it into Word or PowerPoint. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.",
+    "locations": [
+      "packaging/Conclusion.html"
+    ],
+    "installer_page": "conclusion",
+    "element": "p"
+  },
+  "fixed.product": {
+    "zh": "ChemDraw Add-in for Mac",
+    "en": "ChemDraw Add-in for Mac",
+    "locations": [
+      "应用标题、菜单栏提示、Office功能区和安装器"
+    ],
+    "fixed": true
+  },
+  "fixed.icon": {
+    "zh": "C",
+    "en": "C",
+    "locations": [
+      "Office面板品牌图标"
+    ],
+    "fixed": true
+  },
+  "fixed.version": {
+    "zh": "v{0}",
+    "en": "v{0}",
+    "locations": [
+      "菜单栏版本"
+    ],
+    "fixed": true
+  },
+  "fixed.statusVersion": {
+    "zh": "{0} · v{1}",
+    "en": "{0} · v{1}",
+    "locations": [
+      "设置加载项状态"
+    ],
+    "fixed": true
+  },
+  "fixed.office": {
+    "zh": "Word / PowerPoint / ChemDraw / GitHub / Office",
+    "en": "Word / PowerPoint / ChemDraw / GitHub / Office",
+    "locations": [
+      "应用及服务名称"
+    ],
+    "fixed": true
+  },
+  "fixed.license": {
+    "zh": "Apache License, Version 2.0（英文许可原文，见LICENSE）",
+    "en": "Apache License, Version 2.0 (full original text in LICENSE)",
+    "locations": [
+      "安装器许可页：LICENSE"
+    ],
+    "fixed": true
+  },
+  "installer.firstInstall": {
+    "zh": "{0}：首次安装，将在设置加载项时请求文件访问。\n",
+    "en": "{0}: first installation; file access will be requested during setup.\n",
+    "locations": [
+      "packaging/scripts/preinstall"
+    ],
+    "shell": true
+  },
+  "installer.accessFailed": {
+    "zh": "{0}：无法为{1}重新请求Office文件访问。原因：{2}。请重新安装。\n",
+    "en": "{0}: could not renew Office file access for {1}: {2}. Retry installation.\n",
+    "locations": [
+      "packaging/scripts/preinstall"
+    ],
+    "shell": true
+  },
+  "fixed.certificateName": {
+    "zh": "ChemDraw Add-in for Mac Localhost",
+    "en": "ChemDraw Add-in for Mac Localhost",
+    "locations": [
+      "src/NativeInstaller.swift：本地连接证书名称"
+    ],
+    "fixed": true
+  },
+  "fixed.certificateOrganization": {
+    "zh": "ChemDraw Add-in for Mac Local Preview",
+    "en": "ChemDraw Add-in for Mac Local Preview",
+    "locations": [
+      "src/NativeInstaller.swift：本地连接证书组织名称"
+    ],
+    "fixed": true
+  },
+  "fixed.paneHosts": {
+    "zh": "Word + PowerPoint",
+    "en": "Word + PowerPoint",
+    "locations": [
+      "office/addin/taskpane.js：未连接Office时的页脚"
+    ],
+    "fixed": true
+  },
+  "fixed.installerTitle": {
+    "zh": "ChemDraw Add-in for Mac {0}",
+    "en": "ChemDraw Add-in for Mac {0}",
+    "locations": [
+      "packaging/Distribution.xml：安装器标题"
+    ],
+    "fixed": true
+  },
+  "fixed.drawingObject": {
+    "zh": "ChemOffice Drawing:{0}:{1}",
+    "en": "ChemOffice Drawing:{0}:{1}",
+    "locations": [
+      "Office图片对象名及替代文字；结构标识和版本由程序生成"
+    ],
+    "fixed": true
+  },
+  "native.pasteRectangle": {
+    "zh": "粘贴区域：{0}",
+    "en": "paste rectangle: {0}",
+    "locations": [
+      "src/EventMonitor.swift：粘贴菜单诊断"
+    ]
+  }
+}

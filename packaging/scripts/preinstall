@@ -9,6 +9,10 @@ CFM_USER=$(/usr/bin/stat -f %Su /dev/console)
 case "$CFM_USER" in root|loginwindow|_mbsetupuser|"") exit 0 ;; esac
 CFM_UID=$(/usr/bin/id -u "$CFM_USER")
 CFM_INFO="$(/usr/bin/dirname "$0")/app-info.plist"
+. "$(/usr/bin/dirname "$0")/localization.sh"
+CFM_LANGUAGE=en
+CFM_PREFERRED=$(/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/defaults read -g AppleLanguages 2>/dev/null | /usr/bin/awk -F '[" ,()]+' '{for(i=1;i<=NF;i++) if($i!=""){print $i;exit}}' || true)
+case "$CFM_PREFERRED" in zh|zh-*|zh_*) CFM_LANGUAGE=zh ;; esac
 CFM_BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CFM_INFO")
 CFM_NAME=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$CFM_INFO")
 if CFM_RESULT=$(/bin/launchctl asuser "$CFM_UID" /usr/bin/sudo -u "$CFM_USER" /usr/bin/tccutil reset SystemPolicyAppDataDetailed "$CFM_BUNDLE" 2>&1); then
@@ -17,10 +21,10 @@ else
     case "$CFM_RESULT" in
         *"No such bundle identifier"*|*"kLSApplicationNotFoundErr"*)
             # A first installation has no registered identity to renew yet.
-            printf '%s: first installation; file access will be requested during setup.\n' "$CFM_NAME"
+            cfm_message installer.firstInstall "$CFM_NAME"
             ;;
         *)
-            printf '%s: could not renew Office file access for %s: %s. Retry installation.\n' "$CFM_NAME" "$CFM_USER" "$CFM_RESULT" >&2
+            cfm_message installer.accessFailed "$CFM_NAME" "$CFM_USER" "$CFM_RESULT" >&2
             exit 1
             ;;
     esac

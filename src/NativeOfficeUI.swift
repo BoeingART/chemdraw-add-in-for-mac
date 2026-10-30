@@ -25,24 +25,24 @@ class PanelRouter {
     var paste: (String) throws -> Void = { _ in }
     init(root:URL) { self.root = root; self.token = UUID().uuidString+UUID().uuidString }
     func response(method:String, target:String, headers:[String:String], body:Data) -> PanelResponse {
-        guard let host = headers["host"], ["localhost:\(port)","127.0.0.1:\(port)"].contains(host) else { return PanelResponse(403,["error":"Invalid local host"]) }
+        guard let host = headers["host"], ["localhost:\(port)","127.0.0.1:\(port)"].contains(host) else { return PanelResponse(403,["error":L("native.265")]) }
         if method == "GET" {
             let path = String(target.split(separator:"?",maxSplits:1).first ?? "")
             if path == "/api/status" { return PanelResponse(200,["ready":ready(),"editing":editing(),"activity":activity()]) }
             let routes = ["/":"taskpane.html","/taskpane.html":"taskpane.html","/help":"taskpane.html","/taskpane.js":"taskpane.js","/style.css":"style.css","/icon-16.png":"icon-16.png","/icon-32.png":"icon-32.png","/icon-80.png":"icon-80.png"]
-            guard let name = routes[path], var data = try? Data(contentsOf:root.appendingPathComponent("office/addin/"+name)) else { return PanelResponse(404,["error":"Not found"]) }
-            if name.hasSuffix(".html") { data = Data(String(decoding:data,as:UTF8.self).replacingOccurrences(of:"__CFM_TOKEN__",with:token).utf8) }
+            guard let name = routes[path], var data = try? Data(contentsOf:root.appendingPathComponent("office/addin/"+name)) else { return PanelResponse(404,["error":L("native.266")]) }
+            if name.hasSuffix(".html") { data = Data(NativeLocalization.panelHTML(String(decoding:data,as:UTF8.self)).replacingOccurrences(of:"__CFM_TOKEN__",with:token).utf8) }
             let type = name.hasSuffix(".html") ? "text/html; charset=utf-8" : name.hasSuffix(".js") ? "text/javascript; charset=utf-8" : name.hasSuffix(".css") ? "text/css" : "image/png"
             return PanelResponse(data,type:type)
         }
         guard method == "POST" && ["/api/edit","/api/paste"].contains(target), (headers["origin"] ?? "https://localhost:\(port)") == "https://localhost:\(port)", headers["x-chemoffice-token"] == token else {
-            return PanelResponse(403,["error":"Open this action from the ChemDraw Add-in for Mac panel"])
+            return PanelResponse(403,["error":L("native.267")])
         }
         do {
-            try require(ready(),"Open ChemDraw Add-in for Mac → “设置加载项” to finish permissions and start the paste helper.")
-            try require(!body.isEmpty && body.count <= 128,"Invalid request")
+            try require(ready(),L("native.268"))
+            try require(!body.isEmpty && body.count <= 128,L("native.269"))
             let object = try JSONSerialization.jsonObject(with:body) as? [String:Any]
-            guard let host = object?["host"] as? String, ["word","powerpoint"].contains(host) else { throw ChemOfficeError("Select a drawing in Word or PowerPoint") }
+            guard let host = object?["host"] as? String, ["word","powerpoint"].contains(host) else { throw ChemOfficeError(L("native.270")) }
             if target == "/api/paste" { try paste(host); return PanelResponse(200,["pasted":true]) }
             try edit(host); return PanelResponse(200,["opened":true])
         } catch { return PanelResponse(400,["error":error.localizedDescription]) }
@@ -61,7 +61,7 @@ class NativeOfficeServer {
         let key = try command("/usr/bin/openssl",["rsa","-in",tls.appendingPathComponent("localhost-key.pem").path,"-outform","DER"])
         guard let certificate = SecCertificateCreateWithData(nil,cert as CFData),
               let privateKey = SecKeyCreateWithData(key as CFData,[kSecAttrKeyType:kSecAttrKeyTypeRSA,kSecAttrKeyClass:kSecAttrKeyClassPrivate] as CFDictionary,nil),
-              let identity = SecIdentityCreate(nil,certificate,privateKey), let local = sec_identity_create(identity) else { throw ChemOfficeError("Cannot load localhost TLS identity") }
+              let identity = SecIdentityCreate(nil,certificate,privateKey), let local = sec_identity_create(identity) else { throw ChemOfficeError(L("native.272")) }
         let options = NWProtocolTLS.Options()
         sec_protocol_options_set_min_tls_protocol_version(options.securityProtocolOptions,.TLSv12)
         sec_protocol_options_set_local_identity(options.securityProtocolOptions,local)
@@ -81,9 +81,9 @@ class NativeOfficeServer {
         }
         listener.newConnectionHandler = { [weak self] connection in self?.accept(connection) }
         listener.start(queue:queue)
-        try require(ready.wait(timeout:.now()+10) == .success,"Local HTTPS listener timed out")
+        try require(ready.wait(timeout:.now()+10) == .success,L("native.273"))
         if let failure { throw failure }
-        guard let port = listener.port?.rawValue else { throw ChemOfficeError("Local HTTPS listener has no port") }
+        guard let port = listener.port?.rawValue else { throw ChemOfficeError(L("native.274")) }
         router.port = port
     }
     private func accept(_ connection:NWConnection) {
@@ -104,25 +104,25 @@ class NativeOfficeServer {
         connection.receive(minimumIncompleteLength:1,maximumLength:16384) { [weak self] data,_,complete,error in
             guard let self else { return }
             let next = buffer + (data ?? Data())
-            guard next.count <= 16512 else { self.send(PanelResponse(400,["error":"Request too large"]),connection); return }
+            guard next.count <= 16512 else { self.send(PanelResponse(400,["error":L("native.275")]),connection); return }
             if let boundary = next.range(of:Data("\r\n\r\n".utf8)) {
                 let lines = String(decoding:next[..<boundary.lowerBound],as:UTF8.self).components(separatedBy:"\r\n")
                 let request = lines[0].split(separator:" ")
-                guard request.count == 3 else { self.send(PanelResponse(400,["error":"Invalid HTTP request"]),connection); return }
+                guard request.count == 3 else { self.send(PanelResponse(400,["error":L("native.276")]),connection); return }
                 var headers = [String:String]()
                 for line in lines.dropFirst() {
                     let pair = line.split(separator:":",maxSplits:1,omittingEmptySubsequences:false)
-                    guard pair.count == 2 else { self.send(PanelResponse(400,["error":"Invalid HTTP header"]),connection); return }
+                    guard pair.count == 2 else { self.send(PanelResponse(400,["error":L("native.277")]),connection); return }
                     let name = pair[0].lowercased()
-                    guard headers[name] == nil else { self.send(PanelResponse(400,["error":"Duplicate HTTP header"]),connection); return }
+                    guard headers[name] == nil else { self.send(PanelResponse(400,["error":L("native.278")]),connection); return }
                     headers[name] = pair[1].trimmingCharacters(in:.whitespaces)
                 }
                 guard headers["transfer-encoding"] == nil, let length = Int(headers["content-length"] ?? "0"), (0...128).contains(length) else {
-                    self.send(PanelResponse(400,["error":"Invalid request size"]),connection); return
+                    self.send(PanelResponse(400,["error":L("native.279")]),connection); return
                 }
                 let body = next.subdata(in:boundary.upperBound..<next.count)
                 if body.count >= length {
-                    guard body.count == length else { self.send(PanelResponse(400,["error":"Invalid HTTP body"]),connection); return }
+                    guard body.count == length else { self.send(PanelResponse(400,["error":L("native.280")]),connection); return }
                     self.send(self.router.response(method:String(request[0]),target:String(request[1]),headers:headers,body:body),connection); return
                 }
             }

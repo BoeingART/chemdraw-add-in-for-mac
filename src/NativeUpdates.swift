@@ -27,7 +27,7 @@ struct GitHubRelease: Decodable {
     let assets: [Asset]?
     var version: ReleaseVersion? { ReleaseVersion(tag_name) }
     func installer() throws -> Asset {
-        guard let version else { throw UpdateCheckError(message:"更新版本无效，请重新检查更新。") }
+        guard let version else { throw UpdateCheckError(message:L("native.289")) }
         let number = version.components.map(String.init).joined(separator:".")
         let name = "ChemDraw-Add-in-for-Mac-\(number)-universal.pkg"
         let matches = (assets ?? []).filter { $0.name == name }
@@ -40,7 +40,7 @@ struct GitHubRelease: Decodable {
               asset.browser_download_url.path == "/\(NativeUpdates.repository)/releases/download/\(tag_name)/\(name)",
               let digest = asset.digest, digest.hasPrefix("sha256:"), digest.count == 71,
               digest.dropFirst(7).allSatisfy({ $0.isASCII && $0.isHexDigit }) else {
-            throw UpdateCheckError(message:"这个版本的安装包尚未准备完成，请稍后重新检查更新。")
+            throw UpdateCheckError(message:L("native.290"))
         }
         return asset
     }
@@ -56,7 +56,7 @@ final class NativeUpdates {
     static let latestURL = URL(string:"https://api.github.com/repos/\(repository)/releases/latest")!
     static func decode(_ data: Data, status: Int) throws -> GitHubRelease {
         guard status == 200 else {
-            let message = status == 404 ? "GitHub上还没有可用的正式版本。" : [403,429].contains(status) ? "GitHub暂时限制了更新查询，请稍后重试。" : "GitHub返回错误（\(status)），请稍后重试。"
+            let message = status == 404 ? L("native.291") : [403,429].contains(status) ? L("native.292") : L("native.293",status)
             throw UpdateCheckError(message:message)
         }
         guard let release = try? JSONDecoder().decode(GitHubRelease.self,from:data), release.version != nil,
@@ -64,7 +64,7 @@ final class NativeUpdates {
               release.html_url.scheme == "https", release.html_url.host == "github.com",
               release.html_url.user == nil, release.html_url.password == nil,
               release.html_url.path.hasPrefix("/\(repository)/releases/tag/") else {
-            throw UpdateCheckError(message:"GitHub的版本信息不完整，请稍后重试。")
+            throw UpdateCheckError(message:L("native.294"))
         }
         return release
     }
@@ -74,7 +74,7 @@ final class NativeUpdates {
         request.setValue("ChemDraw-Add-in-for-Mac/\(currentVersion)",forHTTPHeaderField:"User-Agent")
         URLSession.shared.dataTask(with:request) { data,response,error in
             let result: Result<GitHubRelease,Error>
-            if let error { result = .failure(UpdateCheckError(message:"无法连接GitHub，请检查网络后重试。\n\(error.localizedDescription)")) }
+            if let error { result = .failure(UpdateCheckError(message:L("native.295",error.localizedDescription))) }
             else {
                 result = Result { try decode(data ?? Data(),status:(response as? HTTPURLResponse)?.statusCode ?? 0) }
             }

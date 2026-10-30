@@ -11,13 +11,15 @@ PROJECT = Path(__file__).resolve().parents[1]
 
 
 class ReleaseTests(unittest.TestCase):
+    version = "1.3.3"
+    publish_integrity_asset = True
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         for folder in ['scripts', 'packaging', 'bin', 'build']:
             (self.root / folder).mkdir()
-        (self.root / 'VERSION').write_text('1.3.3\n')
+        (self.root / 'VERSION').write_text(self.version+'\n')
         self.log = self.root / 'commands.jsonl'
         self.env = {k: v for k, v in os.environ.items() if not k.startswith('CFM_')}
         self.env.update(PATH=str(self.root / 'bin') + os.pathsep + os.environ['PATH'], RELEASE_LOG=str(self.log))
@@ -50,7 +52,8 @@ elif name == 'zsh':
     if args == ['scripts/test-package.sh'] and os.environ.get('CFM_REQUIRE_NOTARIZATION') == '1' and os.environ.get('FINAL_VALIDATION_FAILURE') == '1': sys.exit(1)
     if args[0] == 'scripts/package.sh':
         pathlib.Path('dist').mkdir(exist_ok=True)
-        pathlib.Path('dist/ChemDraw-Add-in-for-Mac-1.3.3-universal.pkg').write_bytes(b'fixture')
+        version = pathlib.Path('VERSION').read_text().strip()
+        pathlib.Path('dist/ChemDraw-Add-in-for-Mac-' + version + '-universal.pkg').write_bytes(b'fixture')
         pathlib.Path('dist/SHA256SUMS.txt').write_text('fixture')
 ''')
         shim.chmod(0o755)
@@ -61,10 +64,11 @@ elif name == 'zsh':
         (self.root / 'tests/release.test.py').write_text('')
         (self.root / 'tests/signing.test.py').write_text('')
         (self.root / 'tests/notarization.test.py').write_text('')
+        (self.root / 'tests/localization.test.py').write_text('')
         signing = (PROJECT / 'scripts/signing.sh').read_text().replace('/usr/bin/security', str(self.root / 'bin/security'))
         (self.root / 'scripts/signing.sh').write_text(signing)
-        source = (PROJECT / 'scripts/release-1.3.3.sh').read_text()
-        self.script = self.root / 'scripts/release-1.3.3.sh'
+        source = (PROJECT / f'scripts/release-{self.version}.sh').read_text()
+        self.script = self.root / f'scripts/release-{self.version}.sh'
         self.script.write_text(source)
 
     def run_release(self):
@@ -143,14 +147,23 @@ elif name == 'zsh':
         self.assertLess(verification, push)
         self.assertLess(notarization, verification)
         self.assertLess(push, release)
-        self.assertEqual(calls[push], ['git', 'push', '--atomic', 'origin', 'HEAD:refs/heads/main', 'refs/tags/v1.3.3'])
+        self.assertEqual(calls[push], ['git', 'push', '--atomic', 'origin', 'HEAD:refs/heads/main', f'refs/tags/v{self.version}'])
         args = calls[release]
-        self.assertEqual(args[3:6], ['v1.3.3', 'dist/ChemDraw-Add-in-for-Mac-1.3.3-universal.pkg', 'dist/SHA256SUMS.txt'])
+        expected_assets = [f'v{self.version}', f'dist/ChemDraw-Add-in-for-Mac-{self.version}-universal.pkg']
+        if self.publish_integrity_asset:
+            expected_assets.append('dist/SHA256SUMS.txt')
+        self.assertEqual(args[3:3+len(expected_assets)], expected_assets)
+        self.assertEqual(args[3+len(expected_assets)], '--repo')
         self.assertIn('--verify-tag', args)
         self.assertEqual(args[args.index('--notes-file') + 1], 'packaging/ReleaseNotes.md')
         added = next(c for c in calls if c[:2] == ['git', 'add'])
         self.assertNotIn('-A', added)
         self.assertNotIn('dist/SHA256SUMS.txt', added)
+
+
+class Release134Tests(ReleaseTests):
+    version = '1.3.4'
+    publish_integrity_asset = False
 
 
 if __name__ == '__main__':

@@ -28,19 +28,19 @@ final class NativeUpdateDownload: NSObject, URLSessionDownloadDelegate {
     }
     static func verify(_ file:URL,asset:GitHubRelease.Asset) throws {
         let size = try file.resourceValues(forKeys:[.fileSizeKey]).fileSize ?? 0
-        guard size > 0, Int64(size) == asset.size, Int64(size) <= maximumBytes else { throw UpdateCheckError(message:"安装包下载不完整，请重新下载。") }
+        guard size > 0, Int64(size) == asset.size, Int64(size) <= maximumBytes else { throw UpdateCheckError(message:L("native.283")) }
         let handle = try FileHandle(forReadingFrom:file); defer { try? handle.close() }
         var hash = SHA256()
         while let bytes = try handle.read(upToCount:1024*1024), !bytes.isEmpty { hash.update(data:bytes) }
         let digest = "sha256:" + hash.finalize().map { String(format:"%02x",$0) }.joined()
-        guard digest == asset.digest?.lowercased() else { throw UpdateCheckError(message:"下载的安装包与发布版本不一致，请重新下载。") }
+        guard digest == asset.digest?.lowercased() else { throw UpdateCheckError(message:L("native.284")) }
     }
     func urlSession(_ session:URLSession,task:URLSessionTask,willPerformHTTPRedirection response:HTTPURLResponse,newRequest request:URLRequest,completionHandler:@escaping (URLRequest?) -> Void) {
         completionHandler(Self.allowedDownloadURL(request.url) ? request : nil)
     }
     func urlSession(_ session:URLSession,downloadTask:URLSessionDownloadTask,didWriteData bytesWritten:Int64,totalBytesWritten:Int64,totalBytesExpectedToWrite:Int64) {
         guard totalBytesWritten <= asset.size && totalBytesWritten <= Self.maximumBytes else {
-            outcome = .failure(UpdateCheckError(message:"安装包大小与发布版本不一致，请重新下载。")); downloadTask.cancel(); return
+            outcome = .failure(UpdateCheckError(message:L("native.285"))); downloadTask.cancel(); return
         }
         let fraction = min(1,Double(totalBytesWritten)/Double(asset.size))
         DispatchQueue.main.async { [progress] in progress(fraction) }
@@ -48,7 +48,7 @@ final class NativeUpdateDownload: NSObject, URLSessionDownloadDelegate {
     func urlSession(_ session:URLSession,downloadTask:URLSessionDownloadTask,didFinishDownloadingTo location:URL) {
         outcome = Result {
             guard let response = downloadTask.response as? HTTPURLResponse, response.statusCode == 200,
-                  Self.allowedDownloadURL(response.url) else { throw UpdateCheckError(message:"安装包下载失败，请检查网络后重试。") }
+                  Self.allowedDownloadURL(response.url) else { throw UpdateCheckError(message:L("native.286")) }
             try Self.verify(location,asset:asset)
             let fm = FileManager.default
             try fm.createDirectory(at:directory,withIntermediateDirectories:true,attributes:[.posixPermissions:0o700])
@@ -66,9 +66,9 @@ final class NativeUpdateDownload: NSObject, URLSessionDownloadDelegate {
             if case .failure = outcome { result = outcome! }
             else {
                 if case .success(let file) = outcome { try? FileManager.default.removeItem(at:file.deletingLastPathComponent()) }
-                result = .failure((error as NSError).code == NSURLErrorCancelled ? URLError(.cancelled) : UpdateCheckError(message:"无法完成更新下载，请检查网络后重试。"))
+                result = .failure((error as NSError).code == NSURLErrorCancelled ? URLError(.cancelled) : UpdateCheckError(message:L("native.287")))
             }
-        } else { result = outcome ?? .failure(UpdateCheckError(message:"安装包下载未完成，请重试。")) }
+        } else { result = outcome ?? .failure(UpdateCheckError(message:L("native.288"))) }
         session.finishTasksAndInvalidate(); self.session = nil; self.task = nil
         DispatchQueue.main.async { [completion] in completion(result) }
     }

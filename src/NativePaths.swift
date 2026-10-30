@@ -5,7 +5,7 @@ enum NativePaths {
     static let officeBundles = ["word":"com.microsoft.Word", "powerpoint":"com.microsoft.Powerpoint"]
 
     static func officeContainer(_ host: String, home: URL = FileManager.default.homeDirectoryForCurrentUser) throws -> URL {
-        guard let bundle = officeBundles[host] else { throw ChemOfficeError("Unknown Office host") }
+        guard let bundle = officeBundles[host] else { throw ChemOfficeError(L("native.126")) }
         return home.appendingPathComponent("Library/Containers/\(bundle)/Data")
     }
 

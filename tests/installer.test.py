@@ -31,6 +31,7 @@ with open(os.environ['TEST_LOG'], 'a') as log:
     log.write(name + '|' + '|'.join(args) + '\\n')
 if name == 'stat': print(os.environ['TEST_USER'])
 elif name == 'id': print('501')
+elif name == 'defaults': print('(\\n    \"' + os.environ.get('TEST_LANGUAGE', 'en-US') + '\",\\n)')
 elif name in ('launchctl', 'sudo'): sys.exit(subprocess.run(args[2:]).returncode)
 elif name == 'tccutil':
     print(os.environ.get('TEST_RESET_MESSAGE', 'Successfully reset file access'))
@@ -41,9 +42,10 @@ elif name == 'rm':
         if not target.startswith('-'): __import__('shutil').rmtree(target)
 ''')
         shim.chmod(0o755)
-        commands = ['/usr/bin/stat', '/usr/bin/id', '/bin/launchctl', '/usr/bin/sudo', '/usr/bin/tccutil', '/usr/bin/open', '/bin/rm']
+        commands = ['/usr/bin/stat', '/usr/bin/id', '/bin/launchctl', '/usr/bin/sudo', '/usr/bin/tccutil', '/usr/bin/open', '/bin/rm', '/usr/bin/defaults']
         for command in commands:
             (self.root / Path(command).name).symlink_to(shim)
+        shutil.copy(PROJECT / 'packaging/scripts/localization.sh', self.root / 'localization.sh')
         for name in ['preinstall', 'postinstall']:
             source = (PROJECT / 'packaging/scripts' / name).read_text()
             for command in commands:
@@ -70,8 +72,8 @@ elif name == 'rm':
     def test_fresh_install_renews_only_app_office_access_in_desktop_session(self):
         self.assertEqual(self.run_script('preinstall').returncode, 0)
         self.assertEqual(self.calls('tccutil'), [['reset', 'SystemPolicyAppDataDetailed', self.info['CFBundleIdentifier']]])
-        self.assertEqual(self.calls('launchctl')[0][:2], ['asuser', '501'])
-        self.assertEqual(self.calls('sudo')[0][:2], ['-u', 'desktop-user'])
+        self.assertTrue(all(call[:2] == ['asuser','501'] for call in self.calls('launchctl')))
+        self.assertTrue(all(call[:2] == ['-u','desktop-user'] for call in self.calls('sudo')))
 
     def test_upgrade_renews_office_access_and_preserves_other_services(self):
         self.app('ChemOffice', self.info['CFBundleIdentifier'])
@@ -94,6 +96,13 @@ elif name == 'rm':
             result = self.run_script('preinstall')
             self.assertEqual(result.returncode, 0)
             self.assertIn('first installation', result.stdout)
+
+    def test_installer_messages_follow_desktop_users_first_language(self):
+        for language, expected in [('zh-Hans-CN','首次安装'),('zh-Hant-TW','首次安装'),('en-US','first installation'),('fr-FR','first installation')]:
+            self.env.update(TEST_LANGUAGE=language, TEST_RESET_STATUS='1', TEST_RESET_MESSAGE='No such bundle identifier')
+            result = self.run_script('preinstall')
+            self.assertEqual(result.returncode, 0)
+            self.assertIn(expected, result.stdout)
 
     def test_failed_office_access_reset_reports_reason_and_stops_installation(self):
         self.env.update(TEST_RESET_STATUS='1', TEST_RESET_MESSAGE='Failed to reset: permission denied')

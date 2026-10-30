@@ -1,53 +1,45 @@
 <!doctype html>
-<html lang="en">
-
+<html lang="__CFM_LOCALE__">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="cfm-token" content="__CFM_TOKEN__">
     <title>ChemDraw Add-in for Mac</title>
     <link rel="stylesheet" href="/style.css">
+    <script id="cfm-strings" type="application/json">__CFM_STRINGS__</script>
     <script src="https://officeapis.public.onecdn.static.microsoft/1/office.js"></script>
     <script src="/taskpane.js" defer></script>
 </head>
-
 <body>
     <main>
         <div class="brand">C<span>ChemDraw Add-in for Mac</span></div>
-        <h1>Your drawing.<br>Your ChemDraw.</h1>
-        <p class="intro">Native chemistry and sharp vectors for Word and PowerPoint.</p>
+        <h1 style="white-space:pre-line">__CFM_TEXT_pane.headline__</h1>
+        <p class="intro">__CFM_TEXT_pane.intro__</p>
         <section class="status"><span id="dot"></span>
-            <div><strong id="status">Connecting to your Mac…</strong><small id="detail">Keep ChemDraw Add-in for Mac
-                    running. Use its menu bar icon to open settings.</small></div>
-        </section><button id="paste" disabled>Paste editable drawing</button><button id="edit" disabled>Edit selected
-            drawing</button>
-        <p id="office-note">Open this panel inside Word or PowerPoint to edit a selection.</p>
+            <div><strong id="status">__CFM_TEXT_pane.connecting__</strong><small id="detail">__CFM_TEXT_pane.keepRunning__</small></div>
+        </section>
+        <button id="paste" disabled>__CFM_TEXT_pane.paste__</button>
+        <button id="edit" disabled>__CFM_TEXT_pane.edit__</button>
+        <p id="office-note">__CFM_TEXT_pane.officeNote__</p>
         <p id="message" role="status"></p>
         <section class="steps">
-            <h2>Keep drawing</h2>
+            <h2>__CFM_TEXT_pane.steps__</h2>
             <ol>
-                <li>Copy your structure in ChemDraw.</li>
-                <li>Paste with ⌘V, right-click → Paste, or Paste editable drawing in this panel, including a new unsaved
-                    document. Save your Office document whenever you choose.</li>
-                <li>Double-click the drawing to edit, even when ChemDraw is closed.</li>
-                <li>Save in ChemDraw to update Office while editing. Press ⌘W to finish and return.</li>
+                <li>__CFM_TEXT_pane.step1__</li>
+                <li>__CFM_TEXT_pane.step2__</li>
+                <li>__CFM_TEXT_pane.step3__</li>
+                <li>__CFM_TEXT_pane.step4__</li>
             </ol>
         </section>
         <details>
-            <summary>Installation and troubleshooting</summary>
-            <p>Open ChemDraw Add-in for Mac from Applications or its menu bar icon. Choose “设置加载项” to view
-                permissions and automatically configure the local editing helper.</p>
-            <p>Find the entry under <b>Home → Add-ins → Developer Add-ins → ChemDraw Add-in for Mac</b>. Once activated,
-                the <b>ChemDraw Add-in for Mac</b> ribbon tab also opens it.</p>
-            <p>Use your existing Office installation. Open the blue C entry inside each app to activate the panel. If an
-                automated check labels the entry disabled, confirm it with an actual foreground click.</p>
-            <p>If the panel will not load, open the configuration window and choose “修复加载项”. A fresh installation also
-                needs the Mac to trust the local localhost certificate.</p>
-            <p>This local preview automatically selects the newest installed ChemDraw and needs the desktop Office
-                applications. It creates managed SVG drawings with full editable source.</p>
+            <summary>__CFM_TEXT_pane.troubleshooting__</summary>
+            <p>__CFM_TEXT_pane.setupHelp__</p>
+            <p>__CFM_TEXT_pane.activationHelp__</p>
+            <p>__CFM_TEXT_pane.officeHelp__</p>
+            <p>__CFM_TEXT_pane.repairHelp__</p>
+            <p>__CFM_TEXT_pane.previewHelp__</p>
         </details>
-        <footer id="host">Word + PowerPoint · Local preview</footer>
+        <footer id="host"></footer>
     </main>
 </body>
-
 </html>

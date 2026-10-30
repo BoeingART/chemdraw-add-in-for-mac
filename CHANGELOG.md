@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.4 — 2026-10-30
+
+- Show Simplified Chinese when the first preferred system language is Chinese, and English for other languages. Localize the native app, menus, setup, updates, Office task pane and ribbon, installer pages, and operation errors. Restart the app and Office after changing the system language.
+- Centralize bilingual copy and include a searchable review sheet with 329 entries, source locations, review checkboxes, comments, and export.
+- Apply reviewed copy changes: shorten the setup title and file-access message, describe closing the ChemDraw document to return to Office, and remove the legacy activation paragraph from command-line output.
+- Remove the quickstart files, their generated entries, and the installation-guide link.
+- Include localized permission descriptions and verify packaged language resources, Chinese variants, English fallback, and the absence of quickstart files.
+
 ## v1.3.3 — 2026-10-30
 
 - Sign the application, helpers and universal installer with Apple Developer ID. Enable Hardened Runtime and secure timestamps. The installer has passed Apple notarization and Gatekeeper validation. When upgrading from local signatures, follow setup prompts for Accessibility and Automation access.

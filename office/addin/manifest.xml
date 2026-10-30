@@ -3,11 +3,11 @@
   
 
   <Id>1079b757-4a92-4997-9e74-514af3e78e2a</Id>
-  <Version>1.3.3.0</Version>
+  <Version>1.3.4.0</Version>
   <ProviderName>ChemDraw Add-in for Mac</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="ChemDraw Add-in for Mac"/>
-  <Description DefaultValue="Edit source-carrying vector chemistry with your installed ChemDraw."/>
+  <Description DefaultValue="Edit source-carrying vector chemistry with your installed ChemDraw."><Override Locale="zh-CN" Value="使用已安装的ChemDraw编辑带有源数据的矢量化学结构。"/><Override Locale="zh-TW" Value="使用已安装的ChemDraw编辑带有源数据的矢量化学结构。"/><Override Locale="zh-HK" Value="使用已安装的ChemDraw编辑带有源数据的矢量化学结构。"/><Override Locale="zh-SG" Value="使用已安装的ChemDraw编辑带有源数据的矢量化学结构。"/></Description>
   <IconUrl DefaultValue="https://localhost:17524/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:17524/icon-80.png"/>
   <SupportUrl DefaultValue="https://localhost:17524/help"/>
@@ -104,11 +104,11 @@
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="TabLabel" DefaultValue="ChemDraw Add-in for Mac"/>
-        <bt:String id="GroupLabel" DefaultValue="ChemDraw drawings"/>
-        <bt:String id="ButtonLabel" DefaultValue="Open ChemDraw Add-in for Mac"/>
+        <bt:String id="GroupLabel" DefaultValue="ChemDraw drawings"><bt:Override Locale="zh-CN" Value="ChemDraw绘图"/><bt:Override Locale="zh-TW" Value="ChemDraw绘图"/><bt:Override Locale="zh-HK" Value="ChemDraw绘图"/><bt:Override Locale="zh-SG" Value="ChemDraw绘图"/></bt:String>
+        <bt:String id="ButtonLabel" DefaultValue="Open ChemDraw Add-in for Mac"><bt:Override Locale="zh-CN" Value="打开ChemDraw Add-in for Mac"/><bt:Override Locale="zh-TW" Value="打开ChemDraw Add-in for Mac"/><bt:Override Locale="zh-HK" Value="打开ChemDraw Add-in for Mac"/><bt:Override Locale="zh-SG" Value="打开ChemDraw Add-in for Mac"/></bt:String>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="ButtonHelp" DefaultValue="Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions."/>
+        <bt:String id="ButtonHelp" DefaultValue="Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions."><bt:Override Locale="zh-CN" Value="打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。"/><bt:Override Locale="zh-TW" Value="打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。"/><bt:Override Locale="zh-HK" Value="打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。"/><bt:Override Locale="zh-SG" Value="打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。"/></bt:String>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

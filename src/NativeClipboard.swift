@@ -23,7 +23,7 @@ func chemicalClipboard(_ board: NSPasteboard = .general) -> (String, Data, Int)?
 }
 
 func captureChemicalClipboard(_ directory: URL, _ item: (String, Data, Int), board: NSPasteboard = .general) throws {
-    guard board.changeCount == item.2 else { throw NSError(domain: "ChemDraw Add-in for Mac", code: 4) }
+    guard board.changeCount == item.2 else { throw NSError(domain: "ChemDraw Add-in for Mac", code: 4,userInfo:[NSLocalizedDescriptionKey:L("native.149")]) }
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     if item.0 == "svg" {
         try item.1.write(to: directory.appendingPathComponent("carrier.svg"))
@@ -32,6 +32,6 @@ func captureChemicalClipboard(_ directory: URL, _ item: (String, Data, Int), boa
         // the vector preview later, away from the input callback.
         try item.1.write(to: directory.appendingPathComponent("source.cdx"))
     }
-    guard board.changeCount == item.2 else { throw NSError(domain: "ChemDraw Add-in for Mac", code: 4,userInfo:[NSLocalizedDescriptionKey:"剪贴板内容已改变，请重新复制结构后粘贴。"] ) }
+    guard board.changeCount == item.2 else { throw NSError(domain: "ChemDraw Add-in for Mac", code: 4,userInfo:[NSLocalizedDescriptionKey:L("native.149")] ) }
 }
 

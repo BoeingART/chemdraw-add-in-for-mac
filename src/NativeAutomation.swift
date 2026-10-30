@@ -16,7 +16,7 @@ func command(_ executable: String, _ arguments: [String] = [], timeout: TimeInte
     timer.resume()
     let data = output.fileHandleForReading.readDataToEndOfFile()
     process.waitUntilExit(); timer.cancel(); group.wait()
-    try require(process.terminationStatus == 0, String(data:errorData as Data,encoding:.utf8)?.trimmingCharacters(in:.whitespacesAndNewlines).nilIfEmpty ?? "Command failed or timed out: \(URL(fileURLWithPath:executable).lastPathComponent)")
+    try require(process.terminationStatus == 0, String(data:errorData as Data,encoding:.utf8)?.trimmingCharacters(in:.whitespacesAndNewlines).nilIfEmpty ?? L("native.122",URL(fileURLWithPath:executable).lastPathComponent))
     return data
 }
 extension String {
@@ -51,20 +51,21 @@ class NativeAutomation: ChemistryAutomation {
     init(root:URL) { self.root = root }
     func application() throws -> ChemDrawApplication {
         if let selected { return selected }
-        guard let found = ChemDrawApplication.installed().first else { throw ChemOfficeError("No installed ChemDraw was found. Install and activate ChemDraw first.") }
+        guard let found = ChemDrawApplication.installed().first else { throw ChemOfficeError(L("native.123")) }
         selected = found; return found
     }
     func preferredApplication() throws -> ChemDrawApplication { selected = nil; return try application() }
     func useApplication(_ application:ChemDrawApplication) { selected = application }
     func script(_ body:String, _ arguments:[String], timeout:TimeInterval = 45) throws -> String {
-        let data = try command("/usr/bin/osascript",["-e","on run argv\n"+body+"\nend run","--"]+arguments,timeout:timeout)
+        let data = try command("/usr/bin/osascript",["-e",NativeLocalization.appleScript("on run argv\n"+body+"\nend run"),"--"]+arguments,timeout:timeout)
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }
     func office(_ action:String, _ host:String, _ arguments:[String] = []) throws -> String {
-        try require(["word","powerpoint"].contains(host),"Unknown Office host")
+        try require(["word","powerpoint"].contains(host),L("native.126"))
         // A lifecycle check must never reopen a quit Office application.
         if action == "document-status", NSRunningApplication.runningApplications(withBundleIdentifier:NativePaths.officeBundles[host]!).isEmpty { return "closed" }
-        let data = try command("/usr/bin/osascript",[root.appendingPathComponent("office/\(host)/adapter.applescript").path,action]+arguments)
+        let adapter = try String(contentsOf:root.appendingPathComponent("office/\(host)/adapter.applescript"),encoding:.utf8)
+        let data = try command("/usr/bin/osascript",["-e",NativeLocalization.appleScript(adapter),"--",action]+arguments)
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }
     func open(_ path:URL) throws {
@@ -101,7 +102,7 @@ class NativeAutomation: ChemistryAutomation {
                focused["bundle"] == app.bundle && focused["title"] == path.lastPathComponent { return }
             Thread.sleep(forTimeInterval:0.1)
         }
-        throw ChemOfficeError("The drawing opened but could not be focused. Double-click again to resume the retained draft.")
+        throw ChemOfficeError(L("native.127"))
     }
     func isOpen(_ path:URL) throws -> Bool {
         let app = try application()

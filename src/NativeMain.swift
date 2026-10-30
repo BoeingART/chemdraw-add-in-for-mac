@@ -30,7 +30,7 @@ class NativeMonitorRuntime {
     }
     func pasteClipboard(_ host:String) throws {
         guard let item = chemicalClipboard() else {
-            try perform(["event":"pasteCaptureFailed","message":"请先在ChemDraw中选择结构并复制，再粘贴可编辑结构。"])
+            try perform(["event":"pasteCaptureFailed","message":L("native.251")])
             return
         }
         let directory = bridge.work.appendingPathComponent("pastes/\(UUID().uuidString)")
@@ -45,7 +45,7 @@ class NativeMonitorRuntime {
     func run() throws -> Never {
         try bridge.prepare()
         lockFD = Darwin.open(bridge.work.appendingPathComponent("monitor.lock").path,O_CREAT|O_WRONLY,0o600)
-        try require(lockFD >= 0 && flock(lockFD,LOCK_EX|LOCK_NB) == 0,"A ChemDraw Add-in for Mac monitor is already running")
+        try require(lockFD >= 0 && flock(lockFD,LOCK_EX|LOCK_NB) == 0,L("native.252"))
         writeStatus(.starting)
         try bridge.restore()
         activity.end(editing:false,recoverable:bridge.session != nil)
@@ -93,11 +93,11 @@ class NativeMonitorRuntime {
                 panel.router.editing = { [weak self] in self?.activity.snapshot().editing ?? false }
                 panel.router.activity = { [weak self] in self?.activity.dictionary() ?? [:] }
                 panel.router.edit = { [weak self] host in
-                    guard let self else { throw ChemOfficeError("Helper is stopping") }
+                    guard let self else { throw ChemOfficeError(L("native.253")) }
                     try self.worker.sync { try self.perform(["event":"edit-selection","host":host]) }
                 }
                 panel.router.paste = { [weak self] host in
-                    guard let self else { throw ChemOfficeError("Helper is stopping") }
+                    guard let self else { throw ChemOfficeError(L("native.253")) }
                     try self.worker.sync { try self.pasteClipboard(host) }
                 }
                 try panel.start(); server = panel
@@ -115,7 +115,7 @@ class NativeMonitorRuntime {
                     worker.async { [self] in
                         if event["event"] as? String == "ready" { writeStatus(.ready) }
                         if event["event"] as? String == "fatal" {
-                            failureMessage = event["message"] as? String ?? "键盘与鼠标监听需要重新授权。"
+                            failureMessage = event["message"] as? String ?? L("native.255")
                             writeStatus(.failed,failureMessage)
                         }
                         do { try perform(event) } catch { /* perform publishes the error to the panel and native app. */ }
@@ -129,7 +129,7 @@ class NativeMonitorRuntime {
             let status = process.terminationStatus
             worker.async { [self] in
                 if failureMessage == nil {
-                    failureMessage = "键盘与鼠标监听意外退出（状态\(status)）。编辑草稿已保留，请在设置加载项中点击“重新检查”。"
+                    failureMessage = L("native.256",status)
                     bridge.record("monitor_exited",["status":status,"reason":process.terminationReason == .uncaughtSignal ? "signal" : "exit"])
                 }
                 stop(status:status == 0 ? 1 : status)
@@ -152,7 +152,13 @@ class NativeMonitorRuntime {
     static func main() {
         setbuf(stdout,nil)
         let root = URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL.deletingLastPathComponent().deletingLastPathComponent()
-        let args = Array(CommandLine.arguments.dropFirst())
+        // Foundation consumes these standard launch preferences; exclude their
+        // pairs when routing app actions (also used for bilingual UI checks).
+        var args = [String](), index = 1
+        while index < CommandLine.arguments.count {
+            if ["-AppleLanguages","-AppleLocale"].contains(CommandLine.arguments[index]) { index += 2 }
+            else { args.append(CommandLine.arguments[index]); index += 1 }
+        }
         let isApplication = Bundle.main.bundleURL.pathExtension == "app"
             && Bundle.main.object(forInfoDictionaryKey:"CFBundlePackageType") as? String == "APPL"
             && Bundle.main.executableURL?.standardizedFileURL == URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL
@@ -164,12 +170,12 @@ class NativeMonitorRuntime {
             switch args.first {
             case "run": try NativeMonitorRuntime(root:root).run()
             case "demo":
-                try require(args.count == 2 && ["word","powerpoint"].contains(args[1]),"Usage: chemoffice demo word|powerpoint")
+                try require(args.count == 2 && ["word","powerpoint"].contains(args[1]),L("native.257"))
                 try NativeBridge(root:root,automation:NativeAutomation(root:root)).createDemo(args[1])
             case "install": if try !NativeInstaller(root:root).install() { exit(2) }
             case "check": NativeInstaller(root:root).check()
             case "discover": print(String(decoding:try JSONEncoder().encode(ChemDrawApplication.installed()),as:UTF8.self))
-            default: throw ChemOfficeError("Usage: chemoffice run|demo word|demo powerpoint|install|check|discover")
+            default: throw ChemOfficeError(L("native.258"))
             }
         } catch {
             if args.first == "run" {
