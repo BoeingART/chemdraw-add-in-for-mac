@@ -7,6 +7,12 @@ CFM_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PROJECT_DI
 CFM_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_ICON_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_PKG="$PROJECT_DIR/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.pkg"
+source "$PROJECT_DIR/scripts/signing.sh"
+CFM_PKG_SIGNATURE="$(/usr/sbin/pkgutil --check-signature "$CFM_PKG")"
+print -r -- "$CFM_PKG_SIGNATURE"
+CFM_PKG_TEAM="$(print -r -- "$CFM_PKG_SIGNATURE" | /usr/bin/sed -nE 's/.*Developer ID Installer: .*\(([A-Z0-9]{10})\).*/\1/p')"
+[[ -n "$CFM_PKG_TEAM" && ( -z "${CFM_TEAM_ID:-}" || "$CFM_PKG_TEAM" == "$CFM_TEAM_ID" ) ]]
+CFM_TEAM_ID="$CFM_PKG_TEAM"
 CFM_TEMP="$(mktemp -d)"
 trap 'rm -rf "$CFM_TEMP"' EXIT
 /usr/sbin/pkgutil --expand-full "$CFM_PKG" "$CFM_TEMP/expanded"
@@ -15,13 +21,14 @@ CFM_APP="$CFM_TEMP/expanded/ChemDraw-Add-in-component.pkg/Payload/Applications/$
 [[ -x "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" && -f "$CFM_APP/Contents/Resources/$CFM_ICON_NAME.icns" ]]
 /usr/bin/codesign --verify --deep --strict "$CFM_APP"
 for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor"; do
+    cfm_verify_developer_id_code "$CFM_BINARY"
     CFM_ARCHS="$(/usr/bin/lipo -archs "$CFM_BINARY")"
     [[ "$CFM_ARCHS" == *arm64* && "$CFM_ARCHS" == *x86_64* ]]
     if /usr/bin/otool -L "$CFM_BINARY" | /usr/bin/grep -Ei 'python|/opt/homebrew|/usr/local|/Users/'; then
         print 'FAIL: external runtime dependency'; exit 1
     fi
 done
-print 'PASS expanded pkg signatures, version and both architectures; only system runtime libraries'
+print 'PASS Developer ID Installer and matching application team, Hardened Runtime, timestamps, version and both architectures; only system runtime libraries'
 CFM_FILES="$(/usr/sbin/pkgutil --payload-files "$CFM_PKG")"
 if print -r -- "$CFM_FILES" | /usr/bin/grep -E '\.command$|/work(/|$)|/tls(/|$)'; then
     print 'FAIL: launcher, private user data in payload'; exit 1
@@ -47,5 +54,10 @@ CFM_REQUIREMENT="$(/usr/bin/codesign -d -r- "$CFM_APP" 2>&1 | /usr/bin/sed -n 's
 [[ "$CFM_REQUIREMENT" == *'certificate'* ]]
 /usr/bin/codesign --verify --strict -R "=$CFM_REQUIREMENT" "$CFM_APP"
 print 'PASS packaged application identity is bound to the persistent signing certificate'
+if [[ "${CFM_REQUIRE_NOTARIZATION:-0}" == 1 ]]; then
+    xcrun stapler validate "$CFM_PKG"
+    /usr/sbin/spctl --assess --type install --verbose=2 "$CFM_PKG"
+    print 'PASS attached Apple notarization ticket and Gatekeeper installer assessment'
+fi
 cd "$PROJECT_DIR/dist"
 /usr/bin/shasum -a 256 -c SHA256SUMS.txt

@@ -1,7 +1,8 @@
 # Changelog
 
-## v1.3.3 — 2026-10-28
+## v1.3.3 — 2026-10-30
 
+- Sign the application, helpers and universal installer with Apple Developer ID. Enable Hardened Runtime and secure timestamps. The installer has passed Apple notarization and Gatekeeper validation. When upgrading from local signatures, follow setup prompts for Accessibility and Automation access.
 - Close the matching ChemDraw editing window when its original Word/PowerPoint document closes, retaining the latest local draft and clearing the editing session. Check the pinned document identity without activating or reopening Office.
 - Handle document closure during save/write-back and deduplicate repeated operation-failure windows.
 - Include the Office file-access recovery prepared for v1.3.2.

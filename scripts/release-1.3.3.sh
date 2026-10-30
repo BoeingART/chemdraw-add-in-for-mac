@@ -35,7 +35,13 @@ CFM_RELEASE_FILES=(
     packaging/Welcome.html
     packaging/scripts/preinstall
     scripts/release-1.3.3.sh
+    scripts/package.sh
+    scripts/signing.sh
+    scripts/notarize.sh
+    scripts/test-signing.sh
     scripts/test-package.sh
+    tests/signing.test.py
+    tests/notarization.test.py
     src/NativeActivity.swift
     src/NativeApplication.swift
     src/NativeAutomation.swift
@@ -55,10 +61,10 @@ for CFM_FILE in $CFM_CHANGED; do
     [[ -z "$CFM_FILE" || "${CFM_ALLOWED[$CFM_FILE]:-0}" == 1 ]] || fail "Unrelated work must be separated before release: $CFM_FILE"
 done
 git diff --check
-# Verify the existing signing identity and GitHub access before building.
-CFM_CERT_ID="$(/usr/bin/openssl x509 -in packaging/local-signing-cert.pem -noout -fingerprint -sha1 | /usr/bin/sed 's/.*=//;s/://g')"
-CFM_IDENTITIES="$(/usr/bin/security find-identity -v -p codesigning)"
-[[ "$CFM_IDENTITIES" == *"$CFM_CERT_ID"* ]] || fail 'The original project signing identity is unavailable. Run from the desktop terminal with the existing login keychain unlocked.'
+# Verify Developer ID identities, notarization credentials and GitHub access.
+source "$CFM_PROJECT/scripts/signing.sh"
+cfm_resolve_distribution_signing
+zsh scripts/notarize.sh --check-credentials
 [[ "$(gh api "repos/$CFM_REPO" --jq '.permissions.push')" == true ]] || fail 'GitHub write access could not be verified. Check gh authentication and network access.'
 if gh release view "$CFM_TAG" --repo "$CFM_REPO" >/dev/null 2>&1; then fail 'v1.3.3 already has a GitHub Release; inspect it before changing anything.'; fi
 git fetch origin main --tags
@@ -69,11 +75,15 @@ mkdir -p build
 zsh scripts/test-native.sh
 python3 tests/installer.test.py
 python3 tests/release.test.py
+python3 tests/signing.test.py
+python3 tests/notarization.test.py
 node tests/taskpane.test.cjs
 zsh scripts/test-discovery.sh
 zsh scripts/test-signing.sh
 zsh scripts/package.sh
 zsh scripts/test-package.sh
+zsh scripts/notarize.sh
+CFM_REQUIRE_NOTARIZATION=1 zsh scripts/test-package.sh
 [[ -s "$CFM_PACKAGE" && -s dist/SHA256SUMS.txt ]] || fail 'The verified release package is missing.'
 git add -- $CFM_RELEASE_FILES
 if ! git diff --cached --quiet; then git commit -m 'release: fix Office access and document-close cleanup in v1.3.3'; fi
