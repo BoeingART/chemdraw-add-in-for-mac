@@ -3,9 +3,11 @@ import Cocoa
 
 @main struct RendererTests {
     static func main() throws {
+        setbuf(stdout,nil)
         let root = URL(fileURLWithPath:CommandLine.arguments[1])
         guard let app = ChemDrawApplication.installed().first else { throw ChemOfficeError("Install ChemDraw to run the renderer acceptance check") }
         let automation = NativeAutomation(root:root); automation.selected = app
+        let backend = try automation.windowlessPDFRenderer(app) == nil ? "compatible AppleScript PDF export" : "native windowless PDF export"
         let documentState = """
         tell application \(appleQuote(app.path))
             set resultRows to {}
@@ -16,17 +18,26 @@ import Cocoa
         end tell
         """
         let documentsBefore = try automation.script(documentState,[])
-        let before = Set(NSWorkspace.shared.runningApplications.map(\.processIdentifier)), foreground = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let before = Set(NSWorkspace.shared.runningApplications.filter {
+            $0.bundleURL?.path == app.path || $0.bundleIdentifier?.lowercased().contains(".chemdraw.") == true
+        }.map(\.processIdentifier))
+        let foregroundApp = NSWorkspace.shared.frontmostApplication
+        let foreground = foregroundApp?.processIdentifier
+        func drawingWindows() -> Set<UInt32> {
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] ?? []
+            return Set(windows.compactMap { window in
+                guard window[kCGWindowLayer as String] as? Int == 0,
+                      let owner = window[kCGWindowOwnerName as String] as? String,
+                      owner.lowercased().contains("chemdraw"), !owner.lowercased().contains("add-in") else { return nil }
+                return (window[kCGWindowNumber as String] as? NSNumber)?.uint32Value
+            })
+        }
+        let existingWindows = drawingWindows()
         let lock = NSLock(); var surfaced = false
         let observer = DispatchSource.makeTimerSource(queue:DispatchQueue(label:"Renderer visibility acceptance"))
-        observer.schedule(deadline:.now(),repeating:0.01)
+        observer.schedule(deadline:.now(),repeating:0.002)
         observer.setEventHandler {
-            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] ?? []
-            for window in windows {
-                if window[kCGWindowLayer as String] as? Int == 0,
-                   let owner = window[kCGWindowOwnerName as String] as? String, owner.lowercased().contains("chemdraw"),
-                   let pid = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, !before.contains(pid) { lock.lock(); surfaced = true; lock.unlock() }
-            }
+            if !drawingWindows().isSubset(of:existingWindows) { lock.lock(); surfaced = true; lock.unlock() }
         }
         observer.resume(); defer { observer.cancel() }
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -67,10 +78,12 @@ import Cocoa
         try automation.exportVector(blank,blankVector,application:app)
         _ = try previewAgreement(Data(contentsOf:blankVector),blankDrawingSVG())
         lock.lock(); let visible = surfaced; lock.unlock()
-        try require(!visible,"PDF export launched another visible ChemDraw process")
+        try require(!visible,"PDF export displayed an extra ChemDraw window, including in an existing process")
         try require(try automation.script(documentState,[]) == documentsBefore,"PDF export changed an existing document or left an export copy open")
-        try require(NSWorkspace.shared.frontmostApplication?.processIdentifier == foreground && before.isSubset(of:Set(NSWorkspace.shared.runningApplications.map(\.processIdentifier))),"Renderer changed foreground focus or closed an existing application")
-        print("PASS \(fixtures.count) ChemDraw fixtures export through the production AppleScript PDF path with vector and visual agreement; blank drawings pass; existing documents, modification states and foreground retained; export copies closed")
+        try require(before.isSubset(of:Set(NSWorkspace.shared.runningApplications.map(\.processIdentifier))),"Renderer closed an existing ChemDraw process")
+        let afterForeground = NSWorkspace.shared.frontmostApplication
+        try require(afterForeground?.processIdentifier == foreground,"Renderer foreground changed from \(foregroundApp?.localizedName ?? "none") (\(foreground ?? 0)) to \(afterForeground?.localizedName ?? "none") (\(afterForeground?.processIdentifier ?? 0))")
+        print("PASS \(fixtures.count) ChemDraw fixtures use \(backend) with vector and visual agreement; blank drawings pass; no additional ChemDraw windows in any process; existing documents, modification states and foreground retained")
         print("PASS PDF/vector conversion timings: \(timings.map { String(format:"%.3f",$0) }.joined(separator:", ")) seconds")
     }
 }

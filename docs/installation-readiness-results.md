@@ -1,5 +1,18 @@
 # Installation readiness validation
 
+## Windowless snapshots — local fix, 2026-10-31
+
+Opening an export copy and then hiding its window can display a temporary drawing window during save and close/write-back. The former renderer acceptance test only rejected windows belonging to new processes and therefore missed export windows in an already running ChemDraw process. It now observes new visible ChemDraw window IDs across all processes at two-millisecond intervals and separately checks pinned process lifetime, document identities, modification states and foreground focus.
+
+The exporter probes the pinned executable for the native windowless PDF interface and uses it when available. It renders an immutable, uniquely named copy, validates the output and removes completed export files. A native-render failure retains the source and reports the error instead of opening a visible fallback window. Builds without the interface retain the compatible AppleScript PDF save path. That compatibility path still opens a copy before hiding it, so zero-window behavior is currently verified for this Mac's ChemDraw 22.0.0.22; ChemDraw 26 retains its working export path and needs a separate windowless implementation or acceptance on an available native interface.
+
+- The stricter renderer acceptance passed nine actual sources, including the retained user paste capture, plus a blank drawing: no added visible ChemDraw windows, unchanged existing documents and foreground, and vector/visual agreement with native PDF output.
+- The native suite passed 227 checks and four actual AppKit lifecycle scenarios. Three new transaction checks cover immutable windowless snapshots with newer input, retained drafts without visible fallback after native failure, and rejection of non-PDF executable output. The existing ChemDraw 26 compatibility mocks and seven localization checks passed.
+- Signed PowerPoint acceptance passed direct unsaved paste, exact source recovery, reopening and saved-snapshot synchronization while retaining subsequent label settings and their observed modification state. Original ChemDraw documents were retained and independent test documents closed.
+- The universal build and separate Developer ID-signed local DMG/ZIP completed as `ChemDraw-Add-in-for-Mac-1.5.3-windowless-test-universal`, build 23.2. The extracted application passed signatures, both architectures, interface startup, archive privacy and disk-image validation. This local test package also includes the content-bounds fix. The installed app and public release assets were retained.
+
+Transcripts are retained as `build/windowless-*.log`. The local packages have not been submitted for Apple notarization or published as a new release.
+
 ## Preview content bounds — local fix, 2026-10-31
 
 The retained PowerPoint paste source reproduced the oversized preview: the PDF-to-SVG conversion used a 612 × 792-point page around a small structure and annotation. The revised converter measures painted path, stroke, glyph and picture bounds, respects transforms and clipping, ignores paper-white backgrounds including color-profile rounding, and retains a two-point margin. Its preview for this source is 89.74 × 76.85 points. The native source and relative artwork positions are retained. Paste, saved snapshots and close/write-back share the conversion.

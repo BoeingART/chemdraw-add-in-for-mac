@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use ChemDraw’s native windowless PDF renderer when available so saves and close/write-back avoid temporary drawing windows. Retain the compatible AppleScript PDF route for builds without that interface.
+
 - Fit pasted and synchronized previews to the drawing’s paths, text and pictures instead of the full PDF page. Retain a small protective margin and the editable native source.
 - Keep the ChemDraw 26 AppleScript PDF export path and use the same content bounds for paste, saved snapshots and close/write-back. Preserve stroke widths, clipping, transformed artwork and empty editable canvases.
 

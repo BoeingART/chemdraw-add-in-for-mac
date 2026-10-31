@@ -526,6 +526,49 @@ class TestAutomation: ChemistryAutomation {
             try require(driver.exported == original && Data(contentsOf:driver.live) == driver.newer,"Export lost the saved revision or overwrote newer input")
             try require(!fm.fileExists(atPath:driver.copied!.deletingLastPathComponent().path),"Successful PDF export leaked temporary files")
         }
+        try check("Windowless rendering uses an independent snapshot and retains later input") {
+            class WindowlessProbe: NativeAutomation {
+                var live:URL!, copied:URL?, received:Data?
+                let newer = Data("<CDXML><page><t>Later input</t></page></CDXML>".utf8)
+                override func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? { URL(fileURLWithPath:"/Native renderer") }
+                override func exportWindowlessPDF(_ source:URL,renderer:URL) throws -> Data {
+                    copied = source; received = try Data(contentsOf:source)
+                    try require(source != live,"Windowless render used the live document")
+                    try newer.write(to:live)
+                    return Data("%PDF-native-test".utf8)
+                }
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String { throw ChemOfficeError("Windowless rendering must not open a document") }
+            }
+            let driver = WindowlessProbe(root:root)
+            driver.live = root.appendingPathComponent("windowless-live.cdxml")
+            let original = Data("<CDXML><page/></CDXML>".utf8); try original.write(to:driver.live)
+            let app = ChemDrawApplication(path:"/Applications/ChemDraw.app",bundle:"example.ChemDraw",version:"22")
+            try require(try driver.exportPDF(driver.live,application:app) == Data("%PDF-native-test".utf8),"Native PDF output changed")
+            try require(try driver.received == original && Data(contentsOf:driver.live) == driver.newer,"Windowless rendering changed the captured or later revision")
+            try require(!fm.fileExists(atPath:driver.copied!.deletingLastPathComponent().path),"Successful windowless rendering retained its copy")
+        }
+        try check("A native-render failure retains drafts and never opens a fallback window") {
+            class WindowlessFailure: NativeAutomation {
+                var copied:URL?
+                override func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? { URL(fileURLWithPath:"/Native renderer") }
+                override func exportWindowlessPDF(_ source:URL,renderer:URL) throws -> Data { copied = source; throw ChemOfficeError("Injected windowless PDF failure") }
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String { throw ChemOfficeError("Unexpected visible fallback") }
+            }
+            let driver = WindowlessFailure(root:root), source = root.appendingPathComponent("windowless-failure.cdxml")
+            let original = Data("<CDXML><page/></CDXML>".utf8); try original.write(to:source)
+            do {
+                _ = try driver.exportPDF(source,application:ChemDrawApplication(path:"/Applications/ChemDraw.app",bundle:"example.ChemDraw",version:"22"))
+                throw ChemOfficeError("Native failure was accepted")
+            } catch { try require(error.localizedDescription.contains("Injected windowless PDF failure"),"Native failure opened a window or lost its cause") }
+            defer { if let copied = driver.copied { try? fm.removeItem(at:copied.deletingLastPathComponent()) } }
+            try require(try Data(contentsOf:source) == original && Data(contentsOf:driver.copied!) == original,"Failed native rendering lost its source")
+        }
+        try check("Windowless executables must return PDF bytes before Office can be changed") {
+            let renderer = root.appendingPathComponent("invalid-native-renderer")
+            try Data("#!/bin/sh\nprintf 'not a PDF'\n".utf8).write(to:renderer)
+            try fm.setAttributes([.posixPermissions:0o700],ofItemAtPath:renderer.path)
+            try rejects { _ = try NativeAutomation(root:root).exportWindowlessPDF(root.appendingPathComponent("source.cdx"),renderer:renderer) }
+        }
         try check("Failed PDF export retains the source copy and an actionable failure") {
             class PDFProbe: NativeAutomation {
                 var copied: URL?

@@ -2542,5 +2542,12 @@
     "locations": [
       "src/NativeApplication.swift"
     ]
+  },
+  "native.pdfOutput": {
+    "zh": "ChemDraw返回的PDF预览无效。请重新复制结构后重试。",
+    "en": "ChemDraw returned an invalid PDF preview. Copy the structure again and retry.",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
   }
 }

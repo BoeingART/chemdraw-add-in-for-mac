@@ -365,3 +365,4 @@ Your ChemDraw."
 350	update.stopFailed	src/NativeApplication.swift	助手未能在10秒内停止，更新已暂停。已保留下载文件，请稍后点击“安装更新”重试。	The helper did not stop within 10 seconds, so the update was paused. The download is retained. Click Install Update to retry.		
 351	app.quitFailed	src/NativeApplication.swift	应用退出未完成	Application Could Not Quit		
 352	app.stopFailed	src/NativeApplication.swift	助手未能在10秒内停止。请稍后重试退出应用。	The helper did not stop within 10 seconds. Try quitting the app again shortly.		
+353	native.pdfOutput	src/NativeAutomation.swift	ChemDraw返回的PDF预览无效。请重新复制结构后重试。	ChemDraw returned an invalid PDF preview. Copy the structure again and retry.		

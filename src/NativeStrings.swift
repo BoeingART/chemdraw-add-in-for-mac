@@ -356,6 +356,7 @@ enum NativeStrings {
         "update.stopFailed": ["en":"The helper did not stop within 10 seconds, so the update was paused. The download is retained. Click Install Update to retry.","zh":"助手未能在10秒内停止，更新已暂停。已保留下载文件，请稍后点击“安装更新”重试。"],
         "app.quitFailed": ["en":"Application Could Not Quit","zh":"应用退出未完成"],
         "app.stopFailed": ["en":"The helper did not stop within 10 seconds. Try quitting the app again shortly.","zh":"助手未能在10秒内停止。请稍后重试退出应用。"],
+        "native.pdfOutput": ["en":"ChemDraw returned an invalid PDF preview. Copy the structure again and retry.","zh":"ChemDraw返回的PDF预览无效。请重新复制结构后重试。"],
     ]
     static let scriptErrors: [String:String] = [
         "script.000": "ChemDraw did not open the managed source",

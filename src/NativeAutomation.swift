@@ -195,6 +195,19 @@ class NativeAutomation: ChemistryAutomation {
         let pdf = try exportPDF(source,application:application)
         try (pdf.map { try pdfVectorSVG($0) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
     }
+    func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? {
+        guard let executable = Bundle(url:URL(fileURLWithPath:application.path))?.executableURL else { return nil }
+        let binary = try Data(contentsOf:executable,options:.mappedIfSafe)
+        // Probe capability rather than assuming a version number. ChemDraw 26
+        // builds without this interface continue through the PDF save event.
+        guard binary.range(of:Data("/renderpdf:".utf8)) != nil else { return nil }
+        return executable
+    }
+    func exportWindowlessPDF(_ source:URL,renderer:URL) throws -> Data {
+        let data = try command(renderer.path,["/renderpdf:"+source.path,"/thumbnail:0"],timeout:20)
+        try require(data.starts(with:Data("%PDF-".utf8)) && data.count <= 48*1024*1024,L("native.pdfOutput"))
+        return data
+    }
     // ChemDraw 26 for Mac exports PDF through its save Apple event. Render a
     // uniquely named copy so exporting never saves or retargets the live edit.
     // nil represents an empty drawing, which keeps the editable white canvas.
@@ -215,6 +228,12 @@ class NativeAutomation: ChemistryAutomation {
         var completed = false
         defer { if completed { try? FileManager.default.removeItem(at:temporary) } }
         do {
+            if let renderer = try windowlessPDFRenderer(application) {
+                let data = try exportWindowlessPDF(copy,renderer:renderer)
+                try require(try Data(contentsOf:copy) == original,L("native.141"))
+                completed = true
+                return data
+            }
             let result = try script("""
             with timeout of 30 seconds
             set sourcePath to item 1 of argv
