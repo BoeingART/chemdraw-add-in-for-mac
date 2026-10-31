@@ -1,5 +1,16 @@
 # Installation readiness validation
 
+## Preview content bounds — local fix, 2026-10-31
+
+The retained PowerPoint paste source reproduced the oversized preview: the PDF-to-SVG conversion used a 612 × 792-point page around a small structure and annotation. The revised converter measures painted path, stroke, glyph and picture bounds, respects transforms and clipping, ignores paper-white backgrounds including color-profile rounding, and retains a two-point margin. Its preview for this source is 89.74 × 76.85 points. The native source and relative artwork positions are retained. Paste, saved snapshots and close/write-back share the conversion.
+
+- Thirteen PDF/vector checks passed, including large blank pages, transformed thick strokes and round caps, saved clipping state, off-page objects, nonzero page origins, pale separated marks, editable carrier source retention and blank canvases. The complete native suite passed 224 checks plus four actual AppKit lifecycle scenarios. The universal arm64/x86_64 build completed.
+- Actual renderer acceptance passed nine sources, including the retained paste capture and the eight existing fixtures, with cropped PDF/vector visual comparison. Existing ChemDraw document identities, modification states and foreground focus were retained; temporary export documents were closed. This Mac has ChemDraw 22.0.0.22. The ChemDraw 26 AppleScript PDF export implementation remains unchanged and its existing mocked compatibility checks passed.
+- A signed test application pasted the retained source into an independent unsaved PowerPoint presentation, verified exact editable source recovery and 400 × 342.53-point display dimensions, reopened it in ChemDraw and synchronized a saved revision. Subsequent label settings and their actual modification flag were preserved, and the Office document stayed unsaved. Original ChemDraw documents were retained and the test documents closed. A plain command-line test process was denied Office-container access; the signed app used the installed application's identity for the successful acceptance run.
+- A separate Developer ID-signed local test DMG and ZIP were created as `ChemDraw-Add-in-for-Mac-1.5.3-content-bounds-test-universal`, build 23.1. Both architectures, extracted signatures, interface startup, archive privacy and disk-image integrity passed. The public v1.5.3 assets and installed application were retained. These local test artifacts have not been submitted for notarization or published as a new release.
+
+Transcripts and before/after previews are retained under `build/content-bounds-*`.
+
 ## v1.5.3 release build 23 — 2026-10-31
 
 An update from the installed v1.5.1 downloaded and prepared v1.5.2, stopped its helper, then left the desktop app inside AppKit termination while its main-queue helper-exit callback was queued. The worker reported an old-app exit timeout after 30 seconds. An isolated AppKit reproduction confirmed this ordering failure.

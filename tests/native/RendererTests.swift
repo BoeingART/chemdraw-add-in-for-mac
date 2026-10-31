@@ -32,7 +32,7 @@ import Cocoa
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at:temporary,withIntermediateDirectories:true)
         defer { try? FileManager.default.removeItem(at:temporary) }
-        let fixtures = try FileManager.default.contentsOfDirectory(at:root.appendingPathComponent("examples/vector"),includingPropertiesForKeys:nil).filter { $0.pathExtension == "cdx" } + [root.appendingPathComponent("assets/demo.cdxml")]
+        let fixtures = try FileManager.default.contentsOfDirectory(at:root.appendingPathComponent("examples/vector"),includingPropertiesForKeys:nil).filter { $0.pathExtension == "cdx" } + [root.appendingPathComponent("assets/demo.cdxml")] + CommandLine.arguments.dropFirst(2).map { URL(fileURLWithPath:$0) }
         var timings = [Double]()
         for fixture in fixtures {
             let original = try Data(contentsOf:fixture), source = temporary.appendingPathComponent(fixture.lastPathComponent)
@@ -45,10 +45,19 @@ import Cocoa
             try vector.write(to:temporary.appendingPathComponent(fixture.lastPathComponent+".svg"))
             try require(try Data(contentsOf:source) == original,"Renderer changed the immutable source snapshot")
             try require(try hasVectors(xml(vector)),"Renderer flattened the chemistry")
-            do { try pdfAgreement(vector,referencePNG(pdf)) }
+            let preview = try pdfVectorPreview(pdf)
+            if let output = ProcessInfo.processInfo.environment["CFM_RENDERER_OUTPUT"] {
+                let directory = URL(fileURLWithPath:output)
+                try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+                try vector.write(to:directory.appendingPathComponent(fixture.lastPathComponent+".svg"))
+                try renderPNG(vector).write(to:directory.appendingPathComponent(fixture.lastPathComponent+"-after.png"))
+                try renderPNG(pdfVectorSVG(pdf,cropToContent:false)).write(to:directory.appendingPathComponent(fixture.lastPathComponent+"-before.png"))
+                print("PASS \(fixture.lastPathComponent) cropped preview: \(preview.bounds.width) × \(preview.bounds.height) pt")
+            }
+            do { try pdfAgreement(vector,referencePNG(pdf,bounds:preview.bounds)) }
             catch {
                 try vector.write(to:root.appendingPathComponent("build/preview-probe/pdf-failed.svg"))
-                try referencePNG(pdf).write(to:root.appendingPathComponent("build/preview-probe/pdf-reference.png"))
+                try referencePNG(pdf,bounds:preview.bounds).write(to:root.appendingPathComponent("build/preview-probe/pdf-reference.png"))
                 try renderPNG(vector).write(to:root.appendingPathComponent("build/preview-probe/pdf-converted.png"))
                 throw error
             }

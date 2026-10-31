@@ -58,6 +58,12 @@ private func pdfMatrix(_ transform:CGAffineTransform) -> String {
     "matrix(\(transform.a) \(transform.b) \(transform.c) \(transform.d) \(transform.tx) \(transform.ty))"
 }
 
+struct PDFVectorPreview {
+    let svg:Data
+    // PDF coordinates, before the SVG's vertical-axis flip.
+    let bounds:CGRect
+}
+
 // CID-keyed CFF subsets store CID-to-glyph mappings in their charset table.
 // A CID is not a glyph index, unlike Identity-mapped TrueType subsets.
 private func cffGlyphs(_ data:Data) throws -> [Int:CGGlyph] {
@@ -217,6 +223,7 @@ private final class PDFVectorWriter {
         var fill = "black", stroke = "black"
         var fillAlpha:CGFloat = 1, strokeAlpha:CGFloat = 1, width:CGFloat = 1, miter:CGFloat = 10
         var cap = 0, join = 0, dash = "", dashOffset:CGFloat = 0, clips = [String]()
+        var clipBounds:CGRect?
         var font = "", fontSize:CGFloat = 1, character:CGFloat = 0, word:CGFloat = 0, horizontal:CGFloat = 1, leading:CGFloat = 0, rise:CGFloat = 0
         var textMode = 0, fillSpace = "DeviceGray", strokeSpace = "DeviceGray"
     }
@@ -226,6 +233,7 @@ private final class PDFVectorWriter {
     var stream:CGPDFContentStreamRef!
     var fonts = [String:PDFVectorFont]()
     var formDepth = 0
+    var paintedBounds = CGRect.null
     deinit { CGPDFOperatorTableRelease(table) }
     let table = CGPDFOperatorTableCreate()!
     func numbers(_ scanner:CGPDFScannerRef,_ count:Int) throws -> [CGFloat] {
@@ -251,8 +259,35 @@ private final class PDFVectorWriter {
         guard body.utf8.count + drawing.utf8.count <= 48 * 1024 * 1024 else { error = PDFVectorError(operation:"preview size"); return }
         body += state.clips.reduce(drawing) { "<g clip-path=\"url(#\($1))\">\($0)</g>" }
     }
+    func visible(_ color:String,_ alpha:CGFloat) -> Bool {
+        // White page backgrounds and transparent objects do not enlarge the
+        // drawing on Office's white canvas. Other colors retain exact bounds.
+        guard alpha > 0, color != "white" else { return false }
+        if color.hasPrefix("rgb("), color.hasSuffix(")") {
+            let components = color.dropFirst(4).dropLast().split(separator:",").compactMap { Double($0.dropLast()) }
+            // PDF color profiles can round paper white slightly below 1.0.
+            if components.count == 3 && components.allSatisfy({ $0 >= 99.9999 }) { return false }
+        }
+        return true
+    }
+    func include(_ bounds:CGRect) {
+        let clipped = state.clipBounds.map { bounds.intersection($0) } ?? bounds
+        if !clipped.isNull && !clipped.isEmpty { paintedBounds = paintedBounds.union(clipped) }
+    }
+    func include(_ path:CGPath,transform:CGAffineTransform,fill:Bool,stroke:Bool,width:CGFloat) {
+        var transform = transform
+        if fill && visible(state.fill,state.fillAlpha), let transformed = path.copy(using:&transform) {
+            include(transformed.boundingBoxOfPath)
+        }
+        if stroke && visible(state.stroke,state.strokeAlpha) {
+            let caps:[CGLineCap] = [.butt,.round,.square], joins:[CGLineJoin] = [.miter,.round,.bevel]
+            let outline = path.copy(strokingWithWidth:max(abs(width),0.5),lineCap:caps[min(max(state.cap,0),2)],lineJoin:joins[min(max(state.join,0),2)],miterLimit:state.miter)
+            if let transformed = outline.copy(using:&transform) { include(transformed.boundingBoxOfPath) }
+        }
+    }
     func paint(fill:Bool,stroke:Bool,evenOdd:Bool = false) {
         if fill || stroke {
+            include(path,transform:state.transform,fill:fill,stroke:stroke,width:state.width)
             let cap = ["butt","round","square"][min(max(state.cap,0),2)], join = ["miter","round","bevel"][min(max(state.join,0),2)]
             append("<path d=\"\(pdfPath(path))\" transform=\"\(pdfMatrix(state.transform))\" fill=\"\(fill ? state.fill : "none")\" fill-opacity=\"\(state.fillAlpha)\" fill-rule=\"\(evenOdd ? "evenodd" : "nonzero")\" stroke=\"\(stroke ? state.stroke : "none")\" stroke-opacity=\"\(state.strokeAlpha)\" stroke-width=\"\(state.width)\" stroke-linecap=\"\(cap)\" stroke-linejoin=\"\(join)\" stroke-miterlimit=\"\(state.miter)\" stroke-dasharray=\"\(state.dash.isEmpty ? "none" : state.dash)\" stroke-dashoffset=\"\(state.dashOffset)\"/>")
         }
@@ -260,6 +295,9 @@ private final class PDFVectorWriter {
             let id = "pdfclip\(nextClip)"; nextClip += 1
             definitions += "<clipPath id=\"\(id)\"><path d=\"\(pdfPath(path))\" transform=\"\(pdfMatrix(state.transform))\" clip-rule=\"\(rule)\"/></clipPath>"
             state.clips.append(id); pendingClip = nil
+            var transform = state.transform
+            let bounds = path.copy(using:&transform)?.boundingBoxOfPath ?? .null
+            state.clipBounds = state.clipBounds.map { $0.intersection(bounds) } ?? bounds
         }
         path = CGMutablePath()
     }
@@ -303,6 +341,7 @@ private final class PDFVectorWriter {
             if state.textMode != 3, let glyphPath = CTFontCreatePathForGlyph(font.font,glyph,nil) {
                 guard state.textMode <= 2 else { throw PDFVectorError(operation:"text rendering mode") }
                 let transform = CGAffineTransform(scaleX:state.fontSize*state.horizontal,y:state.fontSize).concatenating(CGAffineTransform(translationX:0,y:state.rise)).concatenating(text).concatenating(state.transform)
+                include(glyphPath,transform:transform,fill:state.textMode != 1,stroke:state.textMode != 0,width:state.width/state.fontSize)
                 append("<path d=\"\(pdfPath(glyphPath))\" transform=\"\(pdfMatrix(transform))\" fill=\"\(state.textMode == 1 ? "none" : state.fill)\" fill-opacity=\"\(state.fillAlpha)\" stroke=\"\(state.textMode == 0 ? "none" : state.stroke)\" stroke-width=\"\(state.width/state.fontSize)\"/>")
             }
             let advance = ((font.widths[code] ?? font.fallbackWidth)*state.fontSize + state.character + (code == 32 ? state.word : 0))*state.horizontal
@@ -333,6 +372,7 @@ private final class PDFVectorWriter {
             guard CGPDFScannerScan(scanner), error == nil, stack.count == depth else { throw error ?? PDFVectorError(operation:"form content") }
         } else if pdfName(dictionary,"Subtype") == "Image" {
             let image = try imageData(imageStream)
+            if state.fillAlpha > 0 { include(CGRect(x:0,y:0,width:1,height:1).applying(state.transform)) }
             let encoded = NSMutableData()
             guard let destination = CGImageDestinationCreateWithData(encoded as CFMutableData,"public.png" as CFString,1,nil) else { throw PDFVectorError(operation:"image preview") }
             CGImageDestinationAddImage(destination,image,nil)
@@ -543,19 +583,32 @@ private final class PDFVectorWriter {
         CGPDFOperatorTableSetCallback(table,"'",{ PDFVectorWriter.execute("'",$0,$1) })
         CGPDFOperatorTableSetCallback(table,"\"",{ PDFVectorWriter.execute("\"",$0,$1) })
     }
-    func convert(_ page:CGPDFPage) throws -> Data {
-        let bounds = page.getBoxRect(.mediaBox)
-        guard bounds.width > 0, bounds.height > 0, page.rotationAngle == 0 else { throw PDFVectorError(operation:"page bounds") }
+    func convert(_ page:CGPDFPage,cropToContent:Bool) throws -> PDFVectorPreview {
+        let pageBounds = page.getBoxRect(.mediaBox).intersection(page.getBoxRect(.cropBox))
+        guard !pageBounds.isNull, pageBounds.width > 0, pageBounds.height > 0, page.rotationAngle == 0 else { throw PDFVectorError(operation:"page bounds") }
+        state.clipBounds = pageBounds
         let content = CGPDFContentStreamCreateWithPage(page)
         stream = content; defer { CGPDFContentStreamRelease(content); stream = nil }
         let scanner = CGPDFScannerCreate(stream,table,Unmanaged.passUnretained(self).toOpaque())
         defer { CGPDFScannerRelease(scanner) }
         guard CGPDFScannerScan(scanner), error == nil else { throw error ?? PDFVectorError(operation:"content stream") }
         guard stack.isEmpty else { throw PDFVectorError(operation:"graphics state") }
-        return Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\(bounds.width)\" height=\"\(bounds.height)\" viewBox=\"0 0 \(bounds.width) \(bounds.height)\"><defs>\(definitions)</defs><g transform=\"translate(\(-bounds.minX) \(bounds.maxY)) scale(1 -1)\">\(body)</g></svg>".utf8)
+        let ink = paintedBounds.intersection(pageBounds)
+        if cropToContent && (ink.isNull || ink.isEmpty) {
+            return PDFVectorPreview(svg:blankDrawingSVG(),bounds:CGRect(x:pageBounds.minX,y:pageBounds.minY,width:100,height:100))
+        }
+        // Crop only the canvas; keep paths, font outlines, embedded pictures
+        // and their relative positions intact. Padding protects antialiasing
+        // and fine strokes without carrying the PDF's printable page margins.
+        let bounds = cropToContent ? ink.insetBy(dx:-2,dy:-2).intersection(pageBounds) : pageBounds
+        let svg = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\(bounds.width)\" height=\"\(bounds.height)\" viewBox=\"0 0 \(bounds.width) \(bounds.height)\"><defs>\(definitions)</defs><g transform=\"translate(\(-bounds.minX) \(bounds.maxY)) scale(1 -1)\">\(body)</g></svg>".utf8)
+        return PDFVectorPreview(svg:svg,bounds:bounds)
     }
 }
-func pdfVectorSVG(_ data:Data) throws -> Data {
+func pdfVectorPreview(_ data:Data,cropToContent:Bool = true) throws -> PDFVectorPreview {
     guard data.starts(with:Data("%PDF-".utf8)), data.count <= 48 * 1024 * 1024, let provider = CGDataProvider(data:data as CFData), let pdf = CGPDFDocument(provider), pdf.numberOfPages == 1, let page = pdf.page(at:1) else { throw PDFVectorError(operation:"PDF page") }
-    return try PDFVectorWriter().convert(page)
+    return try PDFVectorWriter().convert(page,cropToContent:cropToContent)
+}
+func pdfVectorSVG(_ data:Data,cropToContent:Bool = true) throws -> Data {
+    try pdfVectorPreview(data,cropToContent:cropToContent).svg
 }

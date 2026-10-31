@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import Cocoa
 
-func referencePNG(_ pdf:Data) throws -> Data {
+func referencePNG(_ pdf:Data,bounds requestedBounds:CGRect? = nil) throws -> Data {
     let document = CGPDFDocument(CGDataProvider(data:pdf as CFData)!)!, page = document.page(at:1)!
-    let bounds = page.getBoxRect(.mediaBox), width = 1024, height = Int((1024*bounds.height/bounds.width).rounded())
+    let bounds = requestedBounds ?? page.getBoxRect(.mediaBox), width = 1024, height = Int((1024*bounds.height/bounds.width).rounded())
     let bitmap = NSBitmapImageRep(bitmapDataPlanes:nil,pixelsWide:width,pixelsHigh:height,bitsPerSample:8,samplesPerPixel:4,hasAlpha:true,isPlanar:false,colorSpaceName:.deviceRGB,bytesPerRow:width*4,bitsPerPixel:32)!
     let context = NSGraphicsContext(bitmapImageRep:bitmap)!.cgContext
     context.setFillColor(CGColor(gray:1,alpha:1)); context.fill(CGRect(x:0,y:0,width:width,height:height))

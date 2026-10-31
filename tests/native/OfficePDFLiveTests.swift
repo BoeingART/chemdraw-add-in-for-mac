@@ -18,7 +18,10 @@ import Cocoa
         let automation = NativeAutomation(root:root), app = try automation.application()
         let chemState = "tell application \(appleQuote(app.path)) to return {name, modified} of every document"
         let before = try automation.script(chemState,[])
-        for host in ["word","powerpoint"] {
+        let hosts = ProcessInfo.processInfo.environment["CFM_OFFICE_TEST_HOSTS"]?.split(separator:",").map(String.init) ?? ["word","powerpoint"]
+        try require(!hosts.isEmpty && hosts.allSatisfy { ["word","powerpoint"].contains($0) },"Choose Word or PowerPoint for Office PDF acceptance")
+        let fixture = ProcessInfo.processInfo.environment["CFM_OFFICE_TEST_SOURCE"].map { URL(fileURLWithPath:$0) } ?? project.appendingPathComponent("tests/fixtures/clipboard-ethanol.cdx")
+        for host in hosts {
             let create = host == "word" ? """
             tell application id "com.microsoft.Word"
                 set d to make new document
@@ -40,13 +43,14 @@ import Cocoa
             try bridge.prepare()
             let capture = root.appendingPathComponent(host+"-capture")
             try fm.createDirectory(at:capture,withIntermediateDirectories:true)
-            try fm.copyItem(at:project.appendingPathComponent("tests/fixtures/clipboard-ethanol.cdx"),to:capture.appendingPathComponent("source.cdx"))
+            try fm.copyItem(at:fixture,to:capture.appendingPathComponent("source.cdx"))
             try bridge.paste(host,snapshot:capture)
             let marker = try automation.office("selected",host)
             try bridge.begin(host,tag:marker)
             let session = bridge.session!, source = URL(fileURLWithPath:session.path)
             defer { _ = try? automation.script("tell application \(appleQuote(app.path)) to close document (item 1 of argv) saving no",[source.lastPathComponent]) }
             let original = try Data(contentsOf:source)
+            try require(try original == Data(contentsOf:fixture),"Pasting changed the selected native structure")
             _ = try automation.script("""
             tell application \(appleQuote(app.path))
                 set d to document (item 1 of argv)
@@ -56,11 +60,13 @@ import Cocoa
             """,[source.lastPathComponent])
             let saved = try Data(contentsOf:source)
             try require(saved != original,"ChemDraw save did not change the test structure")
+            // ChemDraw versions differ in whether changing label defaults marks
+            // a document dirty. Preserve the observed value and flag together.
             let newerSize = try automation.script("""
             tell application \(appleQuote(app.path))
                 set d to document (item 1 of argv)
                 set label size of d to (label size of d) + 20
-                return label size of d
+                return {label size of d, modified of d}
             end tell
             """,[source.lastPathComponent])
             try bridge.save(SavedDrawingChange(id:session.id,path:session.path,source:saved))
@@ -68,8 +74,7 @@ import Cocoa
             let afterSize = try automation.script("""
             tell application \(appleQuote(app.path))
                 set d to document (item 1 of argv)
-                if not (modified of d) then error "Newer test input was lost"
-                return label size of d
+                return {label size of d, modified of d}
             end tell
             """,[source.lastPathComponent])
             try require(afterSize == newerSize && Data(contentsOf:source) == saved,"PDF export overwrote newer input or the saved source")

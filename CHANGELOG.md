@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fit pasted and synchronized previews to the drawing’s paths, text and pictures instead of the full PDF page. Retain a small protective margin and the editable native source.
+- Keep the ChemDraw 26 AppleScript PDF export path and use the same content bounds for paste, saved snapshots and close/write-back. Preserve stroke widths, clipping, transformed artwork and empty editable canvases.
+
 ## v1.5.3 — 2026-10-31
 
 - Fix an in-app update stall after downloading: stop the helper asynchronously, return to the application event loop, and start replacement only after the helper exits. Apply the same shutdown sequence to Quit.
