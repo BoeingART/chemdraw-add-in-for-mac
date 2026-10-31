@@ -4,11 +4,11 @@
 
 The application icon, Office panel artwork and template menu-bar icon use the current SVG sources. The native main window was inspected on this Mac: it has no banner and retains its compact layout, three actions and login checkbox.
 
-The final signed universal DMG and automatic-update ZIP passed package checks, including four language settings and the application size limits. The installed bundle contains approximately 4.0 MB of files; the DMG is approximately 2.1 MB and the ZIP approximately 1.7 MB. The local test build was not submitted for Apple notarization.
+The final signed universal DMG and automatic-update ZIP passed package checks, including four language settings and the application size limits. The installed bundle contains approximately 4.0 MB of files; the DMG is approximately 2.1 MB and the ZIP approximately 1.7 MB. The initial local test build skipped Apple notarization. The GitHub distribution subsequently passed Apple notarization on 2026-10-31 (submission 5b44448f-7d4f-4e11-ac4e-61a4ee73135e, status Accepted). The DMG and the final ZIP's extracted application carry validated tickets and pass Gatekeeper as Notarized Developer ID.
 
 A signed copy of the installed v1.5.0 application was updated in an isolated test directory. The update waited for its parent process to exit, replaced the application, launched the new signed GUI once, preserved a retained editing draft, and removed its completed download and staging files. The installed application in /Applications was preserved. Existing signature rejection and rollback checks also passed.
 
-Native regression checks, 22 panel and HTTPS checks, bilingual task-pane checks, localization checks and eight release-workflow tests passed. The release tests verify that the automatic-update ZIP and DMG are present before a draft becomes public, using GitHub's temporary draft addresses before publication and final version addresses afterwards. These workflow tests use local fixtures and prepare the release artifacts for publication through `scripts/release.sh --publish`.
+Native regression checks, 22 panel and HTTPS checks, bilingual task-pane checks and localization checks passed. Eleven release-workflow tests and eleven notarization-recovery tests passed. Public release preparation stops on credential errors, pending or rejected notarization, or failed final ticket and Gatekeeper checks. Local preparation skips notarization. The release tests also verify that both distribution files are present before a draft becomes public, using GitHub's temporary draft addresses before publication and final version addresses afterwards.
 
 ## v1.5.0 test build 20 — 2026-10-31
 

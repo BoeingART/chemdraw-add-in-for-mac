@@ -39,6 +39,9 @@ cfm_finish_notarization() {
         fi
         /bin/cp "$cfm_notarized_pkg" "$CFM_PKG"
     fi
+    if [[ "$CFM_PKG" == "$CFM_DEFAULT_DMG" && -f "${CFM_PKG%.dmg}.zip" ]]; then
+        zsh "$CFM_PROJECT/scripts/staple-update.sh" "${CFM_PKG%.dmg}.zip"
+    fi
     # Stapling changes the distributed file. Refresh integrity metadata last.
     if [[ "$CFM_PKG" == "$CFM_DEFAULT_PKG" ]]; then
         (cd "$CFM_PROJECT/dist"; if [[ "$CFM_PKG" == *.dmg && -f "ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.zip" ]]; then /usr/bin/shasum -a 256 "ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.zip" "${CFM_PKG:t}" > SHA256SUMS.txt; else /usr/bin/shasum -a 256 "${CFM_PKG:t}" > SHA256SUMS.txt; fi)

@@ -14,6 +14,7 @@ fail() { print -u2 -- "$*"; exit 1; }
 if [[ "$CFM_MODE" == --publish ]]; then
     [[ -z "$(git status --porcelain)" ]] || fail 'Commit the intended release changes before publishing.'
     [[ "$(git rev-list -n 1 "$CFM_TAG")" == "$(git rev-parse HEAD)" ]] || fail 'The release tag must identify this checkout.'
+    zsh scripts/notarize.sh --check-credentials
 fi
 zsh scripts/package.sh
 zsh scripts/test-package.sh
@@ -21,6 +22,8 @@ if [[ "$CFM_MODE" == --prepare ]]; then
     print 'Prepared the DMG and automatic-update ZIP locally. Nothing was published.'
     exit 0
 fi
+zsh scripts/notarize.sh
+CFM_REQUIRE_NOTARIZATION=1 zsh scripts/test-package.sh
 CFM_DRAFT="$(gh release view "$CFM_TAG" --repo "$CFM_REPO" --json isDraft --jq .isDraft 2>/dev/null || true)"
 if [[ -n "$CFM_DRAFT" ]]; then
     [[ "$CFM_DRAFT" == true ]] || fail 'This version is already published. Prepare a new version instead.'
@@ -35,7 +38,7 @@ CFM_RELEASE_ID="$(gh release view "$CFM_TAG" --repo "$CFM_REPO" --json databaseI
 [[ "$CFM_RELEASE_ID" == <-> ]] || fail 'Could not resolve the draft release ID.'
 gh api "repos/$CFM_REPO/releases/$CFM_RELEASE_ID" > "$CFM_METADATA"
 python3 scripts/check-release.py "$CFM_METADATA" "$CFM_VERSION" dist --draft
-# Publish only after both completed uploads satisfy the updater's requirements.
+# Publish only after notarization and both completed uploads are verified.
 gh release edit "$CFM_TAG" --repo "$CFM_REPO" --draft=false --latest
 gh api "repos/$CFM_REPO/releases/$CFM_RELEASE_ID" > "$CFM_METADATA"
 python3 scripts/check-release.py "$CFM_METADATA" "$CFM_VERSION" dist

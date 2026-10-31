@@ -31,6 +31,10 @@ if name == 'pkgutil':
     if os.environ.get('BAD_SIGNATURE') == '1': sys.exit(1)
     print('1. Developer ID Installer: Test (ABC1234567)')
 elif name == 'spctl': sys.exit(int(os.environ.get('GATEKEEPER_RESULT', '0')))
+elif name == 'codesign': sys.exit(int(os.environ.get('BAD_SIGNATURE', '0')))
+elif name == 'zsh':
+    if os.environ.get('UPDATE_TICKET_RESULT') == '1': sys.exit(1)
+    archive = pathlib.Path(args[-1]); archive.write_bytes(archive.read_bytes() + b' app ticket')
 elif args[:2] == ['stapler', 'validate']:
     sys.exit(0 if pathlib.Path(args[-1]).read_bytes().endswith(b' ticket') else 1)
 elif args[:2] == ['stapler', 'staple']:
@@ -50,11 +54,12 @@ elif args[:2] == ['notarytool', 'log']:
     pathlib.Path(args[-1]).write_text(json.dumps({'status': os.environ.get('NOTARY_STATUS', 'Accepted')}))
 ''')
         shim.chmod(0o755)
-        for name in ['xcrun', 'pkgutil', 'spctl']:
+        for name in ['xcrun', 'pkgutil', 'spctl', 'codesign', 'zsh']:
             (self.root / 'bin' / name).symlink_to(shim)
         source = (PROJECT / 'scripts/notarize.sh').read_text()
         for name in ['pkgutil', 'spctl']:
             source = source.replace('/usr/sbin/' + name, str(self.root / 'bin' / name))
+        source = source.replace('/usr/bin/codesign', str(self.root / 'bin/codesign'))
         self.script = self.root / 'scripts/notarize.sh'
         self.script.write_text(source)
         self.env = {k: v for k, v in os.environ.items() if not k.startswith('CFM_')}
@@ -135,6 +140,24 @@ elif args[:2] == ['notarytool', 'log']:
         self.assertNotEqual(self.run_notary('--check-credentials').returncode, 0)
         self.assertIn('another-profile', self.calls(['xcrun', 'notarytool', 'history'])[0])
         self.assertFalse(self.calls(['xcrun', 'notarytool', 'submit']))
+
+    def test_dmg_and_update_app_tickets_precede_final_distribution_metadata(self):
+        dmg = self.pkg.with_suffix('.dmg'); dmg.write_bytes(b'signed disk image')
+        archive = self.pkg.with_suffix('.zip'); archive.write_bytes(b'signed app archive')
+        result = self.run_notary()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(dmg.read_bytes().endswith(b' ticket'))
+        self.assertTrue(archive.read_bytes().endswith(b' app ticket'))
+        metadata = (self.root / 'dist/SHA256SUMS.txt').read_text()
+        self.assertIn(hashlib.sha256(dmg.read_bytes()).hexdigest(), metadata)
+        self.assertIn(hashlib.sha256(archive.read_bytes()).hexdigest(), metadata)
+
+    def test_failed_update_app_ticket_stops_final_distribution_metadata(self):
+        self.pkg.with_suffix('.dmg').write_bytes(b'signed disk image')
+        self.pkg.with_suffix('.zip').write_bytes(b'signed app archive')
+        self.env['UPDATE_TICKET_RESULT'] = '1'
+        self.assertNotEqual(self.run_notary().returncode, 0)
+        self.assertFalse((self.root / 'dist/SHA256SUMS.txt').exists())
 
 
 if __name__ == '__main__':

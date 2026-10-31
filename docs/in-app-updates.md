@@ -17,7 +17,7 @@ zsh scripts/test-renderer.sh
 
 The default outputs are a DMG for first installation and a ZIP for in-app updates. Both contain the same signed universal application. Packaging requires the Developer ID Application identity. The optional `zsh scripts/package.sh --pkg` retains legacy installer generation with Developer ID Installer for earlier clients.
 
-For public distribution, `zsh scripts/notarize.sh` submits the DMG to Apple, preserves its submission state and attaches the accepted ticket. This is a separate release step. `CFM_REQUIRE_NOTARIZATION=1 zsh scripts/test-package.sh` additionally checks the attached ticket and system assessment. Local test packaging leaves that step to the maintainer.
+Every GitHub Release must pass Apple notarization before uploading its distribution files. `zsh scripts/notarize.sh` submits the DMG to Apple, preserves its submission state, attaches the accepted DMG ticket, and staples the nested application's ticket into the automatic-update ZIP. `CFM_REQUIRE_NOTARIZATION=1 zsh scripts/test-package.sh` checks both final tickets and Gatekeeper assessments. Local development and test packages can skip notarization.
 
 Publish `ChemDraw-Add-in-for-Mac-<version>-universal.dmg` and `ChemDraw-Add-in-for-Mac-<version>-universal.zip` on the configured GitHub Release. The updater requires the exact release asset and complete download metadata, rejects changed downloads and untrusted destinations, and verifies the application's existing signing team before replacement. The client accepts application ZIP updates only. Missing update assets produce an actionable error inside the app; checking for updates never opens a package installer or download page.
 
@@ -27,7 +27,7 @@ The native regression suite covers source preservation, all three Office hosts, 
 
 Run `zsh scripts/release.sh --prepare` to build and check the DMG and application ZIP locally. The default mode does not publish. Prepare a clean, tagged checkout and push its release tag before explicitly running `zsh scripts/release.sh --publish`.
 
-Publishing creates a draft with both assets, reads their uploaded metadata back and validates the exact version, download destinations, sizes and contents. It makes the release visible only after those checks pass. A missing or incomplete update ZIP leaves the draft unpublished. Existing public versions are preserved. The workflow can resume a draft after correcting an upload.
+Publishing checks notarization credentials, builds both assets, completes Apple notarization and verifies the final DMG and ZIP application's tickets and Gatekeeper assessments before any release upload. A waiting or rejected submission or a failed ticket check stops publication. It then creates a draft with both assets, reads their uploaded metadata back and validates the exact version, download destinations, sizes and contents. It makes the release visible only after those checks pass. A missing or incomplete update ZIP leaves the draft unpublished. Existing public versions are preserved. The workflow can resume a draft after correcting an upload.
 
 The signing identity and app identifier remain stable across releases. The updater downloads in the background, waits for active editing to finish, validates the signed bundle, waits for the old app to exit, replaces it and reopens it. It removes only this successful update's staging and downloaded files. User data remains outside the app bundle. A failed replacement restores the previous bundle.
 

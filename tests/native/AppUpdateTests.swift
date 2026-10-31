@@ -72,6 +72,11 @@ import CryptoKit
             let team = try NativeAppUpdate.team(of:current)
             try NativeAppUpdate.validate(app,version:Bundle(url:current)!.object(forInfoDictionaryKey:"CFBundleShortVersionString") as! String,team:team)
             print("PASS packaged ZIP extracts and validates against the signed application team")
+            if ProcessInfo.processInfo.environment["CFM_REQUIRE_NOTARIZATION"] == "1" {
+                _ = try command("/usr/bin/xcrun",["stapler","validate",app.path])
+                _ = try command("/usr/sbin/spctl",["--assess","--type","execute","--verbose=2",app.path])
+                print("PASS native update extraction preserves the Apple ticket and Gatekeeper acceptance")
+            }
             if CommandLine.arguments.count == 4 {
                 let installed = URL(fileURLWithPath:CommandLine.arguments[3]), version = Bundle(url:current)!.object(forInfoDictionaryKey:"CFBundleShortVersionString") as! String
                 let bytes = try Data(contentsOf:zip), name = zip.lastPathComponent

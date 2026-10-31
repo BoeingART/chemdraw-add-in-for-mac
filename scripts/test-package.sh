@@ -74,8 +74,10 @@ CFM_REQUIREMENT="$(/usr/bin/codesign -d -r- "$CFM_APP" 2>&1 | /usr/bin/sed -n 's
 print 'PASS packaged application identity is bound to the persistent signing certificate'
 if [[ "${CFM_REQUIRE_NOTARIZATION:-0}" == 1 ]]; then
     xcrun stapler validate "$CFM_DMG"
+    /usr/sbin/spctl --assess --type open --context context:primary-signature --verbose=2 "$CFM_DMG"
+    xcrun stapler validate "$CFM_APP"
     /usr/sbin/spctl --assess --type execute --verbose=2 "$CFM_APP"
-    print 'PASS attached Apple notarization ticket and Gatekeeper installer assessment'
+    print 'PASS DMG and automatic-update application carry valid Apple tickets and pass Gatekeeper'
 fi
 cd "$PROJECT_DIR/dist"
 /usr/bin/shasum -a 256 -c SHA256SUMS.txt

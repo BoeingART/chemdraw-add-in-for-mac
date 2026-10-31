@@ -63,6 +63,12 @@ elif name == 'gh':
         for asset in data['assets']: asset['browser_download_url'] = asset['browser_download_url'].replace(temporary, data['tag_name'])
         p.write_text(json.dumps(data))
 elif name == 'python3': sys.exit(subprocess.run([os.environ['TEST_PYTHON']] + args).returncode)
+elif name == 'zsh':
+    if args == ['scripts/notarize.sh', '--check-credentials'] and os.environ.get('TEST_CREDENTIAL_FAILURE'): sys.exit(1)
+    if args == ['scripts/notarize.sh'] and os.environ.get('TEST_NOTARY_FAILURE'): sys.exit(1)
+    if args == ['scripts/test-package.sh'] and os.environ.get('CFM_REQUIRE_NOTARIZATION') == '1':
+        with open(os.environ['TEST_CALLS'], 'a') as out: out.write(json.dumps(['notarization-gate', '1']) + '\n')
+        if os.environ.get('TEST_FINAL_NOTARY_FAILURE'): sys.exit(1)
 ''')
         shim.chmod(0o755)
         for name in ("git", "gh", "zsh", "python3"):
@@ -82,6 +88,7 @@ elif name == 'python3': sys.exit(subprocess.run([os.environ['TEST_PYTHON']] + ar
     def test_local_preparation_never_contacts_or_publishes_to_github(self):
         self.assertEqual(self.run_release("--prepare").returncode, 0)
         self.assertFalse(any(call[0] == "gh" for call in self.calls()))
+        self.assertFalse(any(call[:2] == ["zsh", "scripts/notarize.sh"] or call[0] == "notarization-gate" for call in self.calls()))
 
     def test_publish_checks_completed_zip_and_dmg_uploads_before_visibility(self):
         result = self.run_release("--publish")
@@ -94,6 +101,10 @@ elif name == 'python3': sys.exit(subprocess.run([os.environ['TEST_PYTHON']] + ar
         self.assertTrue(any(arg.endswith(".dmg") for arg in create))
         verification = next(i for i, call in enumerate(calls) if call[0] == "python3")
         publication = next(i for i, call in enumerate(calls) if call[:3] == ["gh", "release", "edit"])
+        notarization = calls.index(["zsh", "scripts/notarize.sh"])
+        gate = calls.index(["notarization-gate", "1"])
+        self.assertLess(notarization, gate)
+        self.assertLess(gate, calls.index(create))
         self.assertLess(verification, publication)
         self.assertTrue(any(call[:2] == ["gh", "api"] and call[2].endswith("/releases/12345") for call in calls))
         self.assertFalse(json.loads(self.metadata.read_text())["draft"])
@@ -135,6 +146,22 @@ elif name == 'python3': sys.exit(subprocess.run([os.environ['TEST_PYTHON']] + ar
         data['draft'] = True
         data['html_url'] = data['html_url'].replace('github.com', 'example.com')
         with self.assertRaises(ValueError): checker.validate(data, self.version, self.root / "dist", draft=True)
+
+    def test_notarization_credentials_are_checked_before_building(self):
+        self.env['TEST_CREDENTIAL_FAILURE'] = '1'
+        self.assertNotEqual(self.run_release('--publish').returncode, 0)
+        self.assertFalse(any(call[0] == 'gh' or call[:2] == ['zsh', 'scripts/package.sh'] for call in self.calls()))
+
+    def test_rejected_or_pending_notarization_cannot_upload_or_publish(self):
+        self.env['TEST_NOTARY_FAILURE'] = '1'
+        self.assertNotEqual(self.run_release('--publish').returncode, 0)
+        self.assertFalse(any(call[0] == 'gh' for call in self.calls()))
+
+    def test_failed_final_ticket_or_gatekeeper_check_cannot_upload_or_publish(self):
+        self.env['TEST_FINAL_NOTARY_FAILURE'] = '1'
+        self.assertNotEqual(self.run_release('--publish').returncode, 0)
+        self.assertIn(['notarization-gate', '1'], self.calls())
+        self.assertFalse(any(call[0] == 'gh' for call in self.calls()))
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
