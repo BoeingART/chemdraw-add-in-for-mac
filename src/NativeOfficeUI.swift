@@ -29,10 +29,11 @@ class PanelRouter {
         if method == "GET" {
             let path = String(target.split(separator:"?",maxSplits:1).first ?? "")
             if path == "/api/status" { return PanelResponse(200,["ready":ready(),"editing":editing(),"activity":activity()]) }
-            let routes = ["/":"taskpane.html","/taskpane.html":"taskpane.html","/help":"taskpane.html","/taskpane.js":"taskpane.js","/style.css":"style.css","/icon-16.png":"icon-16.png","/icon-32.png":"icon-32.png","/icon-80.png":"icon-80.png"]
+            if path == "/banner.svg", let data = try? Data(contentsOf:root.appendingPathComponent("assets/banner.svg")) { return PanelResponse(data,type:"image/svg+xml; charset=utf-8") }
+            let routes = ["/":"taskpane.html","/taskpane.html":"taskpane.html","/help":"taskpane.html","/taskpane.js":"taskpane.js","/style.css":"style.css","/icon.svg":"icon.svg","/icon-16.png":"icon-16.png","/icon-32.png":"icon-32.png","/icon-80.png":"icon-80.png"]
             guard let name = routes[path], var data = try? Data(contentsOf:root.appendingPathComponent("office/addin/"+name)) else { return PanelResponse(404,["error":L("native.266")]) }
             if name.hasSuffix(".html") { data = Data(NativeLocalization.panelHTML(String(decoding:data,as:UTF8.self)).replacingOccurrences(of:"__CFM_TOKEN__",with:token).utf8) }
-            let type = name.hasSuffix(".html") ? "text/html; charset=utf-8" : name.hasSuffix(".js") ? "text/javascript; charset=utf-8" : name.hasSuffix(".css") ? "text/css" : "image/png"
+            let type = name.hasSuffix(".html") ? "text/html; charset=utf-8" : name.hasSuffix(".js") ? "text/javascript; charset=utf-8" : name.hasSuffix(".css") ? "text/css" : name.hasSuffix(".svg") ? "image/svg+xml; charset=utf-8" : "image/png"
             return PanelResponse(data,type:type)
         }
         guard method == "POST" && ["/api/edit","/api/paste"].contains(target), (headers["origin"] ?? "https://localhost:\(port)") == "https://localhost:\(port)", headers["x-chemoffice-token"] == token else {

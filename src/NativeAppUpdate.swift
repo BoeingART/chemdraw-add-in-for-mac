@@ -5,6 +5,7 @@ import Darwin
 
 struct AppUpdateRequest:Codable {
     let staged:String, destination:String, version:String, team:String, parentPID:Int32, result:String
+    var archive:String? = nil
 }
 
 // The update worker is copied outside the application before the old app quits.
@@ -76,7 +77,7 @@ enum NativeAppUpdate {
         let app = try extract(archive,to:folder)
         do {
             try validate(app,version:version,team:team)
-            let request = AppUpdateRequest(staged:app.path,destination:current.resolvingSymlinksInPath().path,version:version,team:team,parentPID:getpid(),result:work.appendingPathComponent("update-result.json").path)
+            let request = AppUpdateRequest(staged:app.path,destination:current.resolvingSymlinksInPath().path,version:version,team:team,parentPID:getpid(),result:work.appendingPathComponent("update-result.json").path,archive:archive.path)
             let manifest = folder.appendingPathComponent("request.json")
             try JSONEncoder().encode(request).write(to:manifest,options:.atomic)
             let worker = folder.appendingPathComponent("update-worker")
@@ -111,10 +112,11 @@ enum NativeAppUpdate {
             throw error
         }
     }
-    static func apply(_ manifest:URL) throws {
+    static func apply(_ manifest:URL,launch:((URL) throws -> Void)? = nil) throws {
         let request = try JSONDecoder().decode(AppUpdateRequest.self,from:Data(contentsOf:manifest))
         let destination = URL(fileURLWithPath:request.destination), staged = URL(fileURLWithPath:request.staged)
         let result = URL(fileURLWithPath:request.result)
+        let reopen:(URL) throws -> Void = launch ?? { _ = try command("/usr/bin/open",["-g",$0.path,"--args","--updated"]) }
         func report(_ error:String?) {
             var record = ["version":request.version]
             if let error { record["error"] = error }
@@ -127,8 +129,15 @@ enum NativeAppUpdate {
             try require(kill(request.parentPID,0) != 0,L("update.quit"))
             try validate(staged,version:request.version,team:request.team)
             report(nil)
-            try swap(staged:staged,destination:destination,verify:{ try validate($0,version:request.version,team:request.team) },launch:{ _ = try command("/usr/bin/open",["-g",$0.path,"--args","--updated"]) })
-        } catch { report(error.localizedDescription); _ = try? command("/usr/bin/open",["-g",destination.path,"--args","--updated"]); throw error }
+            try swap(staged:staged,destination:destination,verify:{ try validate($0,version:request.version,team:request.team) },launch:reopen)
+            // Discard only this completed update's own download and staging.
+            let updates = result.deletingLastPathComponent().appendingPathComponent("updates").standardizedFileURL
+            if let archive = request.archive {
+                let folder = URL(fileURLWithPath:archive).deletingLastPathComponent().standardizedFileURL
+                if folder.deletingLastPathComponent() == updates { try? FileManager.default.removeItem(at:folder) }
+            }
+            if manifest.deletingLastPathComponent().deletingLastPathComponent().standardizedFileURL == updates { try? FileManager.default.removeItem(at:manifest.deletingLastPathComponent()) }
+        } catch { report(error.localizedDescription); try? reopen(destination); throw error }
     }
 }
 private extension ProcessInfo {

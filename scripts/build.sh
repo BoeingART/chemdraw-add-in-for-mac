@@ -4,6 +4,7 @@ set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 python3 "$PROJECT_DIR/scripts/localize.py" --check
 mkdir -p "$PROJECT_DIR/build"
+zsh "$PROJECT_DIR/scripts/branding.sh"
 if ! xcrun --find swiftc >/dev/null 2>&1; then
     print 'Install Apple Command Line Tools with: xcode-select --install'
     exit 1

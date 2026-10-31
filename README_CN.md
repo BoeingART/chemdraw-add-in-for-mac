@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![ChemDraw Add-in for Mac，绘制、关闭、继续工作。](assets/banner.svg)
+![ChemDraw Add-in for Mac，绘制、粘贴、继续编辑。](assets/banner.svg)
 
 # ChemDraw Add-in for Mac
 

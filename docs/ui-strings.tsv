@@ -311,9 +311,9 @@ Your ChemDraw."
 300	manifest.help	office/addin/manifest.xml	打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。	Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.		
 301	system.automation	packaging/Info.plist	ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。	ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.		
 302	installer.welcome.0	packaging/Welcome.html	ChemDraw Add-in for Mac	ChemDraw Add-in for Mac		
-303	installer.welcome.1	packaging/Welcome.html	版本1.5.0 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.0 · Apple Silicon + Intel · macOS 12 or later		
-304	installer.welcome.2	packaging/Welcome.html	修复保存和关闭时额外ChemDraw窗口闪现的问题，保留矢量图和可编辑结构。	Fix extra ChemDraw windows appearing during save and close, while preserving vector artwork and editable structures.		
-305	installer.welcome.3	packaging/Welcome.html	移除指针旁转圈提示，减少打开时的重复检查，关闭已同步内容时跳过重复回写。	Remove the spinning pointer indicator, reduce repeated opening checks, and skip duplicate write-back when closing synchronized drawings.		
+303	installer.welcome.1	packaging/Welcome.html	版本1.5.1 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.1 · Apple Silicon + Intel · macOS 12 or later		
+304	installer.welcome.2	packaging/Welcome.html	更新应用图标、横幅和菜单栏图标，Office面板同步使用新标识。	Update the application icon, banner, menu-bar icon and Office panel artwork.		
+305	installer.welcome.3	packaging/Welcome.html	升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。	Choose Check for Updates and confirm to download, replace and reopen the app automatically.		
 306	installer.welcome.4	packaging/Welcome.html	安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。	Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.		
 307	installer.welcome.5	packaging/Welcome.html	已有绘图、连接证书及恢复草稿继续保留。从旧版升级时，按系统提示确认辅助功能和自动化授权。	Existing drawings, connection certificates, and recovery drafts are retained. When upgrading from an older version, confirm Accessibility and Automation access when prompted.		
 308	installer.welcome.6	packaging/Welcome.html	升级前请完成当前编辑并退出应用。	Finish editing and quit the app before upgrading.		
@@ -322,7 +322,7 @@ Your ChemDraw."
 311	installer.conclusion.2	packaging/Conclusion.html	请在系统提示中允许访问所用的Word／PowerPoint／Excel。程序会自动验证目录读写并启动助手，五项检查通过后点击“完成”。	Allow access to the Word, PowerPoint and Excel apps you use when prompted. The app will verify directory access and start the helper automatically. Click “Done” when all five checks pass.		
 312	installer.conclusion.3	packaging/Conclusion.html	从旧版升级时，按系统提示确认辅助功能和自动化授权。	When upgrading from an older version, confirm Accessibility and Automation access when prompted.		
 313	installer.conclusion.4	packaging/Conclusion.html	文件访问被拒绝时，点击“重新授权文件访问”或主界面的“修复加载项”，按提示允许后程序会自动继续。	If file access is denied, click “Authorize File Access Again” or “Repair Add-in” in the main window. Allow access when prompted; setup will continue automatically.		
-314	installer.conclusion.5	packaging/Conclusion.html	请在Word、PowerPoint或Excel中测试双击打开、⌘S同步和关闭回写，确认没有额外窗口或转圈提示。	In Word, PowerPoint or Excel, test double-click editing, Command-S synchronization, and closing with write-back. Check that no extra windows or spinning pointer indicators appear.		
+314	installer.conclusion.5	packaging/Conclusion.html	后续升级在应用内检查更新并确认即可完成。	For later upgrades, check for updates and confirm in the app.		
 315	installer.conclusion.6	packaging/Conclusion.html	结构保存后，ChemDraw编辑窗口保持打开；Office文档由你决定何时保存。	Saving a structure keeps the ChemDraw editing window open. Save your Office document when you choose.		
 316	fixed.product	应用标题、菜单栏提示、Office功能区和安装器	ChemDraw Add-in for Mac	ChemDraw Add-in for Mac		
 317	fixed.icon	Office面板品牌图标	C	C		
@@ -346,7 +346,7 @@ Your ChemDraw."
 331	excel.access	src/NativeApplication.swift	Excel文件访问	Excel File Access		
 332	update.signature	src/NativeAppUpdate.swift	更新应用的签名身份与当前应用不一致。已保留当前版本，请重新下载更新。	The update does not match the current app’s signing identity. Your current version is retained. Download the update again.		
 333	update.contents	src/NativeAppUpdate.swift	更新文件内容或版本不正确。已保留当前版本，请重新下载更新。	The update contents or version are invalid. Your current version is retained. Download the update again.		
-334	update.location	src/NativeAppUpdate.swift	当前应用目录无法写入。请将应用移到个人Applications文件夹，再重新更新。	The application folder is not writable. Move the app to your personal Applications folder, then update again.		
+334	update.location	src/NativeAppUpdate.swift	当前应用目录无法写入。请检查该目录的写入权限后重试更新。	The application folder is not writable. Check its write permissions, then retry the update.		
 335	update.quit	src/NativeAppUpdate.swift	应用尚未退出，更新已停止。请退出应用后重试。	The app has not exited, so the update stopped. Quit the app and retry.		
 336	update.waiting	src/NativeAppUpdate.swift	编辑结束后自动更新	Update when editing finishes		
 337	excel.error.0	office/excel/adapter.applescript	原Excel工作簿已关闭或存在多个副本，请打开唯一的原工作簿后重试。	The original Excel workbook is no longer uniquely available		

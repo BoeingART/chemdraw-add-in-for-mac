@@ -13,7 +13,7 @@ import CryptoKit
         }
         let bytes = Data("Installer download regression fixture".utf8)
         let digest = "sha256:"+SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined()
-        let name = "ChemDraw-Add-in-for-Mac-1.4.0-universal.pkg"
+        let name = "ChemDraw-Add-in-for-Mac-1.4.0-universal.zip"
         let url = "https://github.com/\(NativeUpdates.repository)/releases/download/v1.4.0/\(name)"
         func release(name:String = name,url:String = url,size:Int64 = Int64(bytes.count),digest:String? = digest,duplicate:Bool = false) throws -> GitHubRelease {
             var asset: [String:Any] = ["name":name,"browser_download_url":url,"size":size]
@@ -27,16 +27,16 @@ import CryptoKit
         defer { try? FileManager.default.removeItem(at:temporary) }
         let file = temporary.appendingPathComponent(name)
         try bytes.write(to:file)
-        try check("A version-specific package from the configured repository is selectable") {
+        try check("A version-specific automatic update archive is selectable") {
             let asset = try release().installer()
             try require(asset.name == name && asset.size == bytes.count,"Wrong installer selected")
             try NativeUpdateDownload.verify(file,asset:asset)
         }
-        try check("Application ZIP updates are preferred and must match the exact release") {
-            let zip = name.replacingOccurrences(of:".pkg",with:".zip")
-            let zipURL = url.replacingOccurrences(of:".pkg",with:".zip")
-            try require(try release(name:zip,url:zipURL).installer().name == zip,"Application ZIP refused")
-            try rejects { _ = try release(name:zip,url:zipURL,duplicate:true).installer() }
+        try check("DMG and legacy package assets cannot send users back to a manual installer") {
+            for suffix in [".pkg",".dmg"] {
+                try rejects { _ = try release(name:name.replacingOccurrences(of:".zip",with:suffix),url:url.replacingOccurrences(of:".zip",with:suffix)).installer() }
+            }
+            try rejects { _ = try release(duplicate:true).installer() }
         }
         try check("Missing, duplicate and mismatched installer assets cannot start an update") {
             try rejects { _ = try release(name:"other.pkg").installer() }

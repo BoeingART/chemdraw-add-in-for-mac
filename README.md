@@ -2,7 +2,7 @@ English | [简体中文](README_CN.md)
 
 <div align="center">
 
-![ChemDraw Add-in for Mac — Draw. Close. Carry on.](assets/banner.svg)
+![ChemDraw Add-in for Mac — Draw, paste, and edit again.](assets/banner.svg)
 
 # ChemDraw Add-in for Mac
 

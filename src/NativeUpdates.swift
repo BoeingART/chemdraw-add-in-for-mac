@@ -30,9 +30,8 @@ struct GitHubRelease: Decodable {
         guard let version else { throw UpdateCheckError(message:L("native.289")) }
         let number = version.components.map(String.init).joined(separator:".")
         let archive = "ChemDraw-Add-in-for-Mac-\(number)-universal.zip"
-        let legacy = "ChemDraw-Add-in-for-Mac-\(number)-universal.pkg"
-        let name = (assets ?? []).contains(where:{ $0.name == archive }) ? archive : legacy
-        let matches = (assets ?? []).filter { $0.name == name }
+        let name = archive
+        let matches = (assets ?? []).filter { $0.name == archive }
         guard matches.count == 1, let asset = matches.first,
               asset.size > 0, asset.size <= NativeUpdateDownload.maximumBytes,
               asset.browser_download_url.scheme == "https", asset.browser_download_url.host == "github.com",

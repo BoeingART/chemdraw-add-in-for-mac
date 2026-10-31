@@ -3,6 +3,7 @@
 set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 mkdir -p "$PROJECT_DIR/build"
+zsh "$PROJECT_DIR/scripts/branding.sh"
 xcrun swiftc "$PROJECT_DIR/src/NativeLocalization.swift" "$PROJECT_DIR/src/OfficeHost.swift" "$PROJECT_DIR/src/NativeExcelSelection.swift" "$PROJECT_DIR/src/NativeStrings.swift" -O "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/tests/native/CoreTests.swift" -o "$PROJECT_DIR/build/test-core" -framework Cocoa
 "$PROJECT_DIR/build/test-core" "$PROJECT_DIR"
 xcrun swiftc "$PROJECT_DIR/src/NativeLocalization.swift" "$PROJECT_DIR/src/OfficeHost.swift" "$PROJECT_DIR/src/NativeExcelSelection.swift" "$PROJECT_DIR/src/NativeStrings.swift" -O "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/NativeClipboard.swift" "$PROJECT_DIR/src/NativeInputPolicy.swift" "$PROJECT_DIR/src/NativeMonitorEvents.swift" "$PROJECT_DIR/tests/native/MonitorTests.swift" -o "$PROJECT_DIR/build/test-monitor" -framework Cocoa -framework PDFKit

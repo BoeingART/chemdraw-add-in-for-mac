@@ -22,15 +22,8 @@ cp "$PROJECT_DIR/build/chemoffice" "$PROJECT_DIR/build/event-monitor" "$CFM_APP/
 cp -R "$PROJECT_DIR/office" "$PROJECT_DIR/assets" "$PROJECT_DIR/docs" "$CFM_APP/Contents/Resources/"
 cp "$PROJECT_DIR/LICENSE" "$CFM_APP/Contents/Resources/"
 cp -R "$PROJECT_DIR/packaging/en.lproj" "$PROJECT_DIR/packaging/zh-Hans.lproj" "$PROJECT_DIR/packaging/zh-Hant.lproj" "$CFM_APP/Contents/Resources/"
-# Reuse the project's C icon for the native application.
-CFM_ICON="$CFM_STAGE/$CFM_ICON_NAME.iconset"
-mkdir -p "$CFM_ICON"
-for CFM_SIZE in 16 32 128 256 512; do
-    /usr/bin/sips -z "$CFM_SIZE" "$CFM_SIZE" "$PROJECT_DIR/office/addin/icon-80.png" --out "$CFM_ICON/icon_$CFM_SIZE"x"$CFM_SIZE.png" >/dev/null
-    CFM_DOUBLE=$((CFM_SIZE * 2))
-    /usr/bin/sips -z "$CFM_DOUBLE" "$CFM_DOUBLE" "$PROJECT_DIR/office/addin/icon-80.png" --out "$CFM_ICON/icon_$CFM_SIZE"x"$CFM_SIZE@2x.png" >/dev/null
-done
-/usr/bin/iconutil -c icns "$CFM_ICON" -o "$CFM_APP/Contents/Resources/$CFM_ICON_NAME.icns"
+cp "$PROJECT_DIR/build/branding/menu-bar-icon.png" "$CFM_APP/Contents/Resources/assets/"
+cp "$PROJECT_DIR/build/branding/app.icns" "$CFM_APP/Contents/Resources/$CFM_ICON_NAME.icns"
 # Sign nested executables before the enclosing bundle, preserving their identifiers.
 /usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" --timestamp --options runtime --identifier com.chemdraw_addin.mac.monitor --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP/Contents/Resources/build/event-monitor"
 /usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" --timestamp --options runtime --identifier com.chemdraw_addin.mac.helper --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP/Contents/Resources/build/chemoffice"

@@ -309,9 +309,9 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         applyingUpdate = true; setUpdateControls(enabled:false)
         let current = Bundle.main.bundleURL, updateWork = work, worker = root.appendingPathComponent("build/chemoffice")
         DispatchQueue.global(qos:.utility).async { [weak self] in
-            let prepared:Result<URL?,Error> = Result {
+            let prepared:Result<URL,Error> = Result {
                 try NativeUpdateDownload.verify(file,asset:release.installer())
-                return file.pathExtension == "zip" ? try NativeAppUpdate.prepare(archive:file,release:release,current:current,work:updateWork,workerSource:worker) : nil
+                return try NativeAppUpdate.prepare(archive:file,release:release,current:current,work:updateWork,workerSource:worker)
             }
             DispatchQueue.main.async { [weak self] in
                 guard let self, !self.quitting else { return }
@@ -320,13 +320,12 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                     // Preparing an archive runs in the background. A drawing
                     // opened meanwhile must finish before the app can restart.
                     guard self.canApplyUpdate else {
-                        if let request { try? FileManager.default.removeItem(at:request.deletingLastPathComponent()) }
+                        try? FileManager.default.removeItem(at:request.deletingLastPathComponent())
                         self.applyingUpdate = false; self.setUpdateControls(enabled:true)
                         self.updateButton.title = L("update.waiting"); self.updateMenuItem.title = L("update.waiting")
                         return
                     }
-                    if let request { try NativeAppUpdate.launchWorker(request) }
-                    else if !NSWorkspace.shared.open(file) { throw UpdateCheckError(message:L("native.068")) }
+                    try NativeAppUpdate.launchWorker(request)
                     NSApp.terminate(nil)
                 } catch {
                     self.applyingUpdate = false; self.stagedUpdate = nil
@@ -375,7 +374,8 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             && initiallyBlocked && finishButton.isEnabled && NSApp.activationPolicy() == .accessory
             && Bundle.main.object(forInfoDictionaryKey:"LSUIElement") as? Bool == true
             && configurationButtons.allSatisfy { $0.target === self && $0.action != nil && responds(to:$0.action!) }
-            && ["build/chemoffice","build/event-monitor","office/addin/manifest.xml","assets/demo.cdxml"].allSatisfy { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
+            && ["build/chemoffice","build/event-monitor","office/addin/manifest.xml","assets/demo.cdxml","assets/banner.svg","assets/menu-bar-icon.png"].allSatisfy { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
+            && !mainWindow.contentView!.subviews.flatMap(\.subviews).contains { $0.identifier?.rawValue == "brand-banner" }
         hideStatusIcon(); valid = valid && statusItem == nil
         installStatusItem(); valid = valid && statusItem != nil
         if let destination = ProcessInfo.processInfo.environment["CFM_UI_SNAPSHOTS"] {

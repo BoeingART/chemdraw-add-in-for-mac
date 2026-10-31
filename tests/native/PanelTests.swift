@@ -140,6 +140,16 @@ import Foundation
         let server = try NativeOfficeServer(root:root,port:0)
         var edited = [String](); server.router.edit = { edited.append($0) }
         let headers = ["host":"localhost:17524"]
+        try check("Office panels receive current SVG branding with the image content type") {
+            try fm.createDirectory(at:root.appendingPathComponent("assets"),withIntermediateDirectories:true)
+            let art = Data("<svg xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1 1L9 9\"/></svg>".utf8)
+            try art.write(to:root.appendingPathComponent("assets/banner.svg"))
+            try art.write(to:root.appendingPathComponent("office/addin/icon.svg"))
+            for path in ["/banner.svg","/icon.svg"] {
+                let response = server.router.response(method:"GET",target:path,headers:headers,body:Data())
+                try require(response.status == 200 && response.body == art && response.type == "image/svg+xml; charset=utf-8","Branding was missing or served as a PNG")
+            }
+        }
         try check("Excel-only installations prepare their own manifest and preview cache") {
             let excel = NativeInstaller(root:root,home:root.appendingPathComponent("excel-only"),hosts:["excel"])
             try require(try excel.install(report:false),"Excel-only setup failed")

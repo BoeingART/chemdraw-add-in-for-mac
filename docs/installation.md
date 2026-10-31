@@ -19,4 +19,6 @@ User data stays under `~/Library/Application Support/ChemOffice/work`. Each Offi
 
 ## Build
 
-Use `zsh scripts/package.sh` for the signed universal DMG and application ZIP, then `zsh scripts/test-package.sh` to validate them. Signing uses Developer ID Application. Apple notarization is a separate release step through `zsh scripts/notarize.sh`. The legacy package builder remains available as `zsh scripts/package.sh --pkg`.
+Use `zsh scripts/package.sh` for the signed universal DMG and application ZIP, then `zsh scripts/test-package.sh` to validate them. Signing uses Developer ID Application. Apple notarization is a separate release step through `zsh scripts/notarize.sh`. Use `zsh scripts/release.sh --prepare` to prepare both distribution files and `zsh scripts/release.sh --publish` from a clean tagged checkout to publish them together after validation. The legacy package builder remains available for manual maintenance as `zsh scripts/package.sh --pkg`.
+
+Branding is generated from `office/addin/icon.svg`, `assets/banner.svg` and `assets/menu-bar-icon.svg`. Builds use Inkscape to render the application and Office icon sizes and the native menu mask. End users need no image renderer or development tools. The Office panel uses the current SVG banner; the native application keeps its compact window.

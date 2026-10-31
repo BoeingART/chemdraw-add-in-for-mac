@@ -43,6 +43,14 @@ for CFM_LANGUAGE in en zh-Hans zh-Hant; do
 done
 cmp "$PROJECT_DIR/office/addin/taskpane.html" "$CFM_APP/Contents/Resources/office/addin/taskpane.html"
 cmp "$PROJECT_DIR/office/addin/taskpane.js" "$CFM_APP/Contents/Resources/office/addin/taskpane.js"
+for CFM_SIZE in 16 32 80; do
+    cmp "$PROJECT_DIR/office/addin/icon-$CFM_SIZE.png" "$CFM_APP/Contents/Resources/office/addin/icon-$CFM_SIZE.png"
+done
+cmp "$PROJECT_DIR/build/branding/app.icns" "$CFM_APP/Contents/Resources/$CFM_ICON_NAME.icns"
+cmp "$PROJECT_DIR/assets/banner.svg" "$CFM_APP/Contents/Resources/assets/banner.svg"
+[[ ! -e "$CFM_APP/Contents/Resources/assets/banner.png" ]]
+cmp "$PROJECT_DIR/build/branding/menu-bar-icon.png" "$CFM_APP/Contents/Resources/assets/menu-bar-icon.png"
+print 'PASS current application, Office, banner and template menu artwork are packaged together'
 [[ -f "$CFM_APP/Contents/Resources/office/excel/adapter.applescript" ]]
 /usr/bin/hdiutil verify "$CFM_DMG"
 /usr/bin/hdiutil attach "$CFM_DMG" -readonly -nobrowse -mountpoint "$CFM_TEMP/mounted" > /dev/null

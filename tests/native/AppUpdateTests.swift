@@ -4,6 +4,7 @@ import CryptoKit
 
 @main struct AppUpdateTests {
     static func main() throws {
+        setbuf(stdout,nil)
         let fm = FileManager.default, root = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try fm.createDirectory(at:root,withIntermediateDirectories:true)
         defer { try? fm.removeItem(at:root) }
@@ -75,13 +76,40 @@ import CryptoKit
                 let installed = URL(fileURLWithPath:CommandLine.arguments[3]), version = Bundle(url:current)!.object(forInfoDictionaryKey:"CFBundleShortVersionString") as! String
                 let bytes = try Data(contentsOf:zip), name = zip.lastPathComponent
                 let release = GitHubRelease(tag_name:"v"+version,html_url:URL(string:"https://github.com/\(NativeUpdates.repository)/releases/tag/v\(version)")!,draft:false,prerelease:false,assets:[.init(name:name,browser_download_url:URL(string:"https://github.com/\(NativeUpdates.repository)/releases/download/v\(version)/\(name)")!,size:Int64(bytes.count),digest:"sha256:"+SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined())])
-                let manifest = try NativeAppUpdate.prepare(archive:zip,release:release,current:installed,work:root.appendingPathComponent("prepare"),workerSource:current.appendingPathComponent("Contents/Resources/build/chemoffice"))
+                let isolated = root.appendingPathComponent("Applications/"+NativeAppUpdate.applicationName), work = root.appendingPathComponent("prepare")
+                try fm.createDirectory(at:isolated.deletingLastPathComponent(),withIntermediateDirectories:true)
+                try fm.copyItem(at:installed,to:isolated)
+                let download = work.appendingPathComponent("updates/"+UUID().uuidString+"/"+name)
+                try fm.createDirectory(at:download.deletingLastPathComponent(),withIntermediateDirectories:true)
+                try fm.copyItem(at:zip,to:download)
+                let draft = work.appendingPathComponent("recovery/retained.cdx")
+                try fm.createDirectory(at:draft.deletingLastPathComponent(),withIntermediateDirectories:true)
+                try Data("retained editing draft".utf8).write(to:draft)
+                let manifest = try NativeAppUpdate.prepare(archive:download,release:release,current:isolated,work:work,workerSource:current.appendingPathComponent("Contents/Resources/build/chemoffice"))
                 let request = try JSONDecoder().decode(AppUpdateRequest.self,from:Data(contentsOf:manifest))
-                try require(request.destination == installed.resolvingSymlinksInPath().path,"Preparation changed the installed target")
+                try require(request.destination == isolated.path,"Preparation changed the isolated target")
                 let discovered = try command(manifest.deletingLastPathComponent().appendingPathComponent("update-worker").path,["discover"])
                 _ = try JSONSerialization.jsonObject(with:discovered)
                 try require(Bundle(url:installed)!.object(forInfoDictionaryKey:"CFBundleShortVersionString") as! String != version,"Preparation replaced the installed application")
                 print("PASS signed update preparation and copied helper execution preserve the installed application")
+                let parent = Process(); parent.executableURL = URL(fileURLWithPath:"/bin/sleep"); parent.arguments = ["0.3"]; try parent.run()
+                DispatchQueue.global().async { parent.waitUntilExit() }
+                let waiting = AppUpdateRequest(staged:request.staged,destination:request.destination,version:request.version,team:request.team,parentPID:parent.processIdentifier,result:request.result,archive:request.archive)
+                try JSONEncoder().encode(waiting).write(to:manifest,options:.atomic)
+                let log = root.appendingPathComponent("reopened.log"), errors = root.appendingPathComponent("reopened-errors.log")
+                var launches = 0
+                try NativeAppUpdate.apply(manifest,launch:{ app in
+                    launches += 1
+                    // Exercise a real signed GUI launch without starting a
+                    // second helper against the user's live Office documents.
+                    _ = try command("/usr/bin/open",["-n","-W","--stdout",log.path,"--stderr",errors.path,app.path,"--args","--app-self-test"],timeout:30)
+                    try require(try String(contentsOf:log,encoding:.utf8).contains("PASS menu bar startup"),"The replacement application did not reopen successfully")
+                })
+                let info = try PropertyListSerialization.propertyList(from:Data(contentsOf:isolated.appendingPathComponent("Contents/Info.plist")),format:nil) as! [String:Any]
+                try require(info["CFBundleShortVersionString"] as? String == version && launches == 1,"The automatic update failed to replace or reopen the application")
+                try require(try String(contentsOf:draft,encoding:.utf8) == "retained editing draft","Update removed an editing draft")
+                try require(!fm.fileExists(atPath:manifest.deletingLastPathComponent().path) && !fm.fileExists(atPath:download.path),"Completed update staging was retained")
+                print("PASS real signed application update waits for exit, replaces and reopens once, preserves drafts and removes completed download files")
             }
         }
         print("Passed \(count) application update and rollback checks")

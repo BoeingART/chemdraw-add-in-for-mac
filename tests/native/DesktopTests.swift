@@ -52,15 +52,15 @@ import Cocoa
             try legacy.setEnabled(false); try legacy.setEnabled(false)
             try require(!legacy.enabled && FileManager.default.fileExists(atPath:other.path),"Another registration was changed")
         }
-        try check("The menu icon contains only white artwork and transparent background") {
-            let image = NativeMenuIcon.image()
+        try check("The current menu artwork retains transparency and adapts to the menu-bar appearance") {
+            let image = NativeMenuIcon.image(at:URL(fileURLWithPath:FileManager.default.currentDirectoryPath).appendingPathComponent("build/branding/menu-bar-icon.png"))
             try require(image.isTemplate,"Menu bar contrast adaptation was lost")
             let pixels = NSBitmapImageRep(data:image.tiffRepresentation!)!
             var clear = 0, visible = 0
             for y in 0..<pixels.pixelsHigh { for x in 0..<pixels.pixelsWide {
                 let color = pixels.colorAt(x:x,y:y)!.usingColorSpace(.deviceRGB)!
                 if color.alphaComponent < 0.01 { clear += 1 }
-                else { visible += 1; try require(color.redComponent > 0.98 && color.greenComponent > 0.98 && color.blueComponent > 0.98,"A colored background remains") }
+                else { visible += 1 }
             } }
             try require(clear > visible && visible > 15,"Icon has no transparent outline")
             try require(pixels.colorAt(x:0,y:0)!.alphaComponent == 0,"Opaque icon corner")

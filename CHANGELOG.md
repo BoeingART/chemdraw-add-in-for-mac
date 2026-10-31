@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.5.1 — 2026-10-31
+
+- Synchronize updated SVG artwork with the application icon, Office icons, Office panel banner and adaptive menu-bar icon. Keep the application window compact.
+- Generate image resources during builds so later SVG edits reach the installed application.
+- Require automatic-update ZIP assets and remove the package-installer fallback from in-app updates. Retain permissions and drafts, wait for editing to finish, then replace and reopen automatically.
+- Validate both uploaded assets while the release is a draft, publish only after the automatic-update file is ready, and remove completed update staging.
+
 ## v1.5.0 — 2026-10-31
 
 - Replace the default package installer with a drag-install DMG and signed application ZIP updates. Download, swap and reopen after one confirmation, retaining existing permissions and data.
