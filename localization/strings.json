@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "版本1.5.0 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Version 1.5.0 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "版本1.5.1 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Version 1.5.1 · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "修复保存和关闭时额外ChemDraw窗口闪现的问题，保留矢量图和可编辑结构。",
-    "en": "Fix extra ChemDraw windows appearing during save and close, while preserving vector artwork and editable structures.",
+    "zh": "更新应用图标、横幅和菜单栏图标，Office面板同步使用新标识。",
+    "en": "Update the application icon, banner, menu-bar icon and Office panel artwork.",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2166,8 +2166,8 @@
     "element": "p"
   },
   "installer.welcome.3": {
-    "zh": "移除指针旁转圈提示，减少打开时的重复检查，关闭已同步内容时跳过重复回写。",
-    "en": "Remove the spinning pointer indicator, reduce repeated opening checks, and skip duplicate write-back when closing synchronized drawings.",
+    "zh": "升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。",
+    "en": "Choose Check for Updates and confirm to download, replace and reopen the app automatically.",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2247,8 +2247,8 @@
     "element": "p"
   },
   "installer.conclusion.5": {
-    "zh": "请在Word、PowerPoint或Excel中测试双击打开、⌘S同步和关闭回写，确认没有额外窗口或转圈提示。",
-    "en": "In Word, PowerPoint or Excel, test double-click editing, Command-S synchronization, and closing with write-back. Check that no extra windows or spinning pointer indicators appear.",
+    "zh": "后续升级在应用内检查更新并确认即可完成。",
+    "en": "For later upgrades, check for updates and confirm in the app.",
     "locations": [
       "packaging/Conclusion.html"
     ],
@@ -2404,8 +2404,8 @@
     ]
   },
   "update.location": {
-    "zh": "当前应用目录无法写入。请将应用移到个人Applications文件夹，再重新更新。",
-    "en": "The application folder is not writable. Move the app to your personal Applications folder, then update again.",
+    "zh": "当前应用目录无法写入。请检查该目录的写入权限后重试更新。",
+    "en": "The application folder is not writable. Check its write permissions, then retry the update.",
     "locations": [
       "src/NativeAppUpdate.swift"
     ]
