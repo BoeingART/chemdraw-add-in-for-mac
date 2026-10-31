@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.5 — 2026-11-01
+
+- Fix edits being skipped when ChemDraw saves and closes before the saved-file observer runs. Synchronize the final saved drawing and return to the original Office document.
+- Complete native closes during preview generation using the latest saved revision, keeping retained drafts available after restarting the helper.
+- Keep typing and saving responsive by limiting window queries to close gestures; handle the full close-button click and allow immediate close retries.
+
 ## v1.5.4 — 2026-11-01
 
 - Generate ChemDraw 26 previews through its installed preview components in an isolated background renderer. Paste, save synchronization and close/write-back no longer open temporary drawing windows. Keep the live editor and subsequent input intact.

@@ -90,8 +90,8 @@ if CommandLine.arguments.count == 5 && CommandLine.arguments[1] == "--diagnose-p
 guard CommandLine.arguments.count == 2 else { exit(64) }
 let statePath = CommandLine.arguments[1]
 var tap: CFMachPort?
-var lastClose = Date.distantPast
 var swallowPasteMouseUp = false
+var swallowCloseMouseUp = false
 
 func emit(_ object: [String: Any]) {
     guard let data = try? JSONSerialization.data(withJSONObject:object) else { return }
@@ -351,6 +351,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
         return Unmanaged.passUnretained(event)
     }
     if type == .leftMouseUp && swallowPasteMouseUp { swallowPasteMouseUp = false; return nil }
+    if type == .leftMouseUp && swallowCloseMouseUp { swallowCloseMouseUp = false; return nil }
     let targetPID = pid_t(event.getIntegerValueField(.eventTargetUnixProcessID))
     let recipient = targetPID > 0 ? NSRunningApplication(processIdentifier: targetPID) : nil
     guard let front = recipient ?? NSWorkspace.shared.frontmostApplication,
@@ -398,7 +399,12 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
               "front": NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none",
               "point": [event.location.x, event.location.y]])
     }
-    guard let title = current["windowTitle"] as? String else { return Unmanaged.passUnretained(event) }
+    let closeKey = type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 13
+        && event.flags.contains(.maskCommand) && !event.flags.contains(.maskShift)
+        && !event.flags.contains(.maskAlternate) && !event.flags.contains(.maskControl)
+    // Typing and native saves need no synchronous accessibility round trip.
+    guard closeKey || type == .leftMouseDown,
+          let title = current["windowTitle"] as? String else { return Unmanaged.passUnretained(event) }
     let candidateWindow: AXUIElement?
     if matchesSessionApplication(front, current) {
         candidateWindow = managedWindow(front, title)
@@ -411,12 +417,10 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     guard let window = candidateWindow else { return Unmanaged.passUnretained(event) }
     // Preview export uses an independent saved file. Keep native typing and
     // dialogs responsive, and queue a close behind any in-flight save.
-    let closeKey = type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 13
-        && event.flags.contains(.maskCommand) && !event.flags.contains(.maskShift)
     let closeClick = type == .leftMouseDown && closeButtonContains(window, event.location)
     if closeKey || closeClick {
-        if Date().timeIntervalSince(lastClose) > 1 {
-            lastClose = Date()
+        if closeClick { swallowCloseMouseUp = true }
+        if !closeKey || event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
             emit(["event": "close", "gesture": closeKey ? "command-w" : "red-button",
                   "id":current["id"] as? String ?? "","path":current["path"] as? String ?? ""])
         }

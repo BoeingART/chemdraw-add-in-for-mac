@@ -190,7 +190,9 @@ class NativeBridge {
         editingOpen = true
         record("opened",["host":host,"document":document,"drawing_id":decoded.id,"chem_version":app.version,"chem_path":app.path])
     }
-    func finish(_ gesture:String) throws { try synchronize(gesture,closing:true,savedSource:nil) }
+    func finish(_ gesture:String) throws {
+        while try synchronize(gesture,closing:true,savedSource:nil) { /* Flush a newer native save made during export. */ }
+    }
     @discardableResult func reconcileDocumentLifecycle(confirmImmediately:Bool = false) throws -> Bool {
         guard var current = session, !current.busy else { missingDocumentSession = nil; return false }
         let key = current.host + ":" + current.document + ":" + current.id + ":" + current.path
@@ -225,30 +227,57 @@ class NativeBridge {
         }
     }
     func save(_ change:SavedDrawingChange) throws {
-        guard let current = session, current.id == change.id, current.path == change.path,
-              try automation.isOpen(URL(fileURLWithPath:current.path)) else { return }
+        guard let current = session, current.id == change.id, current.path == change.path else { return }
+        if let app = current.chemApplication { automation.useApplication(app) }
+        if try !automation.isOpen(URL(fileURLWithPath:current.path)) {
+            // Native menu/AX closes can finish before the saved-file debounce.
+            // Read the final file, rather than an older queued save snapshot.
+            if editingOpen { try finish("document-save-close") }
+            return
+        }
         try validateSource(change.source)
         if current.syncedSourceRevision == sha256(change.source) { return }
         try synchronize("document-save",closing:false,savedSource:change.source)
+        _ = try reconcileEditorLifecycle()
     }
-    private func synchronize(_ gesture:String,closing:Bool,savedSource:Data?) throws {
-        if try reconcileDocumentLifecycle(confirmImmediately:true) { return }
-        guard var current = session else { return }
+    @discardableResult func reconcileEditorLifecycle() throws -> Bool {
+        // Restored/retained drafts are not live edits and stay available for
+        // explicit reopening. Only finish an editor observed open this run.
+        guard let current = session, editingOpen, !current.busy else { return false }
+        if let app = current.chemApplication { automation.useApplication(app) }
+        guard try !automation.isOpen(URL(fileURLWithPath:current.path)) else { return false }
+        try finish("document-closed")
+        return true
+    }
+    private func closeSavedEditor(_ path:URL,source:Data) throws -> Bool {
+        if try automation.isOpen(path) { try automation.close(path); return true }
+        // A native save and close may have completed during this export.
+        return try Data(contentsOf:path) == source
+    }
+    @discardableResult private func synchronize(_ gesture:String,closing:Bool,savedSource:Data?) throws -> Bool {
+        if try reconcileDocumentLifecycle(confirmImmediately:true) { return false }
+        guard var current = session else { return false }
         if current.syncedSourceRevision == nil { current.syncedSourceRevision = try sha256(decodeSource(current.originalTag).source) }
         current.busy = true; session = current; try writeState()
         let path = URL(fileURLWithPath:current.path), directory = path.deletingLastPathComponent()
         let image = directory.appendingPathComponent("preview-\(UUID().uuidString).png")
         do {
             if let app = current.chemApplication { automation.useApplication(app) }
-            let source = try savedSource ?? automation.saveSource(path)
+            let source: Data
+            if let savedSource { source = savedSource }
+            else if try automation.isOpen(path) { source = try automation.saveSource(path) }
+            else { source = try Data(contentsOf:path) }
             try validateSource(source)
             if closing && current.syncedSourceRevision == sha256(source) {
-                try automation.close(path)
+                if try !closeSavedEditor(path,source:source) {
+                    current.busy = false; session = current; try writeState()
+                    return true
+                }
                 editingOpen = false
                 _ = try automation.activateOffice(current.host,current.document,current.id)
                 session = nil; try writeState()
                 record("closed_synced",["host":current.host,"drawing_id":current.id,"gesture":gesture])
-                return
+                return false
             }
             let snapshot = directory.appendingPathComponent("saved-\(UUID().uuidString)").appendingPathExtension(path.pathExtension)
             try source.write(to:snapshot,options:.atomic)
@@ -270,7 +299,10 @@ class NativeBridge {
             try source.write(to:directory.appendingPathComponent(source.starts(with:Data("VjCD0100".utf8)) ? "committed.cdx" : "committed.cdxml"))
             current.syncedSourceRevision = sha256(source)
             if closing {
-                try automation.close(path)
+                if try !closeSavedEditor(path,source:source) {
+                    current.busy = false; session = current; try writeState()
+                    return true
+                }
                 editingOpen = false
                 let front = try automation.activateOffice(current.host,current.document,current.id)
                 record("committed",["host":current.host,"drawing_id":current.id,"gesture":gesture,"source_sha256":sha256(source),"bytes":source.count,"frontmost_app":front])
@@ -285,9 +317,10 @@ class NativeBridge {
             // Office may close while the saved snapshot is being rendered or
             // written back. Complete the detached close instead of retrying an
             // update against the vanished document.
-            if (try? reconcileDocumentLifecycle(confirmImmediately:true)) == true { return }
+            if (try? reconcileDocumentLifecycle(confirmImmediately:true)) == true { return false }
             throw error
         }
+        return false
     }
     func handle(_ event:[String:Any]) throws {
         switch event["event"] as? String {

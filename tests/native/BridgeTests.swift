@@ -293,6 +293,75 @@ class TestAutomation: ChemistryAutomation {
             try bridge.handle(closeEvent)
             try require(bridge.session == nil && !driver.opened,"Queued close was lost after a save")
         }
+        for host in OfficeHost.names {
+            try check("A fast native \(host) save and close commits the final file before the observer runs") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                let queued = saveChange(bridge,driver.finalSource), path = URL(fileURLWithPath:queued.path)
+                let latest = Data("<CDXML><page><t>LAST SAVE BEFORE CLOSE</t></page></CDXML>".utf8)
+                try latest.write(to:path,options:.atomic); driver.opened = false; driver.calls.removeAll()
+                try bridge.save(queued)
+                try require(driver.renderedSavedSource == latest && bridge.session == nil,"The final saved edit was dropped or replaced by a stale snapshot")
+                try require(driver.calls.contains("update") && driver.calls.contains("activate"),"Native close did not write back and return to Office")
+                try require(!driver.calls.contains("open") && !driver.calls.contains("snapshot") && !driver.calls.contains("close") && !driver.calls.contains("persist"),"Closed editor was reopened or Office was saved")
+            }
+            try check("Native \(host) closure during rendering flushes a newer saved revision") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                let path = URL(fileURLWithPath:bridge.session!.path), first = driver.finalSource
+                let latest = Data("<CDXML><page><t>SAVED WHILE RENDERING</t></page></CDXML>".utf8)
+                driver.inspectSavedSnapshot = { snapshot in
+                    if try Data(contentsOf:snapshot) == first {
+                        try latest.write(to:path,options:.atomic); driver.opened = false
+                    }
+                }
+                try bridge.save(saveChange(bridge,first))
+                try require(driver.renderedSavedSource == latest && bridge.session == nil,"A close during rendering lost the newer revision")
+                try require(driver.calls.filter { $0 == "update" }.count == 2 && !driver.calls.contains("close"),"Final saved revision was not verified after the pending save")
+            }
+            try check("Periodic \(host) reconciliation finishes an already synchronized native close") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                driver.opened = false; driver.calls.removeAll()
+                try require(try bridge.reconcileEditorLifecycle() && bridge.session == nil,"Native close left an active editing session")
+                try require(!driver.calls.contains("update") && !driver.calls.contains("savedSnapshot") && !driver.calls.contains("close"),"Unchanged native close repeated write-back or closed another drawing")
+                try require(try !bridge.reconcileEditorLifecycle(),"Completed native close repeated")
+            }
+            try check("A queued \(host) close accepts a native editor that already closed") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                let current = bridge.session!
+                try driver.finalSource.write(to:URL(fileURLWithPath:current.path)); driver.opened = false
+                try bridge.handle(["event":"close","id":current.id,"path":current.path,"gesture":"command-w"])
+                try require(bridge.session == nil && driver.renderedSavedSource == driver.finalSource,"Queued close tried to focus a vanished editor")
+            }
+            try check("A newer native \(host) save during close export is committed before ending the session") {
+                let (bridge,driver) = try fixture(); try bridge.begin(host,tag:driver.tag)
+                let path = URL(fileURLWithPath:bridge.session!.path), first = driver.finalSource
+                let latest = Data("<CDXML><page><t>FINAL NATIVE CLOSE DURING EXPORT</t></page></CDXML>".utf8)
+                driver.inspectSavedSnapshot = { snapshot in
+                    if try Data(contentsOf:snapshot) == first {
+                        try latest.write(to:path,options:.atomic); driver.opened = false
+                    }
+                }
+                try bridge.finish("command-w")
+                try require(bridge.session == nil && driver.renderedSavedSource == latest,"Close cleared the session before synchronizing the newest saved file")
+            }
+        }
+        try check("Native close write-back failures retain the final source and can retry") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            let current = bridge.session!, path = URL(fileURLWithPath:current.path)
+            try driver.finalSource.write(to:path); driver.opened = false; driver.failure = "savedSnapshot"
+            try rejects { _ = try bridge.reconcileEditorLifecycle() }
+            try require(bridge.session?.id == current.id && bridge.session?.busy == false && Data(contentsOf:path) == driver.finalSource,"Failed native close lost its retryable source")
+            driver.failure = ""
+            try require(try bridge.reconcileEditorLifecycle() && bridge.session == nil,"Native close could not retry")
+        }
+        try check("Restored closed drafts stay retained until explicitly reopened") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            try driver.finalSource.write(to:URL(fileURLWithPath:bridge.session!.path)); driver.opened = false
+            let restored = NativeBridge(root:bridge.root,automation:driver,home:bridge.home); try restored.restore()
+            driver.calls.removeAll()
+            try require(try !restored.reconcileEditorLifecycle(),"Restored draft was treated as a live native close")
+            try restored.save(saveChange(restored,driver.finalSource))
+            try require(restored.session != nil && !driver.calls.contains("update"),"Restored draft was committed without reopening")
+        }
         try check("A queued close cannot close a replacement editing session") {
             let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
             let old = bridge.session!
@@ -313,7 +382,7 @@ class TestAutomation: ChemistryAutomation {
             let stale = saveChange(bridge,driver.finalSource)
             try bridge.save(SavedDrawingChange(id:UUID().uuidString,path:stale.path,source:stale.source))
             try require(!driver.calls.contains("update"),"Mismatched session updated Office")
-            driver.opened = false; try bridge.save(stale)
+            driver.opened = false; bridge.editingOpen = false; try bridge.save(stale)
             try require(!driver.calls.contains("update"),"A retained closed draft updated Office")
         }
         for failure in ["snapshot","savedSnapshot","payload","update","close","verify"] {

@@ -306,7 +306,7 @@ enum NativeStrings {
         "manifest.help": ["en":"Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.","zh":"打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。"],
         "system.automation": ["en":"ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.","zh":"ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。"],
         "installer.welcome.0": ["en":"ChemDraw Add-in for Mac","zh":"ChemDraw Add-in for Mac"],
-        "installer.welcome.1": ["en":"Version 1.5.4 · Apple Silicon + Intel · macOS 12 or later","zh":"版本1.5.4 · Apple Silicon + Intel · macOS 12或更新"],
+        "installer.welcome.1": ["en":"Version 1.5.5 · Apple Silicon + Intel · macOS 12 or later","zh":"版本1.5.5 · Apple Silicon + Intel · macOS 12或更新"],
         "installer.welcome.2": ["en":"Generate ChemDraw 26 previews in the background without temporary drawing windows during save or close/write-back. Fit pasted previews to their content.","zh":"ChemDraw 26在后台生成预览，保存和关闭回写时不再弹出临时绘图窗口；粘贴预览按实际内容裁切。"],
         "installer.welcome.3": ["en":"Choose Check for Updates and confirm to download, replace and reopen the app automatically.","zh":"升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。"],
         "installer.welcome.4": ["en":"Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.","zh":"安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。"],

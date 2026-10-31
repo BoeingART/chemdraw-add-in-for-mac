@@ -62,6 +62,12 @@ class NativeMonitorRuntime {
             guard let self else { return }
             do {
                 if try self.bridge.reconcileDocumentLifecycle() { self.activity.end(editing:false,recoverable:false) }
+                do {
+                    if try self.bridge.reconcileEditorLifecycle() { self.activity.end(editing:false,recoverable:false) }
+                } catch {
+                    self.activity.end(editing:self.bridge.editingOpen,recoverable:self.bridge.session != nil && !self.bridge.editingOpen,error:error.localizedDescription)
+                    throw error
+                }
                 self.documentCheckFailure = nil
             } catch {
                 // A timeout or denied query is unknown availability. Retain

@@ -82,6 +82,22 @@ import Cocoa
             let payload = try bridge.payload(host,session.document,session.id)
             try require(try decodeSource(payload).source == saved,"Office did not receive the saved structure revision")
             print("PASS live \(host): unsaved native-source paste, editable reopening and PDF save synchronization; live editor and newer unsaved input retained; Office document remains unsaved")
+            // Close natively in the same Apple event as the save, before the
+            // debounced observer can deliver even its previous snapshot.
+            _ = try automation.script("""
+            tell application \(appleQuote(app.path))
+                set d to document (item 1 of argv)
+                save d
+                close d saving no
+            end tell
+            """,[source.lastPathComponent])
+            let final = try Data(contentsOf:source)
+            try require(final != saved && !automation.isOpen(source),"Fast native save/close fixture did not retain a newer revision")
+            try bridge.save(SavedDrawingChange(id:session.id,path:session.path,source:saved))
+            try require(bridge.session == nil && !bridge.editingOpen,"Native close left the session active")
+            try require(try decodeSource(bridge.payload(host,session.document,session.id)).source == final,"Fast native save/close lost the final saved source")
+            try require(try automation.office("path",host,[session.document]).isEmpty,"Fast close saved the Office test document")
+            print("PASS live \(host): immediate native save/close writes the newest saved revision back, clears the session and leaves Office unsaved")
         }
         try require(try automation.script(chemState,[]) == before,"Original ChemDraw documents changed")
         print("PASS original ChemDraw documents retained; isolated Office and ChemDraw test documents closed")
