@@ -30,10 +30,13 @@ else
 fi
 CFM_METADATA="$(mktemp)"
 trap 'rm -f "$CFM_METADATA"' EXIT
-gh api "repos/$CFM_REPO/releases/tags/$CFM_TAG" > "$CFM_METADATA"
+# GitHub's tag endpoint does not return drafts; their stable release ID does.
+CFM_RELEASE_ID="$(gh release view "$CFM_TAG" --repo "$CFM_REPO" --json databaseId --jq .databaseId)"
+[[ "$CFM_RELEASE_ID" == <-> ]] || fail 'Could not resolve the draft release ID.'
+gh api "repos/$CFM_REPO/releases/$CFM_RELEASE_ID" > "$CFM_METADATA"
 python3 scripts/check-release.py "$CFM_METADATA" "$CFM_VERSION" dist --draft
 # Publish only after both completed uploads satisfy the updater's requirements.
 gh release edit "$CFM_TAG" --repo "$CFM_REPO" --draft=false --latest
-gh api "repos/$CFM_REPO/releases/tags/$CFM_TAG" > "$CFM_METADATA"
+gh api "repos/$CFM_REPO/releases/$CFM_RELEASE_ID" > "$CFM_METADATA"
 python3 scripts/check-release.py "$CFM_METADATA" "$CFM_VERSION" dist
 print -r -- "Published $CFM_TAG with automatic in-app updates."

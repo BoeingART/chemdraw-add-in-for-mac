@@ -8,7 +8,7 @@ The final signed universal DMG and automatic-update ZIP passed package checks, i
 
 A signed copy of the installed v1.5.0 application was updated in an isolated test directory. The update waited for its parent process to exit, replaced the application, launched the new signed GUI once, preserved a retained editing draft, and removed its completed download and staging files. The installed application in /Applications was preserved. Existing signature rejection and rollback checks also passed.
 
-Native regression checks, 22 panel and HTTPS checks, bilingual task-pane checks, localization checks and seven release-workflow tests passed. The release tests verify that the automatic-update ZIP and DMG are present before a draft becomes public. These workflow tests use local fixtures and prepare the release artifacts for publication through `scripts/release.sh --publish`.
+Native regression checks, 22 panel and HTTPS checks, bilingual task-pane checks, localization checks and eight release-workflow tests passed. The release tests verify that the automatic-update ZIP and DMG are present before a draft becomes public, using GitHub's temporary draft addresses before publication and final version addresses afterwards. These workflow tests use local fixtures and prepare the release artifacts for publication through `scripts/release.sh --publish`.
 
 ## v1.5.0 test build 20 — 2026-10-31
 
