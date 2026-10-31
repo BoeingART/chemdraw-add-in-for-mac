@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.5.3 — 2026-10-31
+
+- Fix an in-app update stall after downloading: stop the helper asynchronously, return to the application event loop, and start replacement only after the helper exits. Apply the same shutdown sequence to Quit.
+- Keep progress visible while preparing, stopping and restarting. On helper-stop timeout or worker-launch failure, display the reason, restore controls and retain the download for an explicit retry.
+- Add actual AppKit lifecycle tests for quitting with a live helper, stopped helpers, timeout recovery and retry, plus signed application replacement and relaunch through the production GUI shutdown path.
+- If v1.5.1 or v1.5.2 stalls during an update, quit the old app and install v1.5.3 from the DMG once. Later releases use the repaired updater.
+
 ## v1.5.2 — 2026-10-31
 
 - Restore ChemDraw 26 for Mac paste and preview generation through AppleScript PDF export. Keep the PDF-to-SVG vector conversion shared by paste, save synchronization and close/write-back.

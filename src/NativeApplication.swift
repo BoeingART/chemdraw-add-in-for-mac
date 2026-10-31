@@ -5,7 +5,12 @@ import ApplicationServices
 final class SetupChecksView: NSView { override var isFlipped: Bool { true } }
 
 final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
-    let root = Bundle.main.resourceURL!
+    let root: URL
+    let work: URL
+    init(root:URL = Bundle.main.resourceURL!,work:URL? = nil) {
+        self.root = root; self.work = work ?? NativePaths.work(root:root)
+        super.init()
+    }
     let setupQueue = DispatchQueue(label:"ChemDraw Add-in for Mac installation checks")
     var setupStatus: NSTextField!
     var configurationButtons = [NSButton]()
@@ -29,8 +34,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var updateWindow: NSWindow?
     var updateProgress: NSProgressIndicator?
     var updateMessage: NSTextField?
+    var updateCancelButton: NSButton?
     var stagedUpdate: (GitHubRelease,URL)?
     var applyingUpdate = false
+    var updateRetryRequiresAction = false
+    var preparedUpdate: URL?
+    var shutdownTimeout: DispatchWorkItem?
+    var helperShutdownTimeout: TimeInterval = 10
+    var resumeHelperAfterShutdownFailure = false
     var details = [String:NSTextField]()
     var finishButton: NSButton!
     var timer: Timer?
@@ -48,7 +59,6 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var failurePresentation = FailurePresentationPolicy()
     var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? L("native.development") }
     var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemDraw Add-in for Mac" }
-    var work: URL { NativePaths.work(root:root) }
     var helperReady: Bool {
         guard let helper, helper.isRunning else { return false }
         return HelperStatus.read(work:work,expectedPID:helper.processIdentifier)?.phase == .ready
@@ -237,8 +247,8 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         }
     }
     @objc func checkUpdates() {
-        guard !checkingUpdates else { return }
-        if let stagedUpdate { offerUpdateInstallation(stagedUpdate.0,stagedUpdate.1); return }
+        guard !checkingUpdates && !applyingUpdate && !quitting else { return }
+        if let stagedUpdate { updateRetryRequiresAction = false; offerUpdateInstallation(stagedUpdate.0,stagedUpdate.1); return }
         checkingUpdates = true; updateButton.isEnabled = false; updateMenuItem.isEnabled = false
         NativeUpdates.check(currentVersion:version) { [weak self] result in
             guard let self else { return }
@@ -267,8 +277,23 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         progress.widthAnchor.constraint(equalTo:stack.widthAnchor).isActive = true
         let cancel = NSButton(title:L("native.059"),target:self,action:#selector(cancelUpdateDownload)); cancel.bezelStyle = .rounded
         stack.addArrangedSubview(cancel)
-        updateWindow = window; updateProgress = progress; updateMessage = message
+        updateWindow = window; updateProgress = progress; updateMessage = message; updateCancelButton = cancel
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
+    }
+    func closeUpdateProgress() {
+        updateWindow?.orderOut(nil); updateWindow = nil; updateProgress = nil; updateMessage = nil; updateCancelButton = nil
+    }
+    func showUpdateInstallationProgress(_ key:String) {
+        if updateWindow == nil { showUpdateDownloadProgress(stagedUpdate?.0.tag_name ?? version) }
+        updateMessage?.stringValue = L(key)
+        updateProgress?.isIndeterminate = true; updateProgress?.startAnimation(nil)
+        updateCancelButton?.isEnabled = false
+        recordUpdateStatus(key)
+    }
+    func recordUpdateStatus(_ phase:String,error:String? = nil) {
+        var status = ["phase":phase,"version":stagedUpdate?.0.tag_name ?? version]
+        if let error { status["error"] = error }
+        try? JSONSerialization.data(withJSONObject:status).write(to:work.appendingPathComponent("update-status.json"),options:.atomic)
     }
     func downloadUpdate(_ release:GitHubRelease) {
         do {
@@ -280,12 +305,12 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 self?.updateMessage?.stringValue = L("native.060",release.tag_name,Int((fraction ?? 0)*100))
             },completion:{ [weak self] result in
                 guard let self else { return }
-                self.updateWindow?.orderOut(nil); self.updateWindow = nil; self.updateProgress = nil; self.updateMessage = nil
                 self.updateDownload = nil; self.checkingUpdates = false
                 guard !self.quitting else { return }
                 switch result {
-                case .success(let file): self.stagedUpdate = (release,file); self.setUpdateControls(enabled:true); self.offerUpdateInstallation(release,file)
+                case .success(let file): self.stagedUpdate = (release,file); self.updateRetryRequiresAction = false; self.setUpdateControls(enabled:true); self.offerUpdateInstallation(release,file)
                 case .failure(let error):
+                    self.closeUpdateProgress()
                     self.setUpdateControls(enabled:true)
                     if (error as NSError).domain != NSURLErrorDomain || (error as NSError).code != NSURLErrorCancelled { self.alert(L("native.061"),error.localizedDescription) }
                 }
@@ -301,12 +326,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         return UpdateInstallationPolicy.canInstall(activity:activity,state:state)
     }
     func offerUpdateInstallation(_ release:GitHubRelease,_ file:URL) {
+        guard !applyingUpdate && !quitting else { return }
         guard canApplyUpdate else {
+            closeUpdateProgress()
             updateButton.title = L("update.waiting"); updateMenuItem.title = L("update.waiting")
             return
         }
-        guard !applyingUpdate else { return }
         applyingUpdate = true; setUpdateControls(enabled:false)
+        showUpdateInstallationProgress("update.preparing")
         let current = Bundle.main.bundleURL, updateWork = work, worker = root.appendingPathComponent("build/chemoffice")
         DispatchQueue.global(qos:.utility).async { [weak self] in
             let prepared:Result<URL,Error> = Result {
@@ -314,7 +341,11 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 return try NativeAppUpdate.prepare(archive:file,release:release,current:current,work:updateWork,workerSource:worker)
             }
             DispatchQueue.main.async { [weak self] in
-                guard let self, !self.quitting else { return }
+                guard let self else { return }
+                guard !self.quitting else {
+                    if case .success(let request) = prepared { try? FileManager.default.removeItem(at:request.deletingLastPathComponent()) }
+                    return
+                }
                 do {
                     let request = try prepared.get()
                     // Preparing an archive runs in the background. A drawing
@@ -322,13 +353,17 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                     guard self.canApplyUpdate else {
                         try? FileManager.default.removeItem(at:request.deletingLastPathComponent())
                         self.applyingUpdate = false; self.setUpdateControls(enabled:true)
+                        self.closeUpdateProgress()
                         self.updateButton.title = L("update.waiting"); self.updateMenuItem.title = L("update.waiting")
                         return
                     }
-                    try NativeAppUpdate.launchWorker(request)
+                    self.preparedUpdate = request
+                    self.showUpdateInstallationProgress("update.stopping")
                     NSApp.terminate(nil)
                 } catch {
+                    self.recordUpdateStatus("failed",error:error.localizedDescription)
                     self.applyingUpdate = false; self.stagedUpdate = nil
+                    self.closeUpdateProgress()
                     self.setUpdateControls(enabled:true); self.alert(L("native.069"),error.localizedDescription)
                 }
             }
@@ -405,7 +440,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         } else { latestActivity = nil }
         let ready = readyForUse
         renderSetup(ready:ready)
-        if let stagedUpdate, !applyingUpdate {
+        if let stagedUpdate, !applyingUpdate && !updateRetryRequiresAction {
             let status = (try? Data(contentsOf:work.appendingPathComponent("monitor-state.json"))).flatMap { try? JSONSerialization.jsonObject(with:$0) as? [String:Any] } ?? [:]
             if UpdateInstallationPolicy.canInstall(activity:latestActivity,state:status) { offerUpdateInstallation(stagedUpdate.0,stagedUpdate.1); return }
         }
@@ -511,26 +546,33 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             let process = Process()
             process.executableURL = root.appendingPathComponent("build/chemoffice"); process.arguments = ["run"]
             process.standardOutput = output; process.standardError = output
-            process.terminationHandler = { [weak self] child in
-                DispatchQueue.main.async {
-                    guard let self else { return }
-                    let health = HelperStatus.read(work:self.work,expectedPID:child.processIdentifier)
-                    self.helper = nil; try? self.output?.close(); self.output = nil
-                    if self.quitting { NSApp.reply(toApplicationShouldTerminate:true); return }
-                    if self.startup.wantsRunning {
-                        self.startup.failed(self.requirements)
-                        self.helperMessage = health?.message ?? L("native.117")
-                        self.showSetup()
-                    } else { self.helperMessage = L("native.104") }
-                    self.renderSetup(ready:false)
-                }
-            }
+            observeHelperExit(process)
             try process.run(); helper = process; helperMessage = L("native.106")
         } catch {
             try? output?.close(); output = nil
             startup.failed(requirements); helperMessage = error.localizedDescription
         }
     }
+    func observeHelperExit(_ process:Process) {
+        process.terminationHandler = { [weak self] child in
+            DispatchQueue.main.async {
+                guard let self, self.helper === child else { return }
+                let health = HelperStatus.read(work:self.work,expectedPID:child.processIdentifier)
+                self.helper = nil; try? self.output?.close(); self.output = nil
+                if self.quitting {
+                    self.shutdownTimeout?.cancel(); self.shutdownTimeout = nil
+                    NSApp.terminate(nil); return
+                }
+                if self.startup.wantsRunning {
+                    self.startup.failed(self.requirements)
+                    self.helperMessage = health?.message ?? L("native.117")
+                    self.showSetup()
+                } else { self.helperMessage = L("native.104") }
+                self.renderSetup(ready:false)
+            }
+        }
+    }
+
     @objc func stopHelper() {
         startup.pause(); helperMessage = L("native.104")
         if let helper, helper.isRunning { helper.terminate() }
@@ -555,10 +597,51 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(URL(string:"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
     @objc func quitApp() { NSApp.terminate(nil) }
+    func shutdownFailed(_ error:Error) {
+        let isUpdate = applyingUpdate || stagedUpdate != nil
+        shutdownTimeout?.cancel(); shutdownTimeout = nil
+        if let preparedUpdate { try? FileManager.default.removeItem(at:preparedUpdate.deletingLastPathComponent()) }
+        preparedUpdate = nil; quitting = false; applyingUpdate = false
+        // Keep the download for an explicit retry; polling must not retry a
+        // failed installation continuously or restart a stopped helper early.
+        updateRetryRequiresAction = true
+        if resumeHelperAfterShutdownFailure { startup.resume() }
+        resumeHelperAfterShutdownFailure = false
+        closeUpdateProgress(); setUpdateControls(enabled:true)
+        recordUpdateStatus("failed",error:error.localizedDescription)
+        alert(isUpdate ? L("native.069") : L("app.quitFailed"),error.localizedDescription)
+        refreshSetup(force:true)
+    }
     func applicationShouldTerminate(_ sender:NSApplication) -> NSApplication.TerminateReply {
         updateDownload?.cancel()
+        if let helper, helper.isRunning {
+            if !quitting {
+                quitting = true; resumeHelperAfterShutdownFailure = startup.wantsRunning
+                let timeout = DispatchWorkItem { [weak self] in
+                    guard let self, self.quitting, self.helper === helper else { return }
+                    // Exit can race its main-queue callback. Leave that callback
+                    // to finish shutdown when the process has already stopped.
+                    guard helper.isRunning else { return }
+                    self.shutdownFailed(UpdateCheckError(message:self.applyingUpdate ? L("update.stopFailed") : L("app.stopFailed")))
+                }
+                shutdownTimeout = timeout
+                DispatchQueue.main.asyncAfter(deadline:.now()+helperShutdownTimeout,execute:timeout)
+                stopHelper()
+            }
+            // Return to the outer event loop so the helper's main-queue exit
+            // callback can run. terminateLater nests a loop inside this queue
+            // and prevents that callback from supplying its termination reply.
+            return .terminateCancel
+        }
+        shutdownTimeout?.cancel(); shutdownTimeout = nil
+        do {
+            if let preparedUpdate {
+                showUpdateInstallationProgress("update.restarting")
+                try NativeAppUpdate.launchWorker(preparedUpdate)
+                self.preparedUpdate = nil
+            }
+        } catch { shutdownFailed(error); return .terminateCancel }
         timer?.invalidate()
-        guard let helper, helper.isRunning else { return .terminateNow }
-        quitting = true; stopHelper(); return .terminateLater
+        return .terminateNow
     }
 }

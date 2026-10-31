@@ -311,7 +311,7 @@ Your ChemDraw."
 300	manifest.help	office/addin/manifest.xml	打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。	Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.		
 301	system.automation	packaging/Info.plist	ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。	ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.		
 302	installer.welcome.0	packaging/Welcome.html	ChemDraw Add-in for Mac	ChemDraw Add-in for Mac		
-303	installer.welcome.1	packaging/Welcome.html	版本1.5.2 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.2 · Apple Silicon + Intel · macOS 12 or later		
+303	installer.welcome.1	packaging/Welcome.html	版本1.5.3 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.3 · Apple Silicon + Intel · macOS 12 or later		
 304	installer.welcome.2	packaging/Welcome.html	更新应用图标、横幅和菜单栏图标，Office面板同步使用新标识。	Update the application icon, banner, menu-bar icon and Office panel artwork.		
 305	installer.welcome.3	packaging/Welcome.html	升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。	Choose Check for Updates and confirm to download, replace and reopen the app automatically.		
 306	installer.welcome.4	packaging/Welcome.html	安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。	Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.		
@@ -359,3 +359,9 @@ Your ChemDraw."
 344	install.copyTitle	src/NativeApplication.swift	先将应用拖入Applications	Move the App to Applications		
 345	install.copyHint	src/NativeApplication.swift	请将ChemDraw Add-in for Mac拖到磁盘映像旁的Applications文件夹，再打开应用完成首次设置。	Drag ChemDraw Add-in for Mac into the Applications folder in the disk image, then open the installed app to complete first-run setup.		
 346	native.pdfExport	src/NativeAutomation.swift	ChemDraw无法导出PDF预览。请在ChemDraw中重新保存结构，或重新复制结构后粘贴。{0}	ChemDraw could not export the PDF preview. Save the structure again in ChemDraw, or copy it again and retry pasting. {0}		
+347	update.preparing	src/NativeApplication.swift	正在准备更新…	Preparing the update…		
+348	update.stopping	src/NativeApplication.swift	正在停止助手，完成后自动重新打开…	Stopping the helper; the app will reopen automatically…		
+349	update.restarting	src/NativeApplication.swift	正在安装更新并重新打开…	Installing the update and reopening…		
+350	update.stopFailed	src/NativeApplication.swift	助手未能在10秒内停止，更新已暂停。已保留下载文件，请稍后点击“安装更新”重试。	The helper did not stop within 10 seconds, so the update was paused. The download is retained. Click Install Update to retry.		
+351	app.quitFailed	src/NativeApplication.swift	应用退出未完成	Application Could Not Quit		
+352	app.stopFailed	src/NativeApplication.swift	助手未能在10秒内停止。请稍后重试退出应用。	The helper did not stop within 10 seconds. Try quitting the app again shortly.		

@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "版本1.5.2 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Version 1.5.2 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "版本1.5.3 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Version 1.5.3 · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2499,6 +2499,48 @@
     "zh": "ChemDraw无法导出PDF预览。请在ChemDraw中重新保存结构，或重新复制结构后粘贴。{0}",
     "locations": [
       "src/NativeAutomation.swift"
+    ]
+  },
+  "update.preparing": {
+    "zh": "正在准备更新…",
+    "en": "Preparing the update…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "update.stopping": {
+    "zh": "正在停止助手，完成后自动重新打开…",
+    "en": "Stopping the helper; the app will reopen automatically…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "update.restarting": {
+    "zh": "正在安装更新并重新打开…",
+    "en": "Installing the update and reopening…",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "update.stopFailed": {
+    "zh": "助手未能在10秒内停止，更新已暂停。已保留下载文件，请稍后点击“安装更新”重试。",
+    "en": "The helper did not stop within 10 seconds, so the update was paused. The download is retained. Click Install Update to retry.",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "app.quitFailed": {
+    "zh": "应用退出未完成",
+    "en": "Application Could Not Quit",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "app.stopFailed": {
+    "zh": "助手未能在10秒内停止。请稍后重试退出应用。",
+    "en": "The helper did not stop within 10 seconds. Try quitting the app again shortly.",
+    "locations": [
+      "src/NativeApplication.swift"
     ]
   }
 }

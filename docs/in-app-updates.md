@@ -4,6 +4,8 @@ Starting with v1.5.0, the normal download is a universal DMG. Drag the signed ap
 
 Choose **Check for Updates** and confirm **Update and Reopen**. The app downloads its release-specific application ZIP and validates the contents, version, architecture and signing identity. It then replaces only the app bundle and reopens automatically. Open drawing edits and active transactions defer installation until they finish. Office documents, connection certificates, cached sources, recovery drafts and existing permissions remain in place.
 
+Starting with v1.5.3, the progress window remains visible during preparation and helper shutdown. The app stops its helper asynchronously and returns to the outer event loop before requesting termination again. It launches the replacement worker only after the helper has exited. A helper that does not stop within ten seconds produces a visible failure, restores the controls and retains the download for an explicit retry.
+
 The replacement worker runs outside the app bundle. It prepares a replacement beside the installed app and restores the previous app if replacement or relaunch fails. A location that cannot be written produces an instruction to check that directory's write permissions before retrying. Updates do not reset system consent or rerun package-installation scripts.
 
 ## Build and verification
@@ -32,3 +34,5 @@ Publishing checks notarization credentials, builds both assets, completes Apple 
 The signing identity and app identifier remain stable across releases. The updater downloads in the background, waits for active editing to finish, validates the signed bundle, waits for the old app to exit, replaces it and reopens it. It removes only this successful update's staging and downloaded files. User data remains outside the app bundle. A failed replacement restores the previous bundle.
 
 `python3 tests/automatic-release.test.py` exercises publication ordering and rejected assets through local command shims. The optional signed-artifact checks in `build/test-app-update` replace and reopen an isolated copy through its GUI self-test without starting another helper against live Office documents.
+
+`zsh scripts/test-application-lifecycle.sh` runs the production application delegate in disposable AppKit bundles with live helper processes. It requests termination from the main dispatch queue and checks shutdown, timeout feedback, restored controls and retry. Supply an update ZIP and its signed app as two arguments to additionally verify production GUI shutdown, signed replacement, real GUI relaunch, retained drafts and cleanup. The replacement worker uses the production update implementation; its relaunch opens the interface self-test, keeping live Office documents untouched.

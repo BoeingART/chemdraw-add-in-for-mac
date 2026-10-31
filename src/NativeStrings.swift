@@ -306,7 +306,7 @@ enum NativeStrings {
         "manifest.help": ["en":"Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.","zh":"打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。"],
         "system.automation": ["en":"ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.","zh":"ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。"],
         "installer.welcome.0": ["en":"ChemDraw Add-in for Mac","zh":"ChemDraw Add-in for Mac"],
-        "installer.welcome.1": ["en":"Version 1.5.2 · Apple Silicon + Intel · macOS 12 or later","zh":"版本1.5.2 · Apple Silicon + Intel · macOS 12或更新"],
+        "installer.welcome.1": ["en":"Version 1.5.3 · Apple Silicon + Intel · macOS 12 or later","zh":"版本1.5.3 · Apple Silicon + Intel · macOS 12或更新"],
         "installer.welcome.2": ["en":"Update the application icon, banner, menu-bar icon and Office panel artwork.","zh":"更新应用图标、横幅和菜单栏图标，Office面板同步使用新标识。"],
         "installer.welcome.3": ["en":"Choose Check for Updates and confirm to download, replace and reopen the app automatically.","zh":"升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。"],
         "installer.welcome.4": ["en":"Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.","zh":"安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。"],
@@ -350,6 +350,12 @@ enum NativeStrings {
         "install.copyTitle": ["en":"Move the App to Applications","zh":"先将应用拖入Applications"],
         "install.copyHint": ["en":"Drag ChemDraw Add-in for Mac into the Applications folder in the disk image, then open the installed app to complete first-run setup.","zh":"请将ChemDraw Add-in for Mac拖到磁盘映像旁的Applications文件夹，再打开应用完成首次设置。"],
         "native.pdfExport": ["en":"ChemDraw could not export the PDF preview. Save the structure again in ChemDraw, or copy it again and retry pasting. {0}","zh":"ChemDraw无法导出PDF预览。请在ChemDraw中重新保存结构，或重新复制结构后粘贴。{0}"],
+        "update.preparing": ["en":"Preparing the update…","zh":"正在准备更新…"],
+        "update.stopping": ["en":"Stopping the helper; the app will reopen automatically…","zh":"正在停止助手，完成后自动重新打开…"],
+        "update.restarting": ["en":"Installing the update and reopening…","zh":"正在安装更新并重新打开…"],
+        "update.stopFailed": ["en":"The helper did not stop within 10 seconds, so the update was paused. The download is retained. Click Install Update to retry.","zh":"助手未能在10秒内停止，更新已暂停。已保留下载文件，请稍后点击“安装更新”重试。"],
+        "app.quitFailed": ["en":"Application Could Not Quit","zh":"应用退出未完成"],
+        "app.stopFailed": ["en":"The helper did not stop within 10 seconds. Try quitting the app again shortly.","zh":"助手未能在10秒内停止。请稍后重试退出应用。"],
     ]
     static let scriptErrors: [String:String] = [
         "script.000": "ChemDraw did not open the managed source",

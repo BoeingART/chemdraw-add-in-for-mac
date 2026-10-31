@@ -42,3 +42,4 @@ xcrun swiftc -O "$PROJECT_DIR/src/NativeLocalization.swift" "$PROJECT_DIR/src/Na
 "$PROJECT_DIR/build/test-excel"
 xcrun swiftc -O "$PROJECT_DIR/src/NativeLocalization.swift" "$PROJECT_DIR/src/NativeStrings.swift" "$PROJECT_DIR/src/OfficeHost.swift" "$PROJECT_DIR/src/NativeExcelSelection.swift" "$PROJECT_DIR/src/NativeCore.swift" "$PROJECT_DIR/src/NativePaths.swift" "$PROJECT_DIR/src/ChemDrawDiscovery.swift" "$PROJECT_DIR/src/NativePDFVector.swift" "$PROJECT_DIR/src/NativeAutomation.swift" "$PROJECT_DIR/src/NativeUpdates.swift" "$PROJECT_DIR/src/NativeUpdateDownload.swift" "$PROJECT_DIR/src/NativeActivity.swift" "$PROJECT_DIR/src/NativeAppUpdate.swift" "$PROJECT_DIR/tests/native/ZipTestSupport.swift" "$PROJECT_DIR/tests/native/AppUpdateTests.swift" -o "$PROJECT_DIR/build/test-app-update" -framework Cocoa -framework Security
 "$PROJECT_DIR/build/test-app-update"
+zsh "$PROJECT_DIR/scripts/test-application-lifecycle.sh"

@@ -1,5 +1,17 @@
 # Installation readiness validation
 
+## v1.5.3 release build 23 — 2026-10-31
+
+An update from the installed v1.5.1 downloaded and prepared v1.5.2, stopped its helper, then left the desktop app inside AppKit termination while its main-queue helper-exit callback was queued. The worker reported an old-app exit timeout after 30 seconds. An isolated AppKit reproduction confirmed this ordering failure.
+
+The repaired delegate returns to the outer event loop while its helper stops and requests termination again after the helper exits. The replacement worker starts at that point. The update window shows preparation, helper shutdown and restart. A ten-second helper-stop timeout or worker-launch failure removes that attempt's prepared staging, restores controls and helper policy, retains the archive, displays the reason and waits for an explicit retry.
+
+- `zsh scripts/test-native.sh` passed 218 native checks and four actual AppKit lifecycle scenarios. Four language settings, nine task-pane checks, discovery and 71 Python installer/localization/signing/release/notarization fixtures passed. The final localization catalog contains 352 bilingual entries.
+- Signed lifecycle acceptance passed six scenarios: quitting with a helper, quitting without one, helper-stop timeout recovery, replacement-worker launch failure, a complete update, and timeout followed by a successful explicit retry of the retained download. The two complete updates exercised the production application delegate from the main dispatch queue, helper exit, signed replacement, real GUI relaunch, draft retention and staging cleanup. Each installed test result retained its valid Apple ticket and passed Gatekeeper. Relaunch used the application's interface self-test in an isolated application directory.
+- The universal arm64/x86_64 DMG and automatic-update ZIP passed final package checks, including signatures, both architectures, current resources, four language settings, archive privacy, disk-image contents and size budgets. Apple notarization returned Accepted; the DMG and ZIP's extracted application carry validated tickets and pass Gatekeeper as Notarized Developer ID.
+
+Transcripts are retained locally as `build/release-1.5.3-*.log`. Existing v1.5.1/v1.5.2 clients that are already stuck need to end the old app in Activity Monitor and install v1.5.3 once from the DMG; subsequent updates run the repaired shutdown logic.
+
 ## v1.5.2 local test build 22 — 2026-10-31
 
 ChemDraw 26.0.0.6599 on this Mac rejected the previous `/renderpdf:` feature check. The new production path exports a unique, hidden structure copy through AppleScript as PDF and converts that PDF to vector SVG. Both capture previews and saved revisions share this path. The original editing file and later unsaved input stay separate.
