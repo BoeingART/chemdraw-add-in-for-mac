@@ -489,11 +489,10 @@ class TestAutomation: ChemistryAutomation {
             try require(try driver.activateOffice("word",document,"figure-id") == "com.microsoft.Word","Office did not become active")
             try require(driver.activation == [document,"figure-id"],"Lost the exact document or drawing identity")
         }
-        try check("Saved-source export uses an isolated renderer in the pinned ChemDraw") {
+        try check("Saved-source export uses an independent snapshot in the pinned ChemDraw") {
             class ExportProbe: NativeAutomation {
                 var exported: URL?, renderer: ChemDrawApplication?
                 override func preferredApplication() throws -> ChemDrawApplication { throw ChemOfficeError("Save must not switch ChemDraw versions") }
-                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String { throw ChemOfficeError("Snapshot must not script the interactive application") }
                 override func exportVector(_ source:URL,_ vector:URL,application:ChemDrawApplication) throws {
                     exported = source; renderer = application
                     try Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\"><path d=\"M10 20L150 80\" stroke=\"black\"/></svg>".utf8).write(to:vector)
@@ -507,9 +506,47 @@ class TestAutomation: ChemistryAutomation {
             try require(driver.renderer == driver.selected && driver.exported == source,"Save export switched applications or used a different snapshot")
             try require(try Data(contentsOf:source) == original && Data(contentsOf:image).starts(with:[137,80,78,71]),"Export changed the saved source or did not render")
         }
+        try check("PDF export preserves newer input and uses a unique copy without a command-line renderer") {
+            class PDFProbe: NativeAutomation {
+                var live: URL!, copied: URL?, exported: Data?
+                let newer = Data("<CDXML><page><t>Newer input</t></page></CDXML>".utf8)
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String {
+                    copied = URL(fileURLWithPath:arguments[0]); exported = try Data(contentsOf:copied!)
+                    try require(copied != live,"Export opened the live document")
+                    try newer.write(to:live)
+                    try Data("%PDF-test".utf8).write(to:URL(fileURLWithPath:arguments[1]))
+                    return "exported"
+                }
+            }
+            let driver = PDFProbe(root:root)
+            let app = ChemDrawApplication(path:"/No command-line renderer/ChemDraw.app",bundle:"example.ChemDraw",version:"26")
+            driver.live = root.appendingPathComponent("pdf-live.cdxml")
+            let original = Data("<CDXML><page/></CDXML>".utf8); try original.write(to:driver.live)
+            try require(try driver.exportPDF(driver.live,application:app) == Data("%PDF-test".utf8),"Lost exported PDF bytes")
+            try require(driver.exported == original && Data(contentsOf:driver.live) == driver.newer,"Export lost the saved revision or overwrote newer input")
+            try require(!fm.fileExists(atPath:driver.copied!.deletingLastPathComponent().path),"Successful PDF export leaked temporary files")
+        }
+        try check("Failed PDF export retains the source copy and an actionable failure") {
+            class PDFProbe: NativeAutomation {
+                var copied: URL?
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String {
+                    copied = URL(fileURLWithPath:arguments[0]); throw ChemOfficeError("Injected PDF save failure")
+                }
+            }
+            let driver = PDFProbe(root:root), source = root.appendingPathComponent("pdf-failure.cdxml")
+            let original = Data("<CDXML><page/></CDXML>".utf8); try original.write(to:source)
+            do {
+                _ = try driver.exportPDF(source,application:driver.selected ?? ChemDrawApplication(path:"/Applications/ChemDraw.app",bundle:"example.ChemDraw",version:"26"))
+                throw ChemOfficeError("Failed PDF export was accepted")
+            } catch {
+                try require(error.localizedDescription.contains("Injected PDF save failure") && error.localizedDescription.contains("PDF"),"PDF failure lost its cause")
+            }
+            defer { if let copied = driver.copied { try? fm.removeItem(at:copied.deletingLastPathComponent()) } }
+            try require(try Data(contentsOf:source) == original && Data(contentsOf:driver.copied!) == original,"Failed export lost source data")
+        }
         try check("Empty native exports keep a white canvas") {
             class EmptyExportProbe: NativeAutomation {
-                override func exportVector(_ source:URL,_ vector:URL,application:ChemDrawApplication) throws { try blankDrawingSVG().write(to:vector) }
+                override func exportPDF(_ source:URL,application:ChemDrawApplication) throws -> Data? { nil }
             }
             let driver = EmptyExportProbe(root:root)
             driver.selected = ChemDrawApplication(path:"/Applications/ChemDraw.app",bundle:"example.ChemDraw",version:"26")

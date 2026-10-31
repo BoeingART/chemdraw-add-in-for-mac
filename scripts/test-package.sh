@@ -2,14 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
+[[ $# -le 1 && ( $# == 0 || "${1:-}" == --local-test ) ]] || { print -u2 'Usage: zsh scripts/test-package.sh [--local-test]'; exit 1; }
+CFM_LOCAL_TEST=0
+CFM_SUFFIX=universal
+if [[ "${1:-}" == --local-test ]]; then
+    CFM_LOCAL_TEST=1
+    CFM_SUFFIX=local-test-universal
+    [[ "${CFM_REQUIRE_NOTARIZATION:-0}" != 1 ]] || { print -u2 'Local test builds use local validation. Notarized distribution requires Developer ID packages.'; exit 1; }
+fi
 CFM_VERSION="$(<"$PROJECT_DIR/VERSION")"
 CFM_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_ICON_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$PROJECT_DIR/packaging/Info.plist")"
-CFM_ARCHIVE="$PROJECT_DIR/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.zip"
-CFM_DMG="$PROJECT_DIR/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.dmg"
+CFM_ARCHIVE="$PROJECT_DIR/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-$CFM_SUFFIX.zip"
+CFM_DMG="$PROJECT_DIR/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-$CFM_SUFFIX.dmg"
 source "$PROJECT_DIR/scripts/signing.sh"
-cfm_resolve_application_signing
+if (( ! CFM_LOCAL_TEST )); then cfm_resolve_application_signing; fi
 CFM_TEMP="$(mktemp -d)"
 trap 'rm -rf "$CFM_TEMP"' EXIT
 /usr/bin/ditto -x -k "$CFM_ARCHIVE" "$CFM_TEMP/expanded"
@@ -24,14 +32,19 @@ CFM_APP_KB="$(du -sk "$CFM_APP" | awk '{print $1}')"
 print 'PASS size budgets: installed app at most 5 MiB; DMG and ZIP at most 2.5 MiB each'
 /usr/bin/codesign --verify --deep --strict "$CFM_APP"
 for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor"; do
-    cfm_verify_developer_id_code "$CFM_BINARY"
+    if (( CFM_LOCAL_TEST )); then
+        /usr/bin/codesign --verify --strict --all-architectures "$CFM_BINARY"
+        [[ "$(/usr/bin/codesign -d --verbose=4 "$CFM_BINARY" 2>&1)" == *'Signature=adhoc'* ]]
+    else
+        cfm_verify_developer_id_code "$CFM_BINARY"
+    fi
     CFM_ARCHS="$(/usr/bin/lipo -archs "$CFM_BINARY")"
     [[ "$CFM_ARCHS" == *arm64* && "$CFM_ARCHS" == *x86_64* ]]
     if /usr/bin/otool -L "$CFM_BINARY" | /usr/bin/grep -Ei 'python|/opt/homebrew|/usr/local|/Users/'; then
         print 'FAIL: external runtime dependency'; exit 1
     fi
 done
-print 'PASS Developer ID Application, Hardened Runtime, timestamps, version and both architectures; only system runtime libraries'
+print 'PASS application signatures, version and both architectures; only system runtime libraries'
 CFM_FILES="$(/usr/bin/unzip -Z1 "$CFM_ARCHIVE")"
 if print -r -- "$CFM_FILES" | /usr/bin/grep -E '\.command$|/work(/|$)|/tls(/|$)'; then
     print 'FAIL: private user data in update archive'; exit 1
@@ -68,10 +81,10 @@ print 'PASS packaged helper discovers ChemDraw without source checkout or develo
 # The default distribution has no installer scripts or consent resets.
 [[ "$CFM_FILES" != *preinstall* && "$CFM_FILES" != *postinstall* ]]
 print 'PASS updates contain no package wizard or system-consent reset scripts'
-CFM_REQUIREMENT="$(/usr/bin/codesign -d -r- "$CFM_APP" 2>&1 | /usr/bin/sed -n 's/^designated => //p')"
-[[ "$CFM_REQUIREMENT" == *'certificate'* ]]
+CFM_REQUIREMENT="$(/usr/bin/codesign -d -r- "$CFM_APP" 2>&1 | /usr/bin/sed -n 's/^#* *designated => //p')"
+if (( ! CFM_LOCAL_TEST )); then [[ "$CFM_REQUIREMENT" == *'certificate'* ]]; fi
 /usr/bin/codesign --verify --strict -R "=$CFM_REQUIREMENT" "$CFM_APP"
-print 'PASS packaged application identity is bound to the persistent signing certificate'
+print 'PASS packaged application satisfies its designated code requirement'
 if [[ "${CFM_REQUIRE_NOTARIZATION:-0}" == 1 ]]; then
     xcrun stapler validate "$CFM_DMG"
     /usr/sbin/spctl --assess --type open --context context:primary-signature --verbose=2 "$CFM_DMG"

@@ -306,7 +306,7 @@ enum NativeStrings {
         "manifest.help": ["en":"Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.","zh":"打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。"],
         "system.automation": ["en":"ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.","zh":"ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。"],
         "installer.welcome.0": ["en":"ChemDraw Add-in for Mac","zh":"ChemDraw Add-in for Mac"],
-        "installer.welcome.1": ["en":"Version 1.5.1 · Apple Silicon + Intel · macOS 12 or later","zh":"版本1.5.1 · Apple Silicon + Intel · macOS 12或更新"],
+        "installer.welcome.1": ["en":"Version 1.5.2 · Apple Silicon + Intel · macOS 12 or later","zh":"版本1.5.2 · Apple Silicon + Intel · macOS 12或更新"],
         "installer.welcome.2": ["en":"Update the application icon, banner, menu-bar icon and Office panel artwork.","zh":"更新应用图标、横幅和菜单栏图标，Office面板同步使用新标识。"],
         "installer.welcome.3": ["en":"Choose Check for Updates and confirm to download, replace and reopen the app automatically.","zh":"升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。"],
         "installer.welcome.4": ["en":"Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.","zh":"安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。"],
@@ -349,6 +349,7 @@ enum NativeStrings {
         "excel.error.6": ["en":"Excel replacement could not be verified; draft retained","zh":"Excel图片回写验证失败，编辑草稿已保留，请重试。"],
         "install.copyTitle": ["en":"Move the App to Applications","zh":"先将应用拖入Applications"],
         "install.copyHint": ["en":"Drag ChemDraw Add-in for Mac into the Applications folder in the disk image, then open the installed app to complete first-run setup.","zh":"请将ChemDraw Add-in for Mac拖到磁盘映像旁的Applications文件夹，再打开应用完成首次设置。"],
+        "native.pdfExport": ["en":"ChemDraw could not export the PDF preview. Save the structure again in ChemDraw, or copy it again and retry pasting. {0}","zh":"ChemDraw无法导出PDF预览。请在ChemDraw中重新保存结构，或重新复制结构后粘贴。{0}"],
     ]
     static let scriptErrors: [String:String] = [
         "script.000": "ChemDraw did not open the managed source",
