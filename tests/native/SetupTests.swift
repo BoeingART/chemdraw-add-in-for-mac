@@ -9,15 +9,15 @@ import Foundation
             count += 1; print("PASS \(title)")
         }
         let complete = SetupRequirements(word:true,powerpoint:true,accessibility:true,applications:true)
-        check("First launch and installer requests open settings; completed login launches stay in the menu bar") {
+        check("First launch opens setup; app upgrades retain completed setup and permissions") {
             ApplicationLaunchPolicy.showsSetup(requested:false,completedVersion:nil,currentVersion:"1.2.0")
                 && ApplicationLaunchPolicy.showsSetup(requested:true,completedVersion:"1.2.0",currentVersion:"1.2.0")
-                && ApplicationLaunchPolicy.showsSetup(requested:false,completedVersion:"1.1.0",currentVersion:"1.2.0")
+                && !ApplicationLaunchPolicy.showsSetup(requested:false,completedVersion:"1.1.0",currentVersion:"1.2.0")
                 && !ApplicationLaunchPolicy.showsSetup(requested:false,completedVersion:"1.2.0",currentVersion:"1.2.0")
         }
         var policy = SetupStartupPolicy()
         check("Each prerequisite blocks helper startup until actually granted") {
-            for requirements in [SetupRequirements(),SetupRequirements(word:true,powerpoint:false,accessibility:true),SetupRequirements(word:false,powerpoint:true,accessibility:true),SetupRequirements(word:true,powerpoint:true,accessibility:false),SetupRequirements(word:true,powerpoint:true,accessibility:true,applications:false)] {
+            for requirements in [SetupRequirements(),SetupRequirements(word:true,powerpoint:false,accessibility:true),SetupRequirements(word:false,powerpoint:true,accessibility:true),SetupRequirements(word:true,powerpoint:true,excel:false,accessibility:true),SetupRequirements(word:true,powerpoint:true,accessibility:false),SetupRequirements(word:true,powerpoint:true,accessibility:true,applications:false)] {
                 if policy.shouldStart(requirements,processExists:false) { return false }
             }
             return policy.shouldStart(complete,processExists:false)

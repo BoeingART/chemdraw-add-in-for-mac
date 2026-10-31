@@ -140,6 +140,12 @@ import Foundation
         let server = try NativeOfficeServer(root:root,port:0)
         var edited = [String](); server.router.edit = { edited.append($0) }
         let headers = ["host":"localhost:17524"]
+        try check("Excel-only installations prepare their own manifest and preview cache") {
+            let excel = NativeInstaller(root:root,home:root.appendingPathComponent("excel-only"),hosts:["excel"])
+            try require(try excel.install(report:false),"Excel-only setup failed")
+            try require(excel.destinations().count == 1 && excel.destinations()[0].path.contains("com.microsoft.Excel"),"Excel configured another host")
+            try require(excel.hostIssues.isEmpty,"Excel directory read-back failed")
+        }
         try check("The panel exposes progress and clipboard paste through the authenticated native path") {
             server.router.activity = { ["busy":true,"message":"Rendering","recoverable":true] }
             let status = server.router.response(method:"GET",target:"/api/status",headers:headers,body:Data())
@@ -179,11 +185,11 @@ import Foundation
             let page = server.router.response(method:"GET",target:"/taskpane.html",headers:headers,body:Data())
             try require(String(decoding:page.body,as:UTF8.self).contains(server.router.token),"Panel token missing")
             let valid = headers.merging(["x-chemoffice-token":server.router.token]) { _,new in new }
-            for (host,status) in [("word",200),("powerpoint",200),("unknown",400)] {
+            for (host,status) in [("word",200),("powerpoint",200),("excel",200),("unknown",400)] {
                 let response = server.router.response(method:"POST",target:"/api/edit",headers:valid,body:Data("{\"host\":\"\(host)\"}".utf8))
                 try require(response.status == status,"Unexpected edit status")
             }
-            try require(edited == ["word","powerpoint"],"Invalid edit was queued")
+            try require(edited == OfficeHost.names,"Invalid edit was queued")
         }
         try server.start(); defer { server.stop() }
         try check("A real native TLS listener serves a certificate-verified local request") {

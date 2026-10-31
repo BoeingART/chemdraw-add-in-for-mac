@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
+if [[ "${1:-}" == --pkg ]]; then exec zsh "$PROJECT_DIR/scripts/package-pkg.sh"; fi
 CFM_VERSION="$(<"$PROJECT_DIR/VERSION")"
 CFM_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$PROJECT_DIR/packaging/Info.plist")"
 CFM_ICON_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$PROJECT_DIR/packaging/Info.plist")"
 source "$PROJECT_DIR/scripts/signing.sh"
-cfm_resolve_distribution_signing
+cfm_resolve_application_signing
 print -r -- "Application: $CFM_APP_SIGNING_NAME"
-print -r -- "Installer: $CFM_INSTALLER_SIGNING_NAME"
 [[ "$CFM_VERSION" == "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PROJECT_DIR/packaging/Info.plist")" ]] || { print 'Update packaging metadata for the new version first.'; exit 1; }
 zsh "$PROJECT_DIR/scripts/build.sh" --universal
 CFM_STAGE="$PROJECT_DIR/build/package"
@@ -17,9 +17,11 @@ CFM_APP="$CFM_STAGE/root/Applications/$CFM_NAME.app"
 rm -rf "$CFM_STAGE"
 mkdir -p "$CFM_APP/Contents/MacOS" "$CFM_APP/Contents/Resources/build" "$CFM_STAGE/resources" "$CFM_STAGE/scripts" "$PROJECT_DIR/dist"
 cp "$PROJECT_DIR/packaging/Info.plist" "$CFM_APP/Contents/Info.plist"
-cp "$PROJECT_DIR/build/chemoffice" "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE"
+cp "$PROJECT_DIR/build/chemoffice-app" "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE"
 cp "$PROJECT_DIR/build/chemoffice" "$PROJECT_DIR/build/event-monitor" "$CFM_APP/Contents/Resources/build/"
-cp -R "$PROJECT_DIR/office" "$PROJECT_DIR/assets" "$PROJECT_DIR/docs" "$CFM_APP/Contents/Resources/"
+cp -R "$PROJECT_DIR/office" "$CFM_APP/Contents/Resources/"
+mkdir -p "$CFM_APP/Contents/Resources/assets"
+cp "$PROJECT_DIR/assets/demo.cdxml" "$CFM_APP/Contents/Resources/assets/"
 cp "$PROJECT_DIR/LICENSE" "$CFM_APP/Contents/Resources/"
 cp -R "$PROJECT_DIR/packaging/en.lproj" "$PROJECT_DIR/packaging/zh-Hans.lproj" "$PROJECT_DIR/packaging/zh-Hant.lproj" "$CFM_APP/Contents/Resources/"
 # Reuse the project's C icon for the native application.
@@ -39,18 +41,18 @@ done
 for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor"; do
     cfm_verify_developer_id_code "$CFM_BINARY"
 done
-cp "$PROJECT_DIR/packaging/scripts/localization.sh" "$PROJECT_DIR/packaging/scripts/preinstall" "$PROJECT_DIR/packaging/scripts/postinstall" "$CFM_STAGE/scripts/"
-chmod 755 "$CFM_STAGE/scripts/preinstall" "$CFM_STAGE/scripts/postinstall"
-cp "$PROJECT_DIR/packaging/Info.plist" "$CFM_STAGE/scripts/app-info.plist"
-cp "$PROJECT_DIR/packaging/Welcome.html" "$PROJECT_DIR/packaging/Conclusion.html" "$CFM_STAGE/resources/"
-cp -R "$PROJECT_DIR/packaging/en.lproj" "$PROJECT_DIR/packaging/zh_CN.lproj" "$PROJECT_DIR/packaging/zh_TW.lproj" "$PROJECT_DIR/packaging/zh_HK.lproj" "$CFM_STAGE/resources/"
-cp "$PROJECT_DIR/LICENSE" "$CFM_STAGE/resources/LICENSE.txt"
-/usr/bin/pkgbuild --analyze --root "$CFM_STAGE/root" "$CFM_STAGE/components.plist"
-/usr/libexec/PlistBuddy -c 'Add :0:BundleIsRelocatable bool false' "$CFM_STAGE/components.plist"
-/usr/bin/pkgbuild --root "$CFM_STAGE/root" --component-plist "$CFM_STAGE/components.plist" --identifier com.chemoffice.mac.pkg --version "$CFM_VERSION" --install-location / --scripts "$CFM_STAGE/scripts" --ownership recommended "$CFM_STAGE/ChemDraw-Add-in-component.pkg"
-/usr/bin/productbuild --distribution "$PROJECT_DIR/packaging/Distribution.xml" --resources "$CFM_STAGE/resources" --package-path "$CFM_STAGE" --sign "$CFM_INSTALLER_SIGNING_NAME" --timestamp "$CFM_STAGE/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.pkg"
-/usr/sbin/pkgutil --check-signature "$CFM_STAGE/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.pkg"
-mv "$CFM_STAGE/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.pkg" "$PROJECT_DIR/dist/"
+# A signed app is the installable unit. ZIP updates replace only this bundle;
+# the DMG's Applications shortcut provides a single drag for first installs.
+CFM_ARCHIVE="$PROJECT_DIR/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.zip"
+CFM_DISK_IMAGE="$PROJECT_DIR/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.dmg"
+/usr/bin/ditto -c -k --norsrc --keepParent "$CFM_APP" "$CFM_ARCHIVE"
+CFM_DMG_ROOT="$CFM_STAGE/disk-image"
+mkdir -p "$CFM_DMG_ROOT"
+/usr/bin/ditto "$CFM_APP" "$CFM_DMG_ROOT/$CFM_NAME.app"
+/bin/ln -s /Applications "$CFM_DMG_ROOT/Applications"
+cp "$PROJECT_DIR/packaging/Install.txt" "$CFM_DMG_ROOT/Install.txt"
+/usr/bin/hdiutil create -volname "$CFM_NAME $CFM_VERSION" -srcfolder "$CFM_DMG_ROOT" -format UDZO -ov "$CFM_DISK_IMAGE"
+/usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" --timestamp "$CFM_DISK_IMAGE"
 cd "$PROJECT_DIR/dist"
-/usr/bin/shasum -a 256 "ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.pkg" > SHA256SUMS.txt
-print "Created dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.pkg."
+/usr/bin/shasum -a 256 "${CFM_ARCHIVE:t}" "${CFM_DISK_IMAGE:t}" > SHA256SUMS.txt
+print "Created ${CFM_DISK_IMAGE:t} and ${CFM_ARCHIVE:t}."

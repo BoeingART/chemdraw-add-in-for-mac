@@ -3,7 +3,7 @@ import Cocoa
 
 // AppKit may stop an individual CFRunLoop invocation while activating an app
 // or handling an Apple event. Its application event loop must own the monitor
-// now that the monitor also hosts native progress panels.
+// throughout the lifetime of the input monitor.
 final class NativeMonitorLoop {
     func run(parentIsAlive:@escaping () -> Bool,cleanup:@escaping () -> Void,interval:TimeInterval = 1) {
         let watchdog = Timer(timeInterval:interval,repeats:true) { [self] _ in

@@ -16,14 +16,14 @@
 13	native.017	src/NativeApplication.swift	检查更新	Check for Updates		
 14	native.019	src/NativeApplication.swift	隐藏图标	Hide Icon		
 15	native.023	src/NativeApplication.swift	安装更新	Install Update		
-16	native.024	src/NativeApplication.swift	在ChemDraw中复制结构，到Word或PowerPoint粘贴。双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。	Copy a structure in ChemDraw and paste it into Word or PowerPoint. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.		
+16	native.024	src/NativeApplication.swift	在ChemDraw中复制结构，到Word、PowerPoint或Excel粘贴。双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。	Copy a structure in ChemDraw and paste it into Word, PowerPoint or Excel. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.		
 17	native.025	src/NativeApplication.swift	设置加载项	Add-in Setup		
 18	native.027	src/NativeApplication.swift	修复加载项	Repair Add-in		
 19	native.029	src/NativeApplication.swift	设置为开机启动项	Launch at Login		
 20	native.030	src/NativeApplication.swift	关闭窗口后继续在菜单栏运行。隐藏图标后，可从“应用程序”重新打开。	Runs in the menu bar after closing the window. Reopen from Applications to restore a hidden icon.		
 21	native.031	src/NativeApplication.swift	设置加载项	Add-in Setup		
 22	native.033	src/NativeApplication.swift	正在检查安装…	Checking installation…		
-23	native.034	src/NativeApplication.swift	完成以下四项检查后，程序会自动配置加载项并启动粘贴助手。授权后状态会自动更新。	After these four checks, the app will configure the add-in and start the paste helper automatically. Status updates as you grant permissions.		
+23	native.034	src/NativeApplication.swift	完成以下五项检查后，程序会自动配置加载项并启动粘贴助手。授权后状态会自动更新。	After these five checks, the app will configure the add-in and start the paste helper automatically. Status updates as you grant permissions.		
 24	native.035	src/NativeApplication.swift	Word文件访问	Word File Access		
 25	native.036	src/NativeApplication.swift	打开文件访问设置	Open File Access Settings		
 26	native.037	src/NativeApplication.swift	PowerPoint文件访问	PowerPoint File Access		
@@ -37,15 +37,17 @@
 34	native.046	src/NativeApplication.swift	请在系统设置的登录项中允许本应用。	Allow this app in System Settings → Login Items.		
 35	native.048	src/NativeApplication.swift	无法更改开机启动项	Could Not Change Login Item		
 36	native.049	src/NativeApplication.swift	发现新版本{0}	New Version Available: {0}		
-37	native.050	src/NativeApplication.swift	当前版本为v{0}。下载更新后可直接安装，已有绘图会保留。安装后按提示确认Office文件访问。	Your current version is v{0}. Download and install the update to keep your existing drawings. Confirm Office file access when prompted after installation.		
-38	native.051	src/NativeApplication.swift	下载更新	Download Update		
+37	native.050	src/NativeApplication.swift	"当前版本：v{0}
+下载完成后自动更新并重新打开应用。正在编辑的结构会等待编辑结束后再更新。"	"Current version: v{0}
+The app will update and reopen automatically after downloading. Active drawing edits finish before the update continues."		
+38	native.051	src/NativeApplication.swift	更新并重新打开	Update and Reopen		
 39	native.052	src/NativeApplication.swift	当前没有更新的正式版本	No Newer Stable Release		
 40	native.053	src/NativeApplication.swift	"当前版本：v{0}
 GitHub最新正式版：{1}"	"Current version: v{0}
 Latest stable release on GitHub: {1}"		
 41	native.054	src/NativeApplication.swift	检查更新失败	Could Not Check for Updates		
 42	native.057	src/NativeApplication.swift	更新{0}	Update {0}		
-43	native.058	src/NativeApplication.swift	正在下载{0}…	Downloading {0}…		
+43	native.058	src/NativeApplication.swift	正在下载{0}，完成后自动更新…	Downloading {0}; the app will update automatically…		
 44	native.059	src/NativeApplication.swift	取消下载	Cancel Download		
 45	native.060	src/NativeApplication.swift	正在下载{0}… {1}%	Downloading {0}… {1}%		
 46	native.061	src/NativeApplication.swift	更新下载未完成	Update Download Incomplete		
@@ -53,7 +55,7 @@ Latest stable release on GitHub: {1}"
 48	native.063	src/NativeApplication.swift	更新已下载	Update Downloaded		
 49	native.064	src/NativeApplication.swift	请先关闭当前ChemDraw文档以结束结构编辑，再点“安装更新”。安装包已保留。	Close the current ChemDraw document to finish editing, then click “Install Update”. The installer has been retained.		
 50	native.065	src/NativeApplication.swift	安装{0}	Install {0}		
-51	native.066	src/NativeApplication.swift	应用会退出并打开安装器，安装结束后自动重新启动。Office文档由你按需要保存。	The app will quit and open the installer, then reopen automatically after installation. Save your Office documents whenever you choose.		
+51	native.066	src/NativeApplication.swift	应用将自动更新并重新打开，保留已有授权和草稿。	The app will update and reopen automatically, retaining existing permissions and drafts.		
 52	native.067	src/NativeApplication.swift	安装并重新打开	Install and Reopen		
 53	native.068	src/NativeApplication.swift	无法打开已下载的安装包，请重新检查更新。	The downloaded installer could not be opened. Check for updates again.		
 54	native.069	src/NativeApplication.swift	更新安装未开始	Update Installation Did Not Start		
@@ -71,7 +73,7 @@ Latest stable release on GitHub: {1}"
 66	native.098	src/NativeApplication.swift	重新授权文件访问	Authorize File Access Again		
 67	native.101	src/NativeApplication.swift	需要授权：在辅助功能中启用{0}；若开关已打开，请移除旧项并重新添加本应用。	Permission required: enable {0} in Accessibility. If already enabled, remove the old entry and add this app again.		
 68	native.102	src/NativeApplication.swift	请先安装并激活ChemDraw，然后点“重新检查”。	Install and activate ChemDraw, then click “Check Again”.		
-69	native.103	src/NativeApplication.swift	请先安装Word或PowerPoint，然后点“重新检查”。	Install Word or PowerPoint, then click “Check Again”.		
+69	native.103	src/NativeApplication.swift	请先安装Word、PowerPoint或Excel，然后点“重新检查”。	Install Word, PowerPoint or Excel, then click “Check Again”.		
 70	native.104	src/NativeApplication.swift	已暂停。点击“重新检查”恢复。	Paused. Click “Check Again” to resume.		
 71	native.106	src/NativeApplication.swift	正在启动并检查键盘与鼠标监听…	Starting and checking keyboard and mouse monitoring…		
 72	native.107	src/NativeApplication.swift	Office文件访问修复未完成	Office File Access Repair Incomplete		
@@ -81,11 +83,11 @@ Latest stable release on GitHub: {1}"
 76	native.111	src/NativeApplication.swift	请在macOS认证提示中确认，以便Office连接本机ChemDraw Add-in for Mac面板。	Confirm the macOS authentication prompt so Office can connect to the local ChemDraw Add-in for Mac panel.		
 77	native.112	src/NativeApplication.swift	启用本地连接	Enable Local Connection		
 78	native.113	src/NativeApplication.swift	Office本地连接已启用	Local Office Connection Enabled		
-79	native.114	src/NativeApplication.swift	请保存手头工作并重新打开Word和PowerPoint。	Save your work and reopen Word and PowerPoint.		
+79	native.114	src/NativeApplication.swift	请保存手头工作并重新打开Word、PowerPoint和Excel。	Save your work and reopen Word, PowerPoint and Excel.		
 80	native.115	src/NativeApplication.swift	本地连接需要完成设置	Local Connection Setup Required		
 81	native.116	src/NativeApplication.swift	正在重新检查…	Checking again…		
 82	native.117	src/NativeApplication.swift	助手已停止。点击“重新检查”重试，或点击“修复加载项”。	The helper has stopped. Click “Check Again” to retry, or click “Repair Add-in”.		
-83	native.121	src/NativeApplication.swift	正在重新请求Word和PowerPoint文件访问，请在系统提示中允许；授权后自动继续。	Requesting Word and PowerPoint file access again. Allow access in the system prompt; setup will continue automatically.		
+83	native.121	src/NativeApplication.swift	正在重新请求Word、PowerPoint和Excel文件访问，请在系统提示中允许；授权后自动继续。	Requesting Word, PowerPoint and Excel file access again. Allow access in the system prompt; setup will continue automatically.		
 84	native.122	src/NativeAutomation.swift	命令失败或超时：{0}	Command failed or timed out: {0}		
 85	native.123	src/NativeAutomation.swift	未找到已安装的ChemDraw。请先安装并激活ChemDraw。	No installed ChemDraw was found. Install and activate ChemDraw first.		
 86	native.126	src/NativeAutomation.swift；src/NativePaths.swift	无法识别Office应用。	Unknown Office host		
@@ -202,7 +204,7 @@ Latest stable release on GitHub: {1}"
 197	native.267	src/NativeOfficeUI.swift	请从ChemDraw Add-in for Mac面板执行此操作。	Open this action from the ChemDraw Add-in for Mac panel		
 198	native.268	src/NativeOfficeUI.swift	打开ChemDraw Add-in for Mac →“设置加载项”，完成授权并启动粘贴助手。	Open ChemDraw Add-in for Mac → “Add-in Setup” to finish permissions and start the paste helper.		
 199	native.269	src/NativeOfficeUI.swift	请求无效。	Invalid request		
-200	native.270	src/NativeOfficeUI.swift	请在Word或PowerPoint中选择一幅绘图。	Select a drawing in Word or PowerPoint		
+200	native.270	src/NativeOfficeUI.swift	请在Word、PowerPoint或Excel中选择一幅绘图。	Select a drawing in Word, PowerPoint or Excel		
 201	native.272	src/NativeOfficeUI.swift	无法载入本地连接凭据。	Cannot load localhost TLS identity		
 202	native.273	src/NativeOfficeUI.swift	本地HTTPS服务启动超时。	Local HTTPS listener timed out		
 203	native.274	src/NativeOfficeUI.swift	本地HTTPS服务未取得可用端口。	Local HTTPS listener has no port		
@@ -219,7 +221,7 @@ Latest stable release on GitHub: {1}"
 214	native.287	src/NativeUpdateDownload.swift	无法完成更新下载，请检查网络后重试。	The update download could not be completed. Check your network connection and retry.		
 215	native.288	src/NativeUpdateDownload.swift	安装包下载未完成，请重试。	The installer download did not finish. Try again.		
 216	native.289	src/NativeUpdates.swift	更新版本无效，请重新检查更新。	The update version is invalid. Check for updates again.		
-217	native.290	src/NativeUpdates.swift	这个版本的安装包尚未准备完成，请稍后重新检查更新。	The installer for this release is not ready yet. Check for updates later.		
+217	native.290	src/NativeUpdates.swift	本次发布缺少可用的应用更新文件，请稍后重试。	This release has no usable application update. Try again later.		
 218	native.291	src/NativeUpdates.swift	GitHub上还没有可用的正式版本。	No stable release is available on GitHub yet.		
 219	native.292	src/NativeUpdates.swift	GitHub暂时限制了更新查询，请稍后重试。	GitHub is temporarily limiting update requests. Try again later.		
 220	native.293	src/NativeUpdates.swift	GitHub返回错误（{0}），请稍后重试。	GitHub returned an error ({0}). Try again later.		
@@ -268,12 +270,12 @@ Latest stable release on GitHub: {1}"
 261	pane.headline	office/addin/taskpane.html	"你的绘图。
 你的ChemDraw。"	"Your drawing.
 Your ChemDraw."		
-262	pane.intro	office/addin/taskpane.html	为Word和PowerPoint提供可编辑化学结构与清晰矢量图。	Native chemistry and sharp vectors for Word and PowerPoint.		
+262	pane.intro	office/addin/taskpane.html	为Word、PowerPoint和Excel提供可编辑化学结构与清晰矢量图。	Native chemistry and sharp vectors for Word, PowerPoint and Excel.		
 263	pane.connecting	office/addin/taskpane.html	正在连接本机…	Connecting to your Mac…		
 264	pane.keepRunning	office/addin/taskpane.html	请保持ChemDraw Add-in for Mac运行。点击菜单栏图标打开设置。	Keep ChemDraw Add-in for Mac running. Use its menu bar icon to open settings.		
 265	pane.paste	office/addin/taskpane.html	粘贴可编辑绘图	Paste editable drawing		
 266	pane.edit	office/addin/taskpane.html	编辑所选绘图	Edit selected drawing		
-267	pane.officeNote	office/addin/taskpane.html	请在Word或PowerPoint中打开此面板，以编辑所选绘图。	Open this panel inside Word or PowerPoint to edit a selection.		
+267	pane.officeNote	office/addin/taskpane.html	请在Word、PowerPoint或Excel中打开此面板，以编辑所选绘图。	Open this panel inside Word, PowerPoint or Excel to edit a selection.		
 268	pane.steps	office/addin/taskpane.html	继续绘图	Keep drawing		
 269	pane.step1	office/addin/taskpane.html	在ChemDraw中复制结构。	Copy your structure in ChemDraw.		
 270	pane.step2	office/addin/taskpane.html	按⌘V、右键选择“粘贴”，或点击此面板中的“粘贴可编辑绘图”。新建且尚未保存的文档也可使用。Office文档由你按需要保存。	Paste with ⌘V, right-click → Paste, or Paste editable drawing in this panel, including a new unsaved document. Save your Office document whenever you choose.		
@@ -307,21 +309,21 @@ Your ChemDraw."
 298	manifest.group	office/addin/manifest.xml	ChemDraw绘图	ChemDraw drawings		
 299	manifest.button	office/addin/manifest.xml	打开ChemDraw Add-in for Mac	Open ChemDraw Add-in for Mac		
 300	manifest.help	office/addin/manifest.xml	打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。	Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.		
-301	system.automation	packaging/Info.plist	ChemDraw Add-in for Mac控制ChemDraw、Word和PowerPoint，在本机编辑化学结构并回写到文档。	ChemDraw Add-in for Mac controls ChemDraw, Word and PowerPoint to edit chemical drawings locally and write them back to your document.		
+301	system.automation	packaging/Info.plist	ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。	ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.		
 302	installer.welcome.0	packaging/Welcome.html	ChemDraw Add-in for Mac	ChemDraw Add-in for Mac		
-303	installer.welcome.1	packaging/Welcome.html	版本1.3.4 · Apple Silicon + Intel · macOS 12或更新	Version 1.3.4 · Apple Silicon + Intel · macOS 12 or later		
-304	installer.welcome.2	packaging/Welcome.html	界面根据系统首选语言显示中文或英文，覆盖应用窗口、Office面板、功能区及安装提示。	The app windows, Office panel, ribbon, and installation instructions follow your preferred system language in Chinese or English.		
-305	installer.welcome.3	packaging/Welcome.html	更改系统首选语言后，请从菜单栏退出应用，再重新打开应用和Office以切换界面语言。	After changing your preferred system language, quit the app from its menu bar, then reopen the app and Office to switch the interface language.		
-306	installer.welcome.4	packaging/Welcome.html	安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成四项检查后即可使用。	Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the four checks to start using the app.		
+303	installer.welcome.1	packaging/Welcome.html	版本1.5.0 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.0 · Apple Silicon + Intel · macOS 12 or later		
+304	installer.welcome.2	packaging/Welcome.html	修复保存和关闭时额外ChemDraw窗口闪现的问题，保留矢量图和可编辑结构。	Fix extra ChemDraw windows appearing during save and close, while preserving vector artwork and editable structures.		
+305	installer.welcome.3	packaging/Welcome.html	移除指针旁转圈提示，减少打开时的重复检查，关闭已同步内容时跳过重复回写。	Remove the spinning pointer indicator, reduce repeated opening checks, and skip duplicate write-back when closing synchronized drawings.		
+306	installer.welcome.4	packaging/Welcome.html	安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。	Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.		
 307	installer.welcome.5	packaging/Welcome.html	已有绘图、连接证书及恢复草稿继续保留。从旧版升级时，按系统提示确认辅助功能和自动化授权。	Existing drawings, connection certificates, and recovery drafts are retained. When upgrading from an older version, confirm Accessibility and Automation access when prompted.		
 308	installer.welcome.6	packaging/Welcome.html	升级前请完成当前编辑并退出应用。	Finish editing and quit the app before upgrading.		
 309	installer.conclusion.0	packaging/Conclusion.html	完成ChemDraw Add-in for Mac安装	ChemDraw Add-in for Mac Installation Complete		
 310	installer.conclusion.1	packaging/Conclusion.html	应用将自动打开“设置加载项”，分别检查Word文件访问、PowerPoint文件访问、辅助功能和粘贴助手。	The app will open Add-in Setup automatically to check Word file access, PowerPoint file access, Accessibility, and the paste helper.		
-311	installer.conclusion.2	packaging/Conclusion.html	请在系统提示中允许访问所用的Word／PowerPoint。程序会自动验证目录读写并启动助手，四项检查通过后点击“完成”。	Allow access to the Word and PowerPoint apps you use when prompted. The app will verify directory access and start the helper automatically. Click “Done” when all four checks pass.		
+311	installer.conclusion.2	packaging/Conclusion.html	请在系统提示中允许访问所用的Word／PowerPoint／Excel。程序会自动验证目录读写并启动助手，五项检查通过后点击“完成”。	Allow access to the Word, PowerPoint and Excel apps you use when prompted. The app will verify directory access and start the helper automatically. Click “Done” when all five checks pass.		
 312	installer.conclusion.3	packaging/Conclusion.html	从旧版升级时，按系统提示确认辅助功能和自动化授权。	When upgrading from an older version, confirm Accessibility and Automation access when prompted.		
 313	installer.conclusion.4	packaging/Conclusion.html	文件访问被拒绝时，点击“重新授权文件访问”或主界面的“修复加载项”，按提示允许后程序会自动继续。	If file access is denied, click “Authorize File Access Again” or “Repair Add-in” in the main window. Allow access when prompted; setup will continue automatically.		
-314	installer.conclusion.5	packaging/Conclusion.html	后续点击“检查更新”即可在应用内下载并安装新版本，安装结束后自动重新打开。	Use “Check for Updates” to download and install new versions in the app. The app will reopen automatically after installation.		
-315	installer.conclusion.6	packaging/Conclusion.html	在ChemDraw中复制结构，到Word或PowerPoint粘贴；双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。	Copy a structure in ChemDraw and paste it into Word or PowerPoint. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.		
+314	installer.conclusion.5	packaging/Conclusion.html	请在Word、PowerPoint或Excel中测试双击打开、⌘S同步和关闭回写，确认没有额外窗口或转圈提示。	In Word, PowerPoint or Excel, test double-click editing, Command-S synchronization, and closing with write-back. Check that no extra windows or spinning pointer indicators appear.		
+315	installer.conclusion.6	packaging/Conclusion.html	结构保存后，ChemDraw编辑窗口保持打开；Office文档由你决定何时保存。	Saving a structure keeps the ChemDraw editing window open. Save your Office document when you choose.		
 316	fixed.product	应用标题、菜单栏提示、Office功能区和安装器	ChemDraw Add-in for Mac	ChemDraw Add-in for Mac		
 317	fixed.icon	Office面板品牌图标	C	C		
 318	fixed.version	菜单栏版本	v{0}	v{0}		
@@ -336,7 +338,23 @@ Your ChemDraw."
 "		
 324	fixed.certificateName	src/NativeInstaller.swift：本地连接证书名称	ChemDraw Add-in for Mac Localhost	ChemDraw Add-in for Mac Localhost		
 325	fixed.certificateOrganization	src/NativeInstaller.swift：本地连接证书组织名称	ChemDraw Add-in for Mac Local Preview	ChemDraw Add-in for Mac Local Preview		
-326	fixed.paneHosts	office/addin/taskpane.js：未连接Office时的页脚	Word + PowerPoint	Word + PowerPoint		
+326	fixed.paneHosts	office/addin/taskpane.js：未连接Office时的页脚	Word + PowerPoint + Excel	Word + PowerPoint + Excel		
 327	fixed.installerTitle	packaging/Distribution.xml：安装器标题	ChemDraw Add-in for Mac {0}	ChemDraw Add-in for Mac {0}		
 328	fixed.drawingObject	Office图片对象名及替代文字；结构标识和版本由程序生成	ChemOffice Drawing:{0}:{1}	ChemOffice Drawing:{0}:{1}		
 329	native.pasteRectangle	src/EventMonitor.swift：粘贴菜单诊断	粘贴区域：{0}	paste rectangle: {0}		
+330	native.pdfVector	src/NativePDFVector.swift	无法将PDF绘图指令“{0}”转换为矢量预览。编辑草稿已保留。可在应用菜单中停止助手后关闭绘图。	Could not convert PDF drawing operation “{0}” to a vector preview. Your editing draft is retained. Choose Stop Helper from the app menu to close the drawing.		
+331	excel.access	src/NativeApplication.swift	Excel文件访问	Excel File Access		
+332	update.signature	src/NativeAppUpdate.swift	更新应用的签名身份与当前应用不一致。已保留当前版本，请重新下载更新。	The update does not match the current app’s signing identity. Your current version is retained. Download the update again.		
+333	update.contents	src/NativeAppUpdate.swift	更新文件内容或版本不正确。已保留当前版本，请重新下载更新。	The update contents or version are invalid. Your current version is retained. Download the update again.		
+334	update.location	src/NativeAppUpdate.swift	当前应用目录无法写入。请将应用移到个人Applications文件夹，再重新更新。	The application folder is not writable. Move the app to your personal Applications folder, then update again.		
+335	update.quit	src/NativeAppUpdate.swift	应用尚未退出，更新已停止。请退出应用后重试。	The app has not exited, so the update stopped. Quit the app and retry.		
+336	update.waiting	src/NativeAppUpdate.swift	编辑结束后自动更新	Update when editing finishes		
+337	excel.error.0	office/excel/adapter.applescript	原Excel工作簿已关闭或存在多个副本，请打开唯一的原工作簿后重试。	The original Excel workbook is no longer uniquely available		
+338	excel.error.1	office/excel/adapter.applescript	请先关闭这个Excel工作簿的其他副本，再编辑结构。	Close the other copy of this Excel workbook before editing its drawing		
+339	excel.error.2	office/excel/adapter.applescript	原Excel结构图片已移除或存在多个副本，请选中唯一的原图片后重试。	Ambiguous or missing original Excel figure		
+340	excel.error.3	office/excel/adapter.applescript	粘贴前Excel工作簿已切换，请在目标工作簿中重新粘贴。	The target Excel workbook changed before paste		
+341	excel.error.4	office/excel/adapter.applescript	请先选中工作表中的单元格，再粘贴结构。	Select a worksheet cell before pasting a drawing		
+342	excel.error.5	office/excel/adapter.applescript	回写期间原Excel图片发生变化，两个版本均已保留，请确认原图片后重试。	Original Excel figure changed during write-back; retained both versions		
+343	excel.error.6	office/excel/adapter.applescript	Excel图片回写验证失败，编辑草稿已保留，请重试。	Excel replacement could not be verified; draft retained		
+344	install.copyTitle	src/NativeApplication.swift	先将应用拖入Applications	Move the App to Applications		
+345	install.copyHint	src/NativeApplication.swift	请将ChemDraw Add-in for Mac拖到磁盘映像旁的Applications文件夹，再打开应用完成首次设置。	Drag ChemDraw Add-in for Mac into the Applications folder in the disk image, then open the installed app to complete first-run setup.		

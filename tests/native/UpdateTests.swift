@@ -32,6 +32,12 @@ import CryptoKit
             try require(asset.name == name && asset.size == bytes.count,"Wrong installer selected")
             try NativeUpdateDownload.verify(file,asset:asset)
         }
+        try check("Application ZIP updates are preferred and must match the exact release") {
+            let zip = name.replacingOccurrences(of:".pkg",with:".zip")
+            let zipURL = url.replacingOccurrences(of:".pkg",with:".zip")
+            try require(try release(name:zip,url:zipURL).installer().name == zip,"Application ZIP refused")
+            try rejects { _ = try release(name:zip,url:zipURL,duplicate:true).installer() }
+        }
         try check("Missing, duplicate and mismatched installer assets cannot start an update") {
             try rejects { _ = try release(name:"other.pkg").installer() }
             try rejects { _ = try release(duplicate:true).installer() }

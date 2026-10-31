@@ -8,7 +8,7 @@ let awaitingClose = false;
 const byId = id => document.getElementById(id);
 const token = document.querySelector('meta[name="cfm-token"]').content;
 if (typeof Office !== 'undefined') Office.onReady(info => {
-    host = info.host === Office.HostType.Word ? 'word' : info.host === Office.HostType.PowerPoint ? 'powerpoint' : null;
+    host = info.host === Office.HostType.Word ? 'word' : info.host === Office.HostType.PowerPoint ? 'powerpoint' : info.host === Office.HostType.Excel ? 'excel' : null;
     byId('host').textContent = t('host', info.host || 'Office');
     if (host) byId('office-note').hidden = true;
     refresh();
@@ -53,6 +53,6 @@ async function action(kind) {
 }
 byId('edit').addEventListener('click', () => action('edit'));
 byId('paste').addEventListener('click', () => action('paste'));
-byId('host').textContent = t('host', 'Word + PowerPoint');
+byId('host').textContent = t('host', 'Word + PowerPoint + Excel');
 refresh();
 setInterval(refresh, 2500);

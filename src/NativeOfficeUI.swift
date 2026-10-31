@@ -42,7 +42,7 @@ class PanelRouter {
             try require(ready(),L("native.268"))
             try require(!body.isEmpty && body.count <= 128,L("native.269"))
             let object = try JSONSerialization.jsonObject(with:body) as? [String:Any]
-            guard let host = object?["host"] as? String, ["word","powerpoint"].contains(host) else { throw ChemOfficeError(L("native.270")) }
+            guard let host = object?["host"] as? String, OfficeHost(rawValue:host) != nil else { throw ChemOfficeError(L("native.270")) }
             if target == "/api/paste" { try paste(host); return PanelResponse(200,["pasted":true]) }
             try edit(host); return PanelResponse(200,["opened":true])
         } catch { return PanelResponse(400,["error":error.localizedDescription]) }

@@ -17,5 +17,5 @@ func passOfficeTransactionInput(_ current: [String:Any], bundle: String) -> Bool
     // Office must handle its own dialogs without another selection Apple event.
     let host = current["host"] as? String
     return current["busy"] as? Bool == true &&
-        ((host == "word" && bundle == "com.microsoft.Word") || (host == "powerpoint" && bundle == "com.microsoft.Powerpoint"))
+        host.flatMap { OfficeHost(rawValue:$0)?.bundle } == bundle
 }

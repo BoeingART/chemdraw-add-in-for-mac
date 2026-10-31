@@ -93,12 +93,13 @@ import PDFKit
                 try require(rejected,"Invalid monitor event accepted")
             }
         }
-        for (host,bundle) in [("word","com.microsoft.Word"),("powerpoint","com.microsoft.Powerpoint")] {
+        for office in OfficeHost.allCases {
+            let host = office.rawValue, bundle = office.bundle
             try check("\(host) permission/save dialogs receive input throughout paste and write-back") {
                 for value: [String:Any] in [["saveDialogBundle":bundle],["pasteBusyBundle":bundle],["host":host,"busy":true]] {
                     try require(passOfficeTransactionInput(value,bundle:bundle),"Office input would be swallowed or reinterpreted while a dialog is pending")
                     try require(!passOfficeTransactionInput(value,bundle:"com.revvity.ChemDraw"),"Managed ChemDraw protection was bypassed")
-                    let otherOffice = host == "word" ? "com.microsoft.Powerpoint" : "com.microsoft.Word"
+                    let otherOffice = OfficeHost.allCases.first { $0 != office }!.bundle
                     try require(!passOfficeTransactionInput(value,bundle:otherOffice),"Unrelated Office gestures were bypassed")
                 }
                 try require(!passOfficeTransactionInput([:],bundle:bundle),"Ordinary Office gestures were disabled")

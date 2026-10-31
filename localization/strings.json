@@ -105,8 +105,8 @@
     ]
   },
   "native.024": {
-    "zh": "在ChemDraw中复制结构，到Word或PowerPoint粘贴。双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。",
-    "en": "Copy a structure in ChemDraw and paste it into Word or PowerPoint. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.",
+    "zh": "在ChemDraw中复制结构，到Word、PowerPoint或Excel粘贴。双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。",
+    "en": "Copy a structure in ChemDraw and paste it into Word, PowerPoint or Excel. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -154,8 +154,8 @@
     ]
   },
   "native.034": {
-    "zh": "完成以下四项检查后，程序会自动配置加载项并启动粘贴助手。授权后状态会自动更新。",
-    "en": "After these four checks, the app will configure the add-in and start the paste helper automatically. Status updates as you grant permissions.",
+    "zh": "完成以下五项检查后，程序会自动配置加载项并启动粘贴助手。授权后状态会自动更新。",
+    "en": "After these five checks, the app will configure the add-in and start the paste helper automatically. Status updates as you grant permissions.",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -252,15 +252,15 @@
     ]
   },
   "native.050": {
-    "zh": "当前版本为v{0}。下载更新后可直接安装，已有绘图会保留。安装后按提示确认Office文件访问。",
-    "en": "Your current version is v{0}. Download and install the update to keep your existing drawings. Confirm Office file access when prompted after installation.",
+    "zh": "当前版本：v{0}\n下载完成后自动更新并重新打开应用。正在编辑的结构会等待编辑结束后再更新。",
+    "en": "Current version: v{0}\nThe app will update and reopen automatically after downloading. Active drawing edits finish before the update continues.",
     "locations": [
       "src/NativeApplication.swift"
     ]
   },
   "native.051": {
-    "zh": "下载更新",
-    "en": "Download Update",
+    "zh": "更新并重新打开",
+    "en": "Update and Reopen",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -294,8 +294,8 @@
     ]
   },
   "native.058": {
-    "zh": "正在下载{0}…",
-    "en": "Downloading {0}…",
+    "zh": "正在下载{0}，完成后自动更新…",
+    "en": "Downloading {0}; the app will update automatically…",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -350,8 +350,8 @@
     ]
   },
   "native.066": {
-    "zh": "应用会退出并打开安装器，安装结束后自动重新启动。Office文档由你按需要保存。",
-    "en": "The app will quit and open the installer, then reopen automatically after installation. Save your Office documents whenever you choose.",
+    "zh": "应用将自动更新并重新打开，保留已有授权和草稿。",
+    "en": "The app will update and reopen automatically, retaining existing permissions and drafts.",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -476,8 +476,8 @@
     ]
   },
   "native.103": {
-    "zh": "请先安装Word或PowerPoint，然后点“重新检查”。",
-    "en": "Install Word or PowerPoint, then click “Check Again”.",
+    "zh": "请先安装Word、PowerPoint或Excel，然后点“重新检查”。",
+    "en": "Install Word, PowerPoint or Excel, then click “Check Again”.",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -546,8 +546,8 @@
     ]
   },
   "native.114": {
-    "zh": "请保存手头工作并重新打开Word和PowerPoint。",
-    "en": "Save your work and reopen Word and PowerPoint.",
+    "zh": "请保存手头工作并重新打开Word、PowerPoint和Excel。",
+    "en": "Save your work and reopen Word, PowerPoint and Excel.",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -574,8 +574,8 @@
     ]
   },
   "native.121": {
-    "zh": "正在重新请求Word和PowerPoint文件访问，请在系统提示中允许；授权后自动继续。",
-    "en": "Requesting Word and PowerPoint file access again. Allow access in the system prompt; setup will continue automatically.",
+    "zh": "正在重新请求Word、PowerPoint和Excel文件访问，请在系统提示中允许；授权后自动继续。",
+    "en": "Requesting Word, PowerPoint and Excel file access again. Allow access in the system prompt; setup will continue automatically.",
     "locations": [
       "src/NativeApplication.swift"
     ]
@@ -1395,8 +1395,8 @@
     ]
   },
   "native.270": {
-    "zh": "请在Word或PowerPoint中选择一幅绘图。",
-    "en": "Select a drawing in Word or PowerPoint",
+    "zh": "请在Word、PowerPoint或Excel中选择一幅绘图。",
+    "en": "Select a drawing in Word, PowerPoint or Excel",
     "locations": [
       "src/NativeOfficeUI.swift"
     ]
@@ -1514,8 +1514,8 @@
     ]
   },
   "native.290": {
-    "zh": "这个版本的安装包尚未准备完成，请稍后重新检查更新。",
-    "en": "The installer for this release is not ready yet. Check for updates later.",
+    "zh": "本次发布缺少可用的应用更新文件，请稍后重试。",
+    "en": "This release has no usable application update. Try again later.",
     "locations": [
       "src/NativeUpdates.swift"
     ]
@@ -1858,8 +1858,8 @@
     ]
   },
   "pane.intro": {
-    "zh": "为Word和PowerPoint提供可编辑化学结构与清晰矢量图。",
-    "en": "Native chemistry and sharp vectors for Word and PowerPoint.",
+    "zh": "为Word、PowerPoint和Excel提供可编辑化学结构与清晰矢量图。",
+    "en": "Native chemistry and sharp vectors for Word, PowerPoint and Excel.",
     "locations": [
       "office/addin/taskpane.html"
     ]
@@ -1893,8 +1893,8 @@
     ]
   },
   "pane.officeNote": {
-    "zh": "请在Word或PowerPoint中打开此面板，以编辑所选绘图。",
-    "en": "Open this panel inside Word or PowerPoint to edit a selection.",
+    "zh": "请在Word、PowerPoint或Excel中打开此面板，以编辑所选绘图。",
+    "en": "Open this panel inside Word, PowerPoint or Excel to edit a selection.",
     "locations": [
       "office/addin/taskpane.html"
     ]
@@ -2131,8 +2131,8 @@
     ]
   },
   "system.automation": {
-    "zh": "ChemDraw Add-in for Mac控制ChemDraw、Word和PowerPoint，在本机编辑化学结构并回写到文档。",
-    "en": "ChemDraw Add-in for Mac controls ChemDraw, Word and PowerPoint to edit chemical drawings locally and write them back to your document.",
+    "zh": "ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。",
+    "en": "ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.",
     "locations": [
       "packaging/Info.plist"
     ],
@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "版本1.3.4 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Version 1.3.4 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "版本1.5.0 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Version 1.5.0 · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "界面根据系统首选语言显示中文或英文，覆盖应用窗口、Office面板、功能区及安装提示。",
-    "en": "The app windows, Office panel, ribbon, and installation instructions follow your preferred system language in Chinese or English.",
+    "zh": "修复保存和关闭时额外ChemDraw窗口闪现的问题，保留矢量图和可编辑结构。",
+    "en": "Fix extra ChemDraw windows appearing during save and close, while preserving vector artwork and editable structures.",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2166,8 +2166,8 @@
     "element": "p"
   },
   "installer.welcome.3": {
-    "zh": "更改系统首选语言后，请从菜单栏退出应用，再重新打开应用和Office以切换界面语言。",
-    "en": "After changing your preferred system language, quit the app from its menu bar, then reopen the app and Office to switch the interface language.",
+    "zh": "移除指针旁转圈提示，减少打开时的重复检查，关闭已同步内容时跳过重复回写。",
+    "en": "Remove the spinning pointer indicator, reduce repeated opening checks, and skip duplicate write-back when closing synchronized drawings.",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2175,8 +2175,8 @@
     "element": "p"
   },
   "installer.welcome.4": {
-    "zh": "安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成四项检查后即可使用。",
-    "en": "Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the four checks to start using the app.",
+    "zh": "安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。",
+    "en": "Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2220,8 +2220,8 @@
     "element": "p"
   },
   "installer.conclusion.2": {
-    "zh": "请在系统提示中允许访问所用的Word／PowerPoint。程序会自动验证目录读写并启动助手，四项检查通过后点击“完成”。",
-    "en": "Allow access to the Word and PowerPoint apps you use when prompted. The app will verify directory access and start the helper automatically. Click “Done” when all four checks pass.",
+    "zh": "请在系统提示中允许访问所用的Word／PowerPoint／Excel。程序会自动验证目录读写并启动助手，五项检查通过后点击“完成”。",
+    "en": "Allow access to the Word, PowerPoint and Excel apps you use when prompted. The app will verify directory access and start the helper automatically. Click “Done” when all five checks pass.",
     "locations": [
       "packaging/Conclusion.html"
     ],
@@ -2247,8 +2247,8 @@
     "element": "p"
   },
   "installer.conclusion.5": {
-    "zh": "后续点击“检查更新”即可在应用内下载并安装新版本，安装结束后自动重新打开。",
-    "en": "Use “Check for Updates” to download and install new versions in the app. The app will reopen automatically after installation.",
+    "zh": "请在Word、PowerPoint或Excel中测试双击打开、⌘S同步和关闭回写，确认没有额外窗口或转圈提示。",
+    "en": "In Word, PowerPoint or Excel, test double-click editing, Command-S synchronization, and closing with write-back. Check that no extra windows or spinning pointer indicators appear.",
     "locations": [
       "packaging/Conclusion.html"
     ],
@@ -2256,8 +2256,8 @@
     "element": "p"
   },
   "installer.conclusion.6": {
-    "zh": "在ChemDraw中复制结构，到Word或PowerPoint粘贴；双击继续编辑，保存即可更新Office图片，关闭ChemDraw文档后可返回原文档。",
-    "en": "Copy a structure in ChemDraw and paste it into Word or PowerPoint. Double-click to edit, save to update the Office image, and close the ChemDraw document to return to your original document.",
+    "zh": "结构保存后，ChemDraw编辑窗口保持打开；Office文档由你决定何时保存。",
+    "en": "Saving a structure keeps the ChemDraw editing window open. Save your Office document when you choose.",
     "locations": [
       "packaging/Conclusion.html"
     ],
@@ -2345,8 +2345,8 @@
     "fixed": true
   },
   "fixed.paneHosts": {
-    "zh": "Word + PowerPoint",
-    "en": "Word + PowerPoint",
+    "zh": "Word + PowerPoint + Excel",
+    "en": "Word + PowerPoint + Excel",
     "locations": [
       "office/addin/taskpane.js：未连接Office时的页脚"
     ],
@@ -2373,6 +2373,125 @@
     "en": "paste rectangle: {0}",
     "locations": [
       "src/EventMonitor.swift：粘贴菜单诊断"
+    ]
+  },
+  "native.pdfVector": {
+    "en": "Could not convert PDF drawing operation “{0}” to a vector preview. Your editing draft is retained. Choose Stop Helper from the app menu to close the drawing.",
+    "zh": "无法将PDF绘图指令“{0}”转换为矢量预览。编辑草稿已保留。可在应用菜单中停止助手后关闭绘图。",
+    "locations": [
+      "src/NativePDFVector.swift"
+    ]
+  },
+  "excel.access": {
+    "zh": "Excel文件访问",
+    "en": "Excel File Access",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "update.signature": {
+    "zh": "更新应用的签名身份与当前应用不一致。已保留当前版本，请重新下载更新。",
+    "en": "The update does not match the current app’s signing identity. Your current version is retained. Download the update again.",
+    "locations": [
+      "src/NativeAppUpdate.swift"
+    ]
+  },
+  "update.contents": {
+    "zh": "更新文件内容或版本不正确。已保留当前版本，请重新下载更新。",
+    "en": "The update contents or version are invalid. Your current version is retained. Download the update again.",
+    "locations": [
+      "src/NativeAppUpdate.swift"
+    ]
+  },
+  "update.location": {
+    "zh": "当前应用目录无法写入。请将应用移到个人Applications文件夹，再重新更新。",
+    "en": "The application folder is not writable. Move the app to your personal Applications folder, then update again.",
+    "locations": [
+      "src/NativeAppUpdate.swift"
+    ]
+  },
+  "update.quit": {
+    "zh": "应用尚未退出，更新已停止。请退出应用后重试。",
+    "en": "The app has not exited, so the update stopped. Quit the app and retry.",
+    "locations": [
+      "src/NativeAppUpdate.swift"
+    ]
+  },
+  "update.waiting": {
+    "zh": "编辑结束后自动更新",
+    "en": "Update when editing finishes",
+    "locations": [
+      "src/NativeAppUpdate.swift"
+    ]
+  },
+  "excel.error.0": {
+    "zh": "原Excel工作簿已关闭或存在多个副本，请打开唯一的原工作簿后重试。",
+    "en": "The original Excel workbook is no longer uniquely available",
+    "script_error": "The original Excel workbook is no longer uniquely available",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
+  },
+  "excel.error.1": {
+    "zh": "请先关闭这个Excel工作簿的其他副本，再编辑结构。",
+    "en": "Close the other copy of this Excel workbook before editing its drawing",
+    "script_error": "Close the other copy of this Excel workbook before editing its drawing",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
+  },
+  "excel.error.2": {
+    "zh": "原Excel结构图片已移除或存在多个副本，请选中唯一的原图片后重试。",
+    "en": "Ambiguous or missing original Excel figure",
+    "script_error": "Ambiguous or missing original Excel figure",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
+  },
+  "excel.error.3": {
+    "zh": "粘贴前Excel工作簿已切换，请在目标工作簿中重新粘贴。",
+    "en": "The target Excel workbook changed before paste",
+    "script_error": "The target Excel workbook changed before paste",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
+  },
+  "excel.error.4": {
+    "zh": "请先选中工作表中的单元格，再粘贴结构。",
+    "en": "Select a worksheet cell before pasting a drawing",
+    "script_error": "Select a worksheet cell before pasting a drawing",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
+  },
+  "excel.error.5": {
+    "zh": "回写期间原Excel图片发生变化，两个版本均已保留，请确认原图片后重试。",
+    "en": "Original Excel figure changed during write-back; retained both versions",
+    "script_error": "Original Excel figure changed during write-back; retained both versions",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
+  },
+  "excel.error.6": {
+    "zh": "Excel图片回写验证失败，编辑草稿已保留，请重试。",
+    "en": "Excel replacement could not be verified; draft retained",
+    "script_error": "Excel replacement could not be verified; draft retained",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
+  },
+  "install.copyTitle": {
+    "zh": "先将应用拖入Applications",
+    "en": "Move the App to Applications",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "install.copyHint": {
+    "zh": "请将ChemDraw Add-in for Mac拖到磁盘映像旁的Applications文件夹，再打开应用完成首次设置。",
+    "en": "Drag ChemDraw Add-in for Mac into the Applications folder in the disk image, then open the installed app to complete first-run setup.",
+    "locations": [
+      "src/NativeApplication.swift"
     ]
   }
 }

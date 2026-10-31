@@ -5,22 +5,32 @@ CFM_PROJECT="${0:A:h:h}"
 CFM_VERSION="$(<"$CFM_PROJECT/VERSION")"
 CFM_NOTARY_PROFILE="${CFM_NOTARY_PROFILE:-ChemDraw Add-in}"
 CFM_DEFAULT_PKG="$CFM_PROJECT/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.pkg"
+CFM_DEFAULT_DMG="$CFM_PROJECT/dist/ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.dmg"
+if [[ -f "$CFM_DEFAULT_DMG" ]]; then CFM_DEFAULT_PKG="$CFM_DEFAULT_DMG"; fi
 if [[ "${1:-}" == --check-credentials ]]; then
     xcrun notarytool history --keychain-profile "$CFM_NOTARY_PROFILE" --output-format json >/dev/null
     print -r -- "Notarization credentials are ready: $CFM_NOTARY_PROFILE"
     exit 0
 fi
-(( $# <= 1 )) || { print -u2 'Usage: zsh scripts/notarize.sh [installer.pkg | --check-credentials]'; exit 1; }
+(( $# <= 1 )) || { print -u2 'Usage: zsh scripts/notarize.sh [disk-image.dmg | installer.pkg | --check-credentials]'; exit 1; }
 CFM_PKG="${1:-$CFM_DEFAULT_PKG}"
 CFM_PKG="${CFM_PKG:A}"
-[[ -f "$CFM_PKG" && "$CFM_PKG" == *.pkg ]] || { print -u2 'Build the installer first with zsh scripts/package.sh.'; exit 1; }
-CFM_SIGNATURE="$(/usr/sbin/pkgutil --check-signature "$CFM_PKG")"
-[[ "$CFM_SIGNATURE" == *'Developer ID Installer: '* ]] || { print -u2 'The installer needs a Developer ID Installer signature.'; exit 1; }
+[[ -f "$CFM_PKG" && ( "$CFM_PKG" == *.pkg || "$CFM_PKG" == *.dmg ) ]] || { print -u2 'Build the installer first with zsh scripts/package.sh.'; exit 1; }
+if [[ "$CFM_PKG" == *.pkg ]]; then
+    CFM_SIGNATURE="$(/usr/sbin/pkgutil --check-signature "$CFM_PKG")"
+    [[ "$CFM_SIGNATURE" == *'Developer ID Installer: '* ]] || { print -u2 'The installer needs a Developer ID Installer signature.'; exit 1; }
+else
+    /usr/bin/codesign --verify --strict "$CFM_PKG"
+fi
 
 cfm_finish_notarization() {
     local cfm_notarized_pkg="${1:-$CFM_PKG}" cfm_current_digest
     xcrun stapler validate "$cfm_notarized_pkg"
-    /usr/sbin/spctl --assess --type install --verbose=2 "$cfm_notarized_pkg"
+    if [[ "$cfm_notarized_pkg" == *.pkg ]]; then
+        /usr/sbin/spctl --assess --type install --verbose=2 "$cfm_notarized_pkg"
+    else
+        /usr/sbin/spctl --assess --type open --context context:primary-signature --verbose=2 "$cfm_notarized_pkg"
+    fi
     if [[ "$cfm_notarized_pkg" != "$CFM_PKG" ]]; then
         cfm_current_digest="$(/usr/bin/shasum -a 256 "$CFM_PKG" | /usr/bin/cut -d ' ' -f 1)"
         if [[ "$cfm_current_digest" != "$CFM_INPUT_DIGEST" ]]; then
@@ -31,7 +41,7 @@ cfm_finish_notarization() {
     fi
     # Stapling changes the distributed file. Refresh integrity metadata last.
     if [[ "$CFM_PKG" == "$CFM_DEFAULT_PKG" ]]; then
-        (cd "$CFM_PROJECT/dist"; /usr/bin/shasum -a 256 "${CFM_PKG:t}" > SHA256SUMS.txt)
+        (cd "$CFM_PROJECT/dist"; if [[ "$CFM_PKG" == *.dmg && -f "ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.zip" ]]; then /usr/bin/shasum -a 256 "ChemDraw-Add-in-for-Mac-$CFM_VERSION-universal.zip" "${CFM_PKG:t}" > SHA256SUMS.txt; else /usr/bin/shasum -a 256 "${CFM_PKG:t}" > SHA256SUMS.txt; fi)
     fi
     print -r -- "Apple notarization and Gatekeeper validation completed: $CFM_PKG"
 }

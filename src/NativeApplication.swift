@@ -30,9 +30,11 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var updateProgress: NSProgressIndicator?
     var updateMessage: NSTextField?
     var stagedUpdate: (GitHubRelease,URL)?
+    var applyingUpdate = false
     var details = [String:NSTextField]()
     var finishButton: NSButton!
     var timer: Timer?
+    var setupAttentionShown = false
     var checking = false
     var officeAccessDenied = Set<String>()
     var officeAccessRepairRequested = false
@@ -66,14 +68,25 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         if selfTest { runInterfaceSelfTest(); return }
         if preview {
             requirements = SetupRequirements(word:true,powerpoint:true,accessibility:true,applications:true)
-            for key in ["word","powerpoint"] { setDetail(key,L("native.013"),complete:true) }
+            for key in OfficeHost.names { setDetail(key,L("native.013"),complete:true) }
             setDetail("accessibility",L("native.014"),complete:true)
             renderSetup(ready:true)
             if setupRequested { showSetup() } else { showMain() }
             return
         }
+        if (try? Bundle.main.bundleURL.resourceValues(forKeys:[.volumeIsReadOnlyKey]).volumeIsReadOnly) == true {
+            alert(L("install.copyTitle"),L("install.copyHint")); NSApp.terminate(nil); return
+        }
         updateLoginState()
-        if ApplicationLaunchPolicy.showsSetup(requested:setupRequested,completedVersion:UserDefaults.standard.string(forKey:"setupCompletedVersion"),currentVersion:version) {
+        let updateResult = work.appendingPathComponent("update-result.json")
+        if let data = try? Data(contentsOf:updateResult), let report = try? JSONSerialization.jsonObject(with:data) as? [String:String] {
+            try? FileManager.default.removeItem(at:updateResult)
+            if let error = report["error"] { alert(L("native.069"),error) }
+        }
+        let completed = UserDefaults.standard.string(forKey:"setupCompletedVersion")
+        let configured = UserDefaults.standard.stringArray(forKey:"configuredOfficeHosts") ?? (completed == nil ? [] : ["word","powerpoint"])
+        let newHost = OfficeHost.allCases.contains { NSWorkspace.shared.urlForApplication(withBundleIdentifier:$0.bundle) != nil && !configured.contains($0.rawValue) }
+        if ApplicationLaunchPolicy.showsSetup(requested:setupRequested || newHost,completedVersion:completed,currentVersion:version) {
             showSetup()
             if !AXIsProcessTrusted() { requestAccessibility() }
         }
@@ -173,6 +186,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         for (key,title,action,buttonTitle) in [
             ("word",L("native.035"),#selector(officeFolderSettings),L("native.036")),
             ("powerpoint",L("native.037"),#selector(officeFolderSettings),L("native.036")),
+            ("excel",L("excel.access"),#selector(officeFolderSettings),L("native.036")),
             ("accessibility",L("native.039"),#selector(accessibilitySettings),L("native.040")),
             ("helper",L("native.041"),#selector(startHelper),L("native.042"))
         ] {
@@ -180,7 +194,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             details[key] = detail
             let words = NSStackView(views:[heading,detail]); words.orientation = .vertical; words.alignment = .leading; words.spacing = 5
             let actionButton = button(buttonTitle,action)
-            if key == "word" || key == "powerpoint" { actionButton.identifier = NSUserInterfaceItemIdentifier(key); officeAccessButtons[key] = actionButton }
+            if OfficeHost(rawValue:key) != nil { actionButton.identifier = NSUserInterfaceItemIdentifier(key); officeAccessButtons[key] = actionButton }
             if key == "helper" { helperButton = actionButton }
             let row = NSStackView(views:[words,actionButton]); row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 16
             checks.addArrangedSubview(row); row.widthAnchor.constraint(equalTo:checks.widthAnchor).isActive = true
@@ -280,23 +294,48 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         } catch { checkingUpdates = false; setUpdateControls(enabled:true); alert(L("native.062"),error.localizedDescription) }
     }
     @objc func cancelUpdateDownload() { updateDownload?.cancel() }
-    func offerUpdateInstallation(_ release:GitHubRelease,_ file:URL) {
+    var canApplyUpdate:Bool {
         let activity = helper.flatMap { HelperActivity.read(work:work,pid:$0.processIdentifier) }
         let state = (try? Data(contentsOf:work.appendingPathComponent("monitor-state.json")))
             .flatMap { try? JSONSerialization.jsonObject(with:$0) as? [String:Any] } ?? [:]
-        guard UpdateInstallationPolicy.canInstall(activity:activity,state:state) else {
-            alert(L("native.063"),L("native.064"))
+        return UpdateInstallationPolicy.canInstall(activity:activity,state:state)
+    }
+    func offerUpdateInstallation(_ release:GitHubRelease,_ file:URL) {
+        guard canApplyUpdate else {
+            updateButton.title = L("update.waiting"); updateMenuItem.title = L("update.waiting")
             return
         }
-        guard alert(L("native.065",release.tag_name),L("native.066"),confirm:L("native.067"),cancel:true) else { return }
-        do {
-            try NativeUpdateDownload.verify(file,asset:release.installer())
-            guard NSWorkspace.shared.open(file) else { throw UpdateCheckError(message:L("native.068")) }
-            NSApp.terminate(nil)
-        } catch {
-            stagedUpdate = nil; setUpdateControls(enabled:true); alert(L("native.069"),error.localizedDescription)
+        guard !applyingUpdate else { return }
+        applyingUpdate = true; setUpdateControls(enabled:false)
+        let current = Bundle.main.bundleURL, updateWork = work, worker = root.appendingPathComponent("build/chemoffice")
+        DispatchQueue.global(qos:.utility).async { [weak self] in
+            let prepared:Result<URL?,Error> = Result {
+                try NativeUpdateDownload.verify(file,asset:release.installer())
+                return file.pathExtension == "zip" ? try NativeAppUpdate.prepare(archive:file,release:release,current:current,work:updateWork,workerSource:worker) : nil
+            }
+            DispatchQueue.main.async { [weak self] in
+                guard let self, !self.quitting else { return }
+                do {
+                    let request = try prepared.get()
+                    // Preparing an archive runs in the background. A drawing
+                    // opened meanwhile must finish before the app can restart.
+                    guard self.canApplyUpdate else {
+                        if let request { try? FileManager.default.removeItem(at:request.deletingLastPathComponent()) }
+                        self.applyingUpdate = false; self.setUpdateControls(enabled:true)
+                        self.updateButton.title = L("update.waiting"); self.updateMenuItem.title = L("update.waiting")
+                        return
+                    }
+                    if let request { try NativeAppUpdate.launchWorker(request) }
+                    else if !NSWorkspace.shared.open(file) { throw UpdateCheckError(message:L("native.068")) }
+                    NSApp.terminate(nil)
+                } catch {
+                    self.applyingUpdate = false; self.stagedUpdate = nil
+                    self.setUpdateControls(enabled:true); self.alert(L("native.069"),error.localizedDescription)
+                }
+            }
         }
     }
+
     func setDetail(_ key:String,_ text:String,complete:Bool) {
         details[key]?.stringValue = text; details[key]?.textColor = complete ? .systemGreen : .secondaryLabelColor
     }
@@ -315,26 +354,21 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         func buttons(_ view:NSView) -> [NSButton] { (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons($0) } }
         let expectedMain = [L("native.025"),L("native.017"),L("native.027"),L("native.029")]
         let initiallyBlocked = !finishButton.isEnabled
-        for key in ["word","powerpoint"] { setDetail(key,L("native.013"),complete:true) }
+        for key in OfficeHost.names { setDetail(key,L("native.013"),complete:true) }
         setDetail("accessibility",L("native.014"),complete:true)
         renderSetup(ready:true)
         let menu = statusItem!.menu!
         func texts(_ view:NSView) -> [String] { (view as? NSTextField).map { [$0.stringValue] } ?? view.subviews.flatMap { texts($0) } }
-        let pointer = NativeBusyPointer()
-        pointer.setBusy(true)
-        let visibleBusyPointer = pointer.busy && pointer.panel.isVisible && pointer.panel.ignoresMouseEvents && !pointer.panel.canBecomeKey && !pointer.panel.canBecomeMain
-        pointer.setBusy(false)
         showUpdateDownloadProgress("v1.3.2")
         let updateInterfaceValid = updateProgress?.style == .bar && updateProgress?.isIndeterminate == false
             && updateWindow?.styleMask.contains(.closable) == false
             && buttons(updateWindow!.contentView!).map(\.title) == [L("native.059")]
             && responds(to:#selector(cancelUpdateDownload))
         updateWindow?.orderOut(nil)
-        var valid = visibleBusyPointer && !pointer.busy && !pointer.panel.isVisible
-            && updateInterfaceValid
+        var valid = updateInterfaceValid
             && !texts(mainWindow.contentView!).contains { $0.contains(L("native.076")) || $0.contains("v"+version) }
             && buttons(mainWindow.contentView!).map(\.title) == expectedMain
-            && details.count == 4 && buttons(setupWindow.contentView!).count == 5
+            && details.count == 5 && buttons(setupWindow.contentView!).count == 6
             && menu.items.filter { $0.action != nil }.map(\.title) == [L("native.017"),L("native.015"),L("native.019"),L("native.016")]
             && menu.items.first?.title == "v\(version)" && menu.items.first?.isEnabled == false
             && statusItem?.button?.title == "" && statusItem?.button?.image?.isTemplate == true
@@ -360,7 +394,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 try icon.representation(using:.png,properties:[:])!.write(to:directory.appendingPathComponent("menu-bar-icon.png"))
             } catch { valid = false; print("FAIL UI snapshots: \(error)") }
         }
-        print(valid ? "PASS menu bar startup, three main actions, no main status paragraph, busy-pointer lifecycle, login checkbox, four setup checks, version menu, hidden-icon recovery and completion gate" : "FAIL native app interface self-test")
+        print(valid ? "PASS menu bar startup, three main actions, no main status paragraph, login checkbox, five setup checks, version menu, hidden-icon recovery and completion gate" : "FAIL native app interface self-test")
         exit(valid ? 0 : 1)
     }
     func refreshSetup(force:Bool = false) {
@@ -371,6 +405,10 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         } else { latestActivity = nil }
         let ready = readyForUse
         renderSetup(ready:ready)
+        if let stagedUpdate, !applyingUpdate {
+            let status = (try? Data(contentsOf:work.appendingPathComponent("monitor-state.json"))).flatMap { try? JSONSerialization.jsonObject(with:$0) as? [String:Any] } ?? [:]
+            if UpdateInstallationPolicy.canInstall(activity:latestActivity,state:status) { offerUpdateInstallation(stagedUpdate.0,stagedUpdate.1); return }
+        }
         guard !checking, force || officeAccessRepairRequested || Date().timeIntervalSince(lastCheck) >= (ready ? 15 : 1) else { return }
         checking = true; lastCheck = Date()
         let repairOfficeAccess = officeAccessRepairRequested
@@ -380,7 +418,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         let bundleIdentifier = Bundle.main.bundleIdentifier ?? ""
         // Protected-container requests can wait for macOS consent. Keep the UI responsive.
         setupQueue.async { [self] in
-            let hosts = ["word","powerpoint"].filter { NSWorkspace.shared.urlForApplication(withBundleIdentifier:NativePaths.officeBundles[$0]!) != nil }
+            let hosts = OfficeHost.names.filter { NSWorkspace.shared.urlForApplication(withBundleIdentifier:NativePaths.officeBundles[$0]!) != nil }
             let hasChemDraw = !ChemDrawApplication.installed().isEmpty
             let installer = NativeInstaller(root:root,hosts:hosts)
             var failure: String?
@@ -397,8 +435,9 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 officeAccessDenied = installer.deniedHosts
                 let word = !hosts.contains("word") || (failure == nil && installer.hostIssues["word"] == nil)
                 let powerpoint = !hosts.contains("powerpoint") || (failure == nil && installer.hostIssues["powerpoint"] == nil)
-                requirements = SetupRequirements(word:word,powerpoint:powerpoint,accessibility:AXIsProcessTrusted(),applications:hasChemDraw && !hosts.isEmpty)
-                for (host,name,ok) in [("word","Word",word),("powerpoint","PowerPoint",powerpoint)] {
+                let excel = !hosts.contains("excel") || (failure == nil && installer.hostIssues["excel"] == nil)
+                requirements = SetupRequirements(word:word,powerpoint:powerpoint,excel:excel,accessibility:AXIsProcessTrusted(),applications:hasChemDraw && !hosts.isEmpty)
+                for (host,name,ok) in [("word","Word",word),("powerpoint","PowerPoint",powerpoint),("excel","Excel",excel)] {
                     let text: String
                     if !hosts.contains(host) { text = L("native.094",name) }
                     else if ok { text = L("native.013") }
@@ -408,7 +447,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                     officeAccessButtons[host]?.title = officeAccessDenied.contains(host) ? L("native.098") : L("native.036")
                 }
                 setDetail("accessibility",requirements.accessibility ? L("native.014") : L("native.101",appName),complete:requirements.accessibility)
-                if word && powerpoint && failure == nil { UserDefaults.standard.set(version,forKey:"installedVersion") }
+                if word && powerpoint && excel && failure == nil { UserDefaults.standard.set(version,forKey:"installedVersion") }
                 else { UserDefaults.standard.removeObject(forKey:"installedVersion") }
                 if !hasChemDraw { helperMessage = L("native.102") }
                 else if hosts.isEmpty { helperMessage = L("native.103") }
@@ -416,15 +455,19 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 else if !requirements.satisfied { helperMessage = L("native.011") }
                 if startup.shouldStart(requirements,processExists:helper != nil) { launchHelper() }
                 let ready = readyForUse
-                if ready { UserDefaults.standard.set(version,forKey:"setupCompletedVersion") }
+                if ready {
+                    UserDefaults.standard.set(version,forKey:"setupCompletedVersion")
+                    UserDefaults.standard.set(hosts,forKey:"configuredOfficeHosts")
+                }
                 else {
-                    UserDefaults.standard.removeObject(forKey:"setupCompletedVersion")
                     if let helper, helper.isRunning {
                         let health = HelperStatus.read(work:work,expectedPID:helper.processIdentifier)
                         helperMessage = health?.message ?? L("native.106")
                     }
                 }
                 renderSetup(ready:ready)
+                if requirements.satisfied { setupAttentionShown = false }
+                else if !setupAttentionShown { setupAttentionShown = true; showSetup() }
                 if let repairFailure { alert(L("native.107"),repairFailure) }
             }
         }

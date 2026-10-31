@@ -54,14 +54,18 @@ class NativeAutomation: ChemistryAutomation {
         guard let found = ChemDrawApplication.installed().first else { throw ChemOfficeError(L("native.123")) }
         selected = found; return found
     }
-    func preferredApplication() throws -> ChemDrawApplication { selected = nil; return try application() }
+    func preferredApplication() throws -> ChemDrawApplication {
+        if let selected, ChemDrawApplication.inspect(URL(fileURLWithPath:selected.path)) == selected { return selected }
+        selected = nil; return try application()
+    }
     func useApplication(_ application:ChemDrawApplication) { selected = application }
     func script(_ body:String, _ arguments:[String], timeout:TimeInterval = 45) throws -> String {
         let data = try command("/usr/bin/osascript",["-e",NativeLocalization.appleScript("on run argv\n"+body+"\nend run"),"--"]+arguments,timeout:timeout)
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }
     func office(_ action:String, _ host:String, _ arguments:[String] = []) throws -> String {
-        try require(["word","powerpoint"].contains(host),L("native.126"))
+        try require(OfficeHost(rawValue:host) != nil,L("native.126"))
+        if action == "selected", host == "excel", let name = selectedExcelDrawingName() { return name }
         // A lifecycle check must never reopen a quit Office application.
         if action == "document-status", NSRunningApplication.runningApplications(withBundleIdentifier:NativePaths.officeBundles[host]!).isEmpty { return "closed" }
         let adapter = try String(contentsOf:root.appendingPathComponent("office/\(host)/adapter.applescript"),encoding:.utf8)
@@ -93,7 +97,6 @@ class NativeAutomation: ChemistryAutomation {
         end tell
         end timeout
         """,[path.path])
-        try focus(path,application:app)
     }
     func focus(_ path:URL,application app:ChemDrawApplication) throws {
         for _ in 0..<30 {
@@ -134,21 +137,18 @@ class NativeAutomation: ChemistryAutomation {
             end repeat
             if (count matches) is not 1 then error "Expected exactly one managed ChemDraw document"
             set d to document (item 1 of matches)
-            delay 0.25
             do command "chooseSelectionTool_Marquee"
+            delay 0.05
+            if not (modified of d) then return "unchanged"
             set sourceSaved to false
             repeat 5 times
-                delay 0.1
                 if POSIX path of ((file of d) as alias) is not targetPath then error "Managed drawing identity changed before save"
                 save d
-                delay 0.1
                 if not (modified of d) then
-                    delay 0.1
-                    if not (modified of d) then
-                        set sourceSaved to true
-                        exit repeat
-                    end if
+                    set sourceSaved to true
+                    exit repeat
                 end if
+                delay 0.05
             end repeat
             if not sourceSaved then error "ChemDraw still reports unsaved changes"
         end tell
@@ -190,37 +190,14 @@ class NativeAutomation: ChemistryAutomation {
         try exportVector(source,vector,application:application())
         try renderPNG(Data(contentsOf:vector)).write(to:image)
     }
-    private func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
-        let result = try script("""
-        set drawingFile to (POSIX file (item 1 of argv)) as alias
-        set outputFile to POSIX file (item 2 of argv)
-        tell application \(appleQuote(application.path))
-            open drawingFile
-            set matches to {}
-            repeat with documentIndex from 1 to (count of documents)
-                set d to document documentIndex
-                try
-                    if POSIX path of ((file of d) as alias) is (item 1 of argv) then set end of matches to (documentIndex as integer)
-                end try
-            end repeat
-            if (count matches) is not 1 then error "Cannot identify captured chemistry for vector export"
-            set d to document (item 1 of matches)
-            if modified of d then error "Captured source unexpectedly has pending edits"
-            if (count objects of d) is 0 then
-                close d saving no
-                return "empty"
-            end if
-            save d in outputFile as "Scalable Vector Graphics (SVG)"
-            if modified of d then error "Captured drawing changed during export; kept open"
-            close d saving no
-        end tell
-        """,[source.path,vector.path])
-        if result == "empty" { try blankDrawingSVG().write(to:vector) }
+    func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
+        guard let executable = Bundle(url:URL(fileURLWithPath:application.path))?.executableURL else { throw ChemOfficeError(L("native.123")) }
+        let binary = try Data(contentsOf:executable,options:.mappedIfSafe)
+        try require(binary.range(of:Data("/renderpdf:".utf8)) != nil,L("native.pdfVector","ChemDraw /renderpdf"))
+        let pdf = try command(executable.path,["/renderpdf:"+source.path,"/thumbnail:0"],timeout:20)
+        try pdfVectorSVG(pdf).write(to:vector,options:.atomic)
     }
-    func close(_ path:URL) throws {
-        try focus(path,application:application())
-        try closeWithoutActivation(path)
-    }
+    func close(_ path:URL) throws { try closeWithoutActivation(path) }
     func closeWithoutActivation(_ path:URL) throws {
         _ = try script("""
         tell application \(appleQuote(try application().path))

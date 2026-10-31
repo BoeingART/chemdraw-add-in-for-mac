@@ -1,4 +1,16 @@
-# Installation readiness validation — 1.0.5
+# Installation readiness validation
+
+## v1.5.0 test build 20 — 2026-10-31
+
+The signed universal DMG uses a drag to Applications. Updates retain existing Office and Accessibility consent, setup completion, certificates and editing drafts. Packaging checks passed for both architectures, native interfaces in four language settings, the disk image and the standalone signed update helper. Update preparation against the extracted signed v1.4.0 app, replacement and rollback checks passed without replacing the installed app.
+
+Real Excel 16.114.1 and ChemDraw 22.0 checks passed in independent test workbooks: unsaved vector insertion, double-click detection by the signed input monitor, opening the managed ChemDraw source, a real keyboard edit and Command-S save, keeping ChemDraw open after synchronization, write-back to the original workbook while another workbook is active, explicit test-workbook Save As, recovery of the saved SVG and exact editable source, and synchronized close back to the original workbook. Test workbooks use a hidden workbook name for identity. SVG graphics use their shape name for the revision marker because Excel's scripting interface cannot set their alternative text. The native selection reader finds the Name Box before entering large cell hierarchies.
+
+The native regression suite, bilingual task-pane checks, localization checks, signing checks and mocked notarization workflow passed. The local DMG was signed and was not submitted for Apple notarization.
+
+The desktop app, editing helper and input monitor now build separately with whole-module optimization and unused-code removal. Development documentation remains in the repository. The installed bundle is approximately 3.9 MB and the DMG approximately 1.9 MB, down from approximately 7.1 MB and 3.1 MB in the previous test build. Package checks enforce a 5 MiB installed-app budget and 2.5 MiB limits for each compressed distribution.
+
+## v1.0.5 historical checks
 
 The installed 1.0.4 app showed two missing prerequisites: Word and PowerPoint switches were disabled under Files & Folders → ChemOffice, and enabling Accessibility after launch did not resume the helper. A real ChemDraw paste reached the helper only after restarting the app, then failed to write the Office preview cache.
 

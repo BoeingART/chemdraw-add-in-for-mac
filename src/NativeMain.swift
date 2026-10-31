@@ -159,18 +159,14 @@ class NativeMonitorRuntime {
             if ["-AppleLanguages","-AppleLocale"].contains(CommandLine.arguments[index]) { index += 2 }
             else { args.append(CommandLine.arguments[index]); index += 1 }
         }
-        let isApplication = Bundle.main.bundleURL.pathExtension == "app"
-            && Bundle.main.object(forInfoDictionaryKey:"CFBundlePackageType") as? String == "APPL"
-            && Bundle.main.executableURL?.standardizedFileURL == URL(fileURLWithPath:CommandLine.arguments[0]).standardizedFileURL
-        if (args.isEmpty || ["--setup","--login","--preview","--preview-setup","--app-self-test"].contains(args.first ?? "") && args.count == 1) && isApplication {
-            ChemOfficeApplication.run(preview:args == ["--preview"] || args == ["--preview-setup"],selfTest:args == ["--app-self-test"],setup:args == ["--setup"] || args == ["--preview-setup"])
-            return
-        }
         do {
             switch args.first {
+            case "apply-update":
+                try require(args.count == 2,L("update.contents"))
+                try NativeAppUpdate.apply(URL(fileURLWithPath:args[1]))
             case "run": try NativeMonitorRuntime(root:root).run()
             case "demo":
-                try require(args.count == 2 && ["word","powerpoint"].contains(args[1]),L("native.257"))
+                try require(args.count == 2 && OfficeHost(rawValue:args[1]) != nil,L("native.257"))
                 try NativeBridge(root:root,automation:NativeAutomation(root:root)).createDemo(args[1])
             case "install": if try !NativeInstaller(root:root).install() { exit(2) }
             case "check": NativeInstaller(root:root).check()

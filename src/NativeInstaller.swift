@@ -32,7 +32,7 @@ class NativeInstaller {
         do { try run("/usr/bin/tccutil",["reset","SystemPolicyAppDataDetailed",bundleIdentifier]) }
         catch { throw ChemOfficeError(L("native.233",error.localizedDescription)) }
     }
-    init(root:URL,home:URL = FileManager.default.homeDirectoryForCurrentUser,hosts:[String] = ["word","powerpoint"]) {
+    init(root:URL,home:URL = FileManager.default.homeDirectoryForCurrentUser,hosts:[String] = OfficeHost.names) {
         self.root = root; self.home = home; self.hosts = hosts.filter { NativePaths.officeBundles[$0] != nil }
     }
     func certificateTrusted(_ cert:URL) -> Bool {
@@ -127,7 +127,7 @@ class NativeInstaller {
             catch let error as NSError where error.domain == NSCocoaErrorDomain && [NSFileReadNoPermissionError,NSFileWriteNoPermissionError].contains(error.code) { print(L("native.240",target.path)) }
             catch { print(L("native.241",target.path,error.localizedDescription)) }
         }
-        for (host,name) in [("word","Word"),("powerpoint","PowerPoint")] {
+        for (host,name) in OfficeHost.allCases.map({ ($0.rawValue,$0.name) }) {
             let locations = [URL(fileURLWithPath:"/Applications"),home.appendingPathComponent("Applications")]
             if let app = locations.compactMap({ Bundle(url:$0.appendingPathComponent("Microsoft \(name).app")) }).first {
                 print(L("native.officeVersion",name,app.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? L("native.unknown")))
@@ -136,7 +136,7 @@ class NativeInstaller {
                 print(L("native.cacheResult",previews.path,FileManager.default.isWritableFile(atPath:previews.path) ? "" : L("native.cacheUnavailable")))
             }
         }
-        for name in ["Word","PowerPoint"] where FileManager.default.fileExists(atPath:"/Applications/Microsoft \(name).app/Contents/_MASReceipt/receipt") { print(L("native.243",name)) }
+        for name in OfficeHost.allCases.map(\.name) where FileManager.default.fileExists(atPath:"/Applications/Microsoft \(name).app/Contents/_MASReceipt/receipt") { print(L("native.243",name)) }
         if let app = ChemDrawApplication.installed().first { print(L("native.244",app.version,app.path)) }
         else { print(L("native.245")) }
         let cert = NativePaths.work(root:root,home:home).appendingPathComponent("tls/localhost.pem")

@@ -273,7 +273,7 @@ func previewAgreement(_ actual: Data, _ expected: Data) throws -> [String:Any] {
 }
 
 struct OfficeArchive {
-    struct Entry { let offset: Int; let packed: Int; let size: Int; let method: Int; let checksum: Int }
+    struct Entry { let offset: Int; let packed: Int; let size: Int; let method: Int; let checksum: Int; let mode:Int }
     let data: Data
     var entries = [String:Entry]()
     init(_ url: URL) throws {
@@ -294,7 +294,7 @@ struct OfficeArchive {
             try require(position+46+nameSize+extra+comment <= data.count, L("native.207"))
             let name = String(decoding:data[position+46..<position+46+nameSize],as:UTF8.self)
             try require(entries[name] == nil, L("native.208"))
-            entries[name] = Entry(offset:try data.integer(position+42,4),packed:packed,size:size,method:method,checksum:try data.integer(position+16,4))
+            entries[name] = Entry(offset:try data.integer(position+42,4),packed:packed,size:size,method:method,checksum:try data.integer(position+16,4),mode:try data.integer(position+38,4) >> 16)
             position += 46+nameSize+extra+comment
         }
     }
@@ -319,7 +319,8 @@ struct SavedFigure {
 }
 func readSavedFigure(_ document: String, host: String, id: String) throws -> SavedFigure {
     let archive = try OfficeArchive(URL(fileURLWithPath:document))
-    let parts = host == "word" ? ["word/document.xml"] : archive.entries.keys.filter { $0.hasPrefix("ppt/slides/slide") && $0.hasSuffix(".xml") }
+    let prefix = host == "excel" ? "xl/drawings/drawing" : "ppt/slides/slide"
+    let parts = host == "word" ? ["word/document.xml"] : archive.entries.keys.filter { $0.hasPrefix(prefix) && $0.hasSuffix(".xml") }
     var candidates = [(String,XMLElement,String)]()
     for part in parts {
         let root = try xml(archive.read(part))
@@ -327,6 +328,14 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
             for drawing in try nodes(root,"//*[local-name()='drawing']") {
                 let tag = try nodes(drawing,".//*[local-name()='docPr']").first.map { attribute($0,"descr") } ?? ""
                 if tag == "ChemOffice Drawing:\(id)" || tag.hasPrefix("ChemOffice Drawing:\(id):") || tag.hasPrefix("CFM1:\(id):") || tag.hasPrefix("CFM2:\(id):") { candidates.append((part,drawing,tag)) }
+            }
+        } else if host == "excel" {
+            for picture in try nodes(root,"//*[local-name()='pic']") {
+                if let properties = try nodes(picture,"./*[local-name()='nvPicPr']/*[local-name()='cNvPr']").first {
+                    let description = attribute(properties,"descr"), name = attribute(properties,"name")
+                    let tag = [name,description].first { $0 == "ChemOffice Drawing:\(id)" || $0.hasPrefix("ChemOffice Drawing:\(id):") || $0.hasPrefix("CFM1:\(id):") || $0.hasPrefix("CFM2:\(id):") } ?? ""
+                    if tag == "ChemOffice Drawing:\(id)" || tag.hasPrefix("ChemOffice Drawing:\(id):") || tag.hasPrefix("CFM1:\(id):") || tag.hasPrefix("CFM2:\(id):") { candidates.append((part,picture,tag)) }
+                }
             }
         } else {
             var tag = ""
@@ -356,7 +365,7 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
         else { segments.append(String(segment)) }
     }
     let target = segments.joined(separator:"/")
-    let preview = try archive.read(target), portable = svgBlip != nil
+    let preview = try archive.read(target), portable = svgBlip != nil || target.lowercased().hasSuffix(".svg")
     let tag = portable ? try readCarrier(preview) : metadata
     let decoded = try decodeSource(tag)
     if let revision = try figureRevision(metadata) { try require(sha256(decoded.source) == revision,L("native.223")) }

@@ -125,7 +125,7 @@ class NativeBridge {
         let document = try automation.office("context",host,[UUID().uuidString.lowercased()])
         try require(document.hasPrefix("cfm-document:") || (document.hasPrefix("/") && FileManager.default.fileExists(atPath:document)),L("native.137"))
         var pasteState = session.flatMap { try? JSONSerialization.jsonObject(with:JSONEncoder().encode($0)) as? [String:Any] } ?? [:]
-        pasteState["pasteBusyBundle"] = host == "word" ? "com.microsoft.Word" : "com.microsoft.Powerpoint"
+        pasteState["pasteBusyBundle"] = NativePaths.officeBundles[host] ?? ""
         pasteState["busy"] = true
         try writeState(pasteState)
         defer { try? writeState() }
@@ -242,12 +242,18 @@ class NativeBridge {
             if let app = current.chemApplication { automation.useApplication(app) }
             let source = try savedSource ?? automation.saveSource(path)
             try validateSource(source)
+            if closing && current.syncedSourceRevision == sha256(source) {
+                try automation.close(path)
+                editingOpen = false
+                _ = try automation.activateOffice(current.host,current.document,current.id)
+                session = nil; try writeState()
+                record("closed_synced",["host":current.host,"drawing_id":current.id,"gesture":gesture])
+                return
+            }
             let snapshot = directory.appendingPathComponent("saved-\(UUID().uuidString)").appendingPathExtension(path.pathExtension)
             try source.write(to:snapshot,options:.atomic)
-            current.previewWindowTitle = snapshot.lastPathComponent; session = current; try writeState()
             try automation.savedSnapshot(snapshot,image)
             try require(try Data(contentsOf:snapshot) == source,L("native.141"))
-            current.previewWindowTitle = nil; session = current; try writeState()
             let expected = try Data(contentsOf:image)
             try require(expected.starts(with:[137,80,78,71,13,10,26,10]),L("native.142"))
             let newTag = try encodeSource(source,id:current.id)
@@ -258,7 +264,6 @@ class NativeBridge {
             try carrier.svg.write(to:directory.appendingPathComponent("figure-\(UUID().uuidString).svg"))
             let marker = try cacheFigure(carrier.svg), preview = try officePreview(current.host,carrier.svg)
             _ = try automation.office("update",current.host,[current.document,current.id,preview.path,marker,String(try svgAspect(carrier.svg))])
-            try require(try decodeSource(payload(current.host,current.document,current.id)).source == source,L("native.144"))
             current.originalTag = newTag; session = current; try writeState()
             let evidence = try verify(current.document,current.host,current.id,source,expected)
             try JSONSerialization.data(withJSONObject:evidence,options:[.prettyPrinted,.sortedKeys]).write(to:directory.appendingPathComponent("verification.json"))
@@ -311,7 +316,7 @@ class NativeBridge {
         let path = work.appendingPathComponent("CFM-demo-\(id).cdxml"), image = path.deletingPathExtension().appendingPathExtension("png")
         try source.write(to:path); try automation.open(path); try automation.snapshot(path,image); try automation.close(path)
         let carrier = try createCarrier(source,id:id,vector:Data(contentsOf:image.deletingPathExtension().appendingPathExtension("svg")))
-        let output = work.appendingPathComponent("ChemOffice-\(host)-\(id.prefix(8)).\(host == "word" ? "docx" : "pptx")")
+        let output = work.appendingPathComponent("ChemOffice-\(host)-\(id.prefix(8)).\(OfficeHost(rawValue:host)?.documentExtension ?? "docx")")
         _ = try automation.office("demo",host,[officePreview(host,carrier.svg).path,carrier.tag,output.path,id,String(try svgAspect(carrier.svg))])
         _ = try verify(output.path,host,id,source,Data(contentsOf:image))
         record("demo_created",["host":host,"path":output.path,"drawing_id":id])

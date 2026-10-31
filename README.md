@@ -10,22 +10,23 @@ English | [简体中文](README_CN.md)
 
 </div>
 
-Copy a chemical structure in ChemDraw, paste an editable drawing into Word or PowerPoint, and double-click it to keep editing. Saving in ChemDraw updates the original Office image while keeping the editor open. Each drawing carries its editable source and ChemDraw's native SVG artwork.
+Copy a chemical structure in ChemDraw, paste an editable drawing into Word, PowerPoint or Excel, and double-click it to keep editing. Saving in ChemDraw updates the original Office image while keeping the editor open. Each drawing carries its editable source and vector artwork.
 
 ## Install and configure
 
-Requires **macOS 12 or later**, **ChemDraw** and **Office for Mac**, installed and activated separately. Word and PowerPoint are supported.
+Requires **macOS 12 or later**, **ChemDraw** and **Office for Mac**, installed and activated separately. Word, PowerPoint and Excel are supported.
 
-1. Finish the current ChemDraw edit and quit the app before installing or upgrading. Download the latest published universal installer from [Releases](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest).
-2. The installer opens **Add-in Setup**, showing four checks: Word file access, PowerPoint file access, Accessibility, and paste-helper readiness.
-3. Allow access to the Office apps you use and enable Accessibility when prompted. Setup automatically configures the add-ins, checks directory access, and starts the helper. Click **Done** when all four checks pass.
-4. If Office file access was denied, choose **Authorize File Access Again** or **Repair Add-in**, then allow access in the system prompt. Setup continues automatically.
+1. Download the universal DMG from [Releases](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest), open it, and drag the app into **Applications**. When replacing an older version, finish the current structure edit and quit the add-in first.
+2. Open the installed app. First-run **Add-in Setup** checks file access for Word, PowerPoint and Excel, Accessibility, and paste-helper readiness. Only installed Office hosts are required.
+3. Allow the requested access. Setup registers the add-ins, verifies writing and read-back, and starts the helper automatically. Click **Done** when ready.
+4. Later updates download and replace the app in place after one confirmation, then reopen automatically. Existing permissions, certificates and drafts are retained. An active structure edit finishes before the update continues.
+5. If an Office access grant is missing, open setup or choose **Repair Add-in**. Adding Excel may require its first file-access and Automation grants.
 
 Closing the window keeps the helper running in the menu bar. Reopen the app from Applications to restore a hidden icon. The menu shows the current version. Updates show download progress and can be cancelled; after installation, the app reopens automatically.
 
 ## Paste and edit
 
-1. Open a new or existing Word document or PowerPoint presentation.
+1. Open a new or existing Word document, PowerPoint presentation or Excel workbook.
 2. Select a structure in ChemDraw and copy it with **⌘C**.
 3. Paste in Office with **⌘V**, right-click **Paste**, or the panel's **Paste editable drawing / 粘贴可编辑绘图** button.
 4. Double-click the drawing to edit it in ChemDraw. Press **⌘S** or choose **Save** to update the original Office image and continue editing. Close the ChemDraw document to return to the original Office document.
@@ -37,7 +38,7 @@ Pasting during an existing edit creates an independent drawing. The original edi
 
 Certificates, captured structures, and editing drafts remain in `~/Library/Application Support/ChemOffice/work` across upgrades. Each Office app exchanges previews through its own sandbox cache.
 
-Closing the original Word or PowerPoint document retains the latest local draft and closes its matching ChemDraw editing window. An interrupted edit can be resumed by double-clicking the original drawing. Closed drafts are retained under `recovery` when starting another edit.
+Closing the original Word, PowerPoint or Excel document retains the latest local draft and closes its matching ChemDraw editing window. An interrupted edit can be resumed by double-clicking the original drawing. Closed drafts are retained under `recovery` when starting another edit.
 
 The helper captures chemical clipboard data during explicit paste operations, and editing runs locally. The optional Office panel connects to a local HTTPS service; its Office.js library loads from Microsoft's CDN.
 

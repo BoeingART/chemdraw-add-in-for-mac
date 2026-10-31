@@ -63,7 +63,9 @@ class LocalizationTests(unittest.TestCase):
             self.assertIn('NSAppleEventsUsageDescription',resource.read_text())
         package = (ROOT / 'scripts/package.sh').read_text()
         self.assertIn('packaging/zh-Hans.lproj',package)
-        self.assertIn('packaging/scripts/localization.sh',package)
+        self.assertIn('packaging/Install.txt',package)
+        self.assertIn('universal.zip',package)
+        self.assertIn('universal.dmg',package)
 
     def test_installer_pages_are_localized_and_concise(self):
         for folder,language in [('en','en'),('zh_CN','zh'),('zh_TW','zh'),('zh_HK','zh')]:

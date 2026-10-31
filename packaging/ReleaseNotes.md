@@ -1,23 +1,19 @@
-## ChemDraw Add-in for Mac 1.3.4
+## ChemDraw Add-in for Mac 1.5.0
 
 ### 中文
 
-- 根据系统首选语言自动显示简体中文或英文，覆盖应用窗口、菜单、设置、更新、Office面板与功能区、安装器和操作错误提示。
-- 应用已核对的文案调整，简化设置标题和文件访问提示，统一使用“关闭ChemDraw文档后返回原文档”的说明。
-- 移除quickstart文件及相关展示入口。
-- 提供329条中英对照文案核对清单，可搜索、逐条标记、填写意见并导出。
+- 改为DMG拖拽安装，应用内确认一次即可自动下载、更新并重新打开，保留已有授权、连接证书和编辑草稿。
+- 新增Excel工作簿的可编辑结构粘贴、双击编辑、保存同步和关闭回写，支持新建未保存工作簿及另存为后的原目标定位。
+- 安装包约1.9 MB，应用约3.9 MB，精简重复代码与开发资料，保留全部运行功能。
+- Word和PowerPoint继续使用同一套结构转换、源数据验证和保存同步流程，保留无窗口导出及无转圈提示的操作方式。
 
-安装前请完成当前结构编辑并退出应用。安装后按提示完成Office文件访问和辅助功能授权，程序会自动继续设置。更改系统首选语言后，从菜单栏退出应用，再重新打开应用和Office。
-
-支持Apple Silicon和Intel Mac，要求macOS 12或更新，并已安装、激活ChemDraw及Word／PowerPoint。
+从旧版迁移时，完成当前结构编辑并退出插件，将新应用拖入Applications替换。首次启用Excel时按系统提示授予文件访问和自动化权限；Office文档由你决定何时保存。
 
 ### English
 
-- Follow the preferred system language with Simplified Chinese or English across app windows, menus, setup, updates, the Office panel and ribbon, installer pages, and operation errors.
-- Apply reviewed wording, simplify setup and file-access messages, and describe closing the ChemDraw document to return to the original Office document.
-- Remove quickstart files and related entry points.
-- Include a searchable bilingual review sheet with 329 entries, review markers, comments, and export.
+- Install by dragging from the DMG. Confirm an in-app update once to download, replace and reopen automatically, retaining existing permissions, connection certificates and editing drafts.
+- Add editable chemistry paste, double-click editing, save synchronization and close/write-back for Excel, including unsaved workbooks and stable targets after Save As.
+- Reduce the download to about 1.9 MB and the installed app to about 3.9 MB by separating executable roles and omitting development-only resources.
+- Preserve the shared source validation and editing pipeline in Word and PowerPoint, windowless export, and operation feedback without the spinning pointer indicator.
 
-Finish editing and quit the app before installing. Confirm Office file access and Accessibility when prompted; setup continues automatically. After changing your preferred system language, quit the app from its menu bar, then reopen the app and Office.
-
-Supports Apple Silicon and Intel Macs running macOS 12 or later. Install and activate ChemDraw and Word and/or PowerPoint first.
+To migrate, finish the current drawing edit, quit the add-in, and replace the app in Applications. Grant Excel file access and Automation when first requested. Save your Office documents when you choose.

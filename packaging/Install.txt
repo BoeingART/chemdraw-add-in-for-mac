@@ -1,0 +1,21 @@
+ChemDraw Add-in for Mac
+
+安装
+1. 将 ChemDraw Add-in for Mac.app 拖到旁边的 Applications 文件夹。
+2. 打开应用，按“设置加载项”的提示完成首次授权。程序会检查已安装的 Word、PowerPoint、Excel，并自动启动助手。
+
+更新
+在应用中选择“检查更新”，确认后自动下载、更新并重新打开。已有授权和编辑草稿继续保留；正在编辑时，更新会等待编辑结束。
+
+使用
+在 ChemDraw 中复制结构，到 Word、PowerPoint 或 Excel 中粘贴。双击继续编辑，⌘S 或菜单“保存”同步图片，关闭绘图后返回原文档。Office 文档由你决定何时保存。
+
+Installation
+1. Drag ChemDraw Add-in for Mac.app into the adjacent Applications folder.
+2. Open the app and complete the first-run permission prompts. Setup checks installed Word, PowerPoint and Excel apps and starts the helper automatically.
+
+Updates
+Choose Check for Updates in the app. After confirmation, it downloads, replaces the app and reopens automatically. Existing permissions and editing drafts are retained. Active edits finish before installation continues.
+
+Usage
+Copy a structure in ChemDraw and paste into Word, PowerPoint or Excel. Double-click to edit, save to synchronize the figure, and close the drawing to return to its Office document. Save the Office document when you choose.

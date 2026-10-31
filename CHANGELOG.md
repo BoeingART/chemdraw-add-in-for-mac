@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.5.0 — 2026-10-31
+
+- Replace the default package installer with a drag-install DMG and signed application ZIP updates. Download, swap and reopen after one confirmation, retaining existing permissions and data.
+- Keep setup completion across versions and automatically continue updates after active drawing edits finish. Validate application identity and restore the previous app on update failure.
+- Add Excel to the shared host registry, setup, task pane, clipboard capture, editable vector insertion, saved-source recovery and stable-document write-back.
+- Verify real Excel double-click editing, save synchronization, workbook-switch write-back and Save As. Use hidden workbook identities and SVG shape names to handle Excel scripting differences.
+- Split desktop and helper builds, remove unused code and development-only documents from the app, and add package size budgets. The DMG is about 1.9 MB and the installed app about 3.9 MB.
+
+## v1.4.0 test build — 2026-10-31
+
+- Export saved drawing snapshots without opening ChemDraw windows, retaining vector artwork and editable source.
+- Remove the spinning pointer indicator and its polling timer.
+- Reduce repeated application discovery and focus checks, and skip duplicate preview conversion and Office write-back when closing synchronized content.
+- Provide a local test installer without submitting it for Apple notarization. Finish editing and quit the add-in before installing.
+
 ## v1.3.4 — 2026-10-30
 
 - Show Simplified Chinese when the first preferred system language is Chinese, and English for other languages. Localize the native app, menus, setup, updates, Office task pane and ribbon, installer pages, and operation errors. Restart the app and Office after changing the system language.

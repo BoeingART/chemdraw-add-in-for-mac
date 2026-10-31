@@ -2,7 +2,7 @@
 import Foundation
 
 enum NativePaths {
-    static let officeBundles = ["word":"com.microsoft.Word", "powerpoint":"com.microsoft.Powerpoint"]
+    static let officeBundles = OfficeHost.bundles
 
     static func officeContainer(_ host: String, home: URL = FileManager.default.homeDirectoryForCurrentUser) throws -> URL {
         guard let bundle = officeBundles[host] else { throw ChemOfficeError(L("native.126")) }

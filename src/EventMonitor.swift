@@ -171,12 +171,25 @@ func serviceCloseWindow(_ point: CGPoint, _ expected: String) -> AXUIElement? {
 }
 
 func selectedManagedTag(_ host: String) -> String? {
+    if host == "excel", let name = selectedExcelDrawingName() { return name }
     let source: String
     if host == "word" {
         source = """
         tell application id "com.microsoft.Word"
             if (count inline shapes of selection) is not 1 then return ""
             return alternative text of inline shape 1 of selection
+        end tell
+        """
+    } else if host == "excel" {
+        source = """
+        tell application id "com.microsoft.Excel"
+            try
+                set selectedObject to get selection
+                set selectedName to name of selectedObject
+                return selectedName
+            on error
+                return ""
+            end try
         end tell
         """
     } else {
@@ -351,10 +364,10 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     if passOfficeTransactionInput(current,bundle:bundle) { return Unmanaged.passUnretained(event) }
     if type == .keyDown { invalidatePasteMenu() }
     if type == .leftMouseDown || type == .rightMouseDown,
-       bundle == "com.microsoft.Word" || bundle == "com.microsoft.Powerpoint", chemicalClipboard() != nil {
+       OfficeHost(bundle:bundle) != nil, chemicalClipboard() != nil {
         if type == .leftMouseDown, let menu = cachedPasteMenu(at:event.location,pid:front.processIdentifier) ?? directPasteMenu(at:event.location,pid:front.processIdentifier), let item = chemicalClipboard() {
             swallowPasteMouseUp = true
-            capturePaste(item,host:bundle == "com.microsoft.Word" ? "word" : "powerpoint",menuPID:front.processIdentifier,menu:menu.menu)
+            capturePaste(item,host:OfficeHost(bundle:bundle)!.rawValue,menuPID:front.processIdentifier,menu:menu.menu)
             return nil
         }
         if type == .leftMouseDown { invalidatePasteMenu() }
@@ -365,15 +378,15 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     if type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 9,
        event.flags.contains(.maskCommand), !event.flags.contains(.maskShift),
        !event.flags.contains(.maskAlternate), !event.flags.contains(.maskControl),
-       bundle == "com.microsoft.Word" || bundle == "com.microsoft.Powerpoint",
+       OfficeHost(bundle:bundle) != nil,
        let item = chemicalClipboard() {
-        capturePaste(item,host:bundle == "com.microsoft.Word" ? "word" : "powerpoint")
+        capturePaste(item,host:OfficeHost(bundle:bundle)!.rawValue)
         return nil
     }
 
     if type == .leftMouseDown && event.getIntegerValueField(.mouseEventClickState) == 2,
-       bundle == "com.microsoft.Word" || bundle == "com.microsoft.Powerpoint" {
-        let host = bundle == "com.microsoft.Word" ? "word" : "powerpoint"
+       OfficeHost(bundle:bundle) != nil {
+        let host = OfficeHost(bundle:bundle)!.rawValue
         if let tag = selectedManagedTag(host) {
             emit(["event": "open", "host": host, "tag": tag])
             return nil
@@ -430,8 +443,5 @@ emit(["event": "ready"])
 let parentPID = getppid()
 _ = NSApplication.shared
 NSApp.setActivationPolicy(.accessory)
-let pointer = NativeBusyPointer()
-pointer.watch(work:URL(fileURLWithPath:statePath).deletingLastPathComponent(),pid:parentPID)
 let focusObserver = NSWorkspace.shared.notificationCenter.addObserver(forName:NSWorkspace.didDeactivateApplicationNotification,object:nil,queue:.main) { _ in invalidatePasteMenu() }
-NativeMonitorLoop().run(parentIsAlive:{ getppid() == parentPID && kill(parentPID,0) == 0 },cleanup:{ pointer.stop() })
-pointer.stop()
+NativeMonitorLoop().run(parentIsAlive:{ getppid() == parentPID && kill(parentPID,0) == 0 },cleanup:{})

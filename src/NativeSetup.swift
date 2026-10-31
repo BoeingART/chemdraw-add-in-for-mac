@@ -3,16 +3,17 @@ import Foundation
 
 enum ApplicationLaunchPolicy {
     static func showsSetup(requested:Bool, completedVersion:String?, currentVersion:String) -> Bool {
-        requested || completedVersion != currentVersion
+        requested || completedVersion?.isEmpty != false
     }
 }
 
 struct SetupRequirements: Equatable {
     var word = false
     var powerpoint = false
+    var excel = true
     var accessibility = false
     var applications = true
-    var satisfied: Bool { word && powerpoint && accessibility && applications }
+    var satisfied: Bool { word && powerpoint && excel && accessibility && applications }
 }
 
 struct SetupStartupPolicy {
