@@ -18,18 +18,19 @@ rm -rf "$CFM_STAGE"
 mkdir -p "$CFM_APP/Contents/MacOS" "$CFM_APP/Contents/Resources/build" "$CFM_STAGE/resources" "$CFM_STAGE/scripts" "$PROJECT_DIR/dist"
 cp "$PROJECT_DIR/packaging/Info.plist" "$CFM_APP/Contents/Info.plist"
 cp "$PROJECT_DIR/build/chemoffice-app" "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE"
-cp "$PROJECT_DIR/build/chemoffice" "$PROJECT_DIR/build/event-monitor" "$CFM_APP/Contents/Resources/build/"
+cp "$PROJECT_DIR/build/chemoffice" "$PROJECT_DIR/build/event-monitor" "$PROJECT_DIR/build/chemdraw-renderer" "$CFM_APP/Contents/Resources/build/"
 cp -R "$PROJECT_DIR/office" "$PROJECT_DIR/assets" "$PROJECT_DIR/docs" "$CFM_APP/Contents/Resources/"
 cp "$PROJECT_DIR/LICENSE" "$CFM_APP/Contents/Resources/"
 cp -R "$PROJECT_DIR/packaging/en.lproj" "$PROJECT_DIR/packaging/zh-Hans.lproj" "$PROJECT_DIR/packaging/zh-Hant.lproj" "$CFM_APP/Contents/Resources/"
 cp "$PROJECT_DIR/build/branding/menu-bar-icon.png" "$CFM_APP/Contents/Resources/assets/"
 cp "$PROJECT_DIR/build/branding/app.icns" "$CFM_APP/Contents/Resources/$CFM_ICON_NAME.icns"
 # Sign nested executables before the enclosing bundle, preserving their identifiers.
+/usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" --timestamp --options runtime --identifier com.chemdraw_addin.mac.renderer --entitlements "$PROJECT_DIR/packaging/renderer-entitlements.plist" "$CFM_APP/Contents/Resources/build/chemdraw-renderer"
 /usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" --timestamp --options runtime --identifier com.chemdraw_addin.mac.monitor --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP/Contents/Resources/build/event-monitor"
 /usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" --timestamp --options runtime --identifier com.chemdraw_addin.mac.helper --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP/Contents/Resources/build/chemoffice"
 /usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" --timestamp --options runtime --entitlements "$PROJECT_DIR/packaging/entitlements.plist" "$CFM_APP"
 /usr/bin/codesign --verify --deep --strict "$CFM_APP"
-for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor"; do
+for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor" "$CFM_APP/Contents/Resources/build/chemdraw-renderer"; do
     cfm_verify_developer_id_code "$CFM_BINARY"
 done
 cp "$PROJECT_DIR/packaging/scripts/localization.sh" "$PROJECT_DIR/packaging/scripts/preinstall" "$PROJECT_DIR/packaging/scripts/postinstall" "$CFM_STAGE/scripts/"

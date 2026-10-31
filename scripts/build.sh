@@ -30,4 +30,5 @@ for CFM_BINARY in chemoffice chemoffice-app event-monitor; do
     /usr/bin/strip -S -x "$PROJECT_DIR/build/$CFM_BINARY"
     /usr/bin/codesign --force --sign - "$PROJECT_DIR/build/$CFM_BINARY"
 done
+zsh "$PROJECT_DIR/scripts/build-pdf-renderer.sh" "$@"
 print 'Built native ChemDraw Add-in for Mac. No Python or downloaded runtime packages are required.'

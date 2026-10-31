@@ -31,7 +31,7 @@ CFM_APP_KB="$(du -sk "$CFM_APP" | awk '{print $1}')"
 [[ ! -e "$CFM_APP/Contents/Resources/docs" ]]
 print 'PASS size budgets: installed app at most 5 MiB; DMG and ZIP at most 2.5 MiB each'
 /usr/bin/codesign --verify --deep --strict "$CFM_APP"
-for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor"; do
+for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor" "$CFM_APP/Contents/Resources/build/chemdraw-renderer"; do
     if (( CFM_LOCAL_TEST )); then
         /usr/bin/codesign --verify --strict --all-architectures "$CFM_BINARY"
         [[ "$(/usr/bin/codesign -d --verbose=4 "$CFM_BINARY" 2>&1)" == *'Signature=adhoc'* ]]
@@ -45,6 +45,12 @@ for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/R
     fi
 done
 print 'PASS application signatures, version and both architectures; only system runtime libraries'
+CFM_RENDER_ENTITLEMENTS="$(/usr/bin/codesign -d --entitlements :- "$CFM_APP/Contents/Resources/build/chemdraw-renderer" 2>/dev/null)"
+[[ "$CFM_RENDER_ENTITLEMENTS" == *com.apple.security.cs.disable-library-validation* ]]
+for CFM_BINARY in "$CFM_APP/Contents/MacOS/$CFM_EXECUTABLE" "$CFM_APP/Contents/Resources/build/chemoffice" "$CFM_APP/Contents/Resources/build/event-monitor"; do
+    [[ "$(/usr/bin/codesign -d --entitlements :- "$CFM_BINARY" 2>/dev/null)" != *com.apple.security.cs.disable-library-validation* ]]
+done
+print 'PASS vendor library loading is limited to the isolated preview renderer'
 CFM_FILES="$(/usr/bin/unzip -Z1 "$CFM_ARCHIVE")"
 if print -r -- "$CFM_FILES" | /usr/bin/grep -E '\.command$|/work(/|$)|/tls(/|$)'; then
     print 'FAIL: private user data in update archive'; exit 1

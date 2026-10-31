@@ -208,9 +208,23 @@ class NativeAutomation: ChemistryAutomation {
         try require(data.starts(with:Data("%PDF-".utf8)) && data.count <= 48*1024*1024,L("native.pdfOutput"))
         return data
     }
-    // ChemDraw 26 for Mac exports PDF through its save Apple event. Render a
-    // uniquely named copy so exporting never saves or retargets the live edit.
-    // nil represents an empty drawing, which keeps the editable white canvas.
+    func windowlessPDFSDK(_ application:ChemDrawApplication) -> URL? {
+        let sdk = URL(fileURLWithPath:application.path).appendingPathComponent("Contents/PlugIns/QuickLook.appex/Contents/Frameworks/ChemDrawSDK.framework")
+        // This adapter was validated against the 26.x preview component. Its
+        // context entry point is not a documented third-party SDK contract.
+        guard let bundle = Bundle(url:sdk),
+              (bundle.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String)?.hasPrefix("26.") == true,
+              bundle.executableURL.map({ FileManager.default.isExecutableFile(atPath:$0.path) }) == true else { return nil }
+        return sdk
+    }
+    func exportSDKPDF(_ source:URL,application:ChemDrawApplication) throws -> Data {
+        let renderer = root.appendingPathComponent("build/chemdraw-renderer")
+        let data = try command(renderer.path,[application.path,source.path],timeout:25)
+        try require(data.starts(with:Data("%PDF-".utf8)) && data.count <= 48*1024*1024,L("native.pdfOutput"))
+        return data
+    }
+    // All backends render a unique copy without saving or retargeting the live
+    // edit. The save-event compatibility path returns nil for an empty drawing.
     func exportPDF(_ source:URL, application:ChemDrawApplication) throws -> Data? {
         let original = try Data(contentsOf:source)
         try validateSource(original)
@@ -230,6 +244,12 @@ class NativeAutomation: ChemistryAutomation {
         do {
             if let renderer = try windowlessPDFRenderer(application) {
                 let data = try exportWindowlessPDF(copy,renderer:renderer)
+                try require(try Data(contentsOf:copy) == original,L("native.141"))
+                completed = true
+                return data
+            }
+            if windowlessPDFSDK(application) != nil {
+                let data = try exportSDKPDF(copy,application:application)
                 try require(try Data(contentsOf:copy) == original,L("native.141"))
                 completed = true
                 return data

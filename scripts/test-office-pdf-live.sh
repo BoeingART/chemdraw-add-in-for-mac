@@ -3,6 +3,7 @@
 # Requires Word, PowerPoint, ChemDraw and a completed native build.
 set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
+zsh "$PROJECT_DIR/scripts/build-pdf-renderer.sh"
 CFM_SOURCES=()
 for CFM_SOURCE in NativeLocalization NativeStrings OfficeHost NativeExcelSelection NativePaths NativeCore ChemDrawDiscovery NativePDFVector NativeAutomation NativeBridge NativeSavedChanges; do
     CFM_SOURCES+=("$PROJECT_DIR/src/$CFM_SOURCE.swift")

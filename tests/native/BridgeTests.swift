@@ -572,6 +572,7 @@ class TestAutomation: ChemistryAutomation {
         try check("Failed PDF export retains the source copy and an actionable failure") {
             class PDFProbe: NativeAutomation {
                 var copied: URL?
+                override func windowlessPDFSDK(_ application:ChemDrawApplication) -> URL? { nil }
                 override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String {
                     copied = URL(fileURLWithPath:arguments[0]); throw ChemOfficeError("Injected PDF save failure")
                 }
@@ -586,6 +587,53 @@ class TestAutomation: ChemistryAutomation {
             }
             defer { if let copied = driver.copied { try? fm.removeItem(at:copied.deletingLastPathComponent()) } }
             try require(try Data(contentsOf:source) == original && Data(contentsOf:driver.copied!) == original,"Failed export lost source data")
+        }
+        try check("ChemDraw 26 SDK export retains later input without opening the editor") {
+            class SDKProbe: NativeAutomation {
+                var live:URL!, copied:URL?, received:Data?, pinned:ChemDrawApplication?
+                let newer = Data("<CDXML><page><t>Later SDK input</t></page></CDXML>".utf8)
+                override func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? { nil }
+                override func windowlessPDFSDK(_ application:ChemDrawApplication) -> URL? { URL(fileURLWithPath:"/Installed SDK") }
+                override func exportSDKPDF(_ source:URL,application:ChemDrawApplication) throws -> Data {
+                    copied = source; received = try Data(contentsOf:source); pinned = application
+                    try require(source != live,"SDK export opened the live source")
+                    try newer.write(to:live)
+                    return Data("%PDF-SDK-test".utf8)
+                }
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String { throw ChemOfficeError("SDK rendering opened a document window") }
+            }
+            let driver = SDKProbe(root:root), app = ChemDrawApplication(path:"/Pinned ChemDraw 26.app",bundle:"example.ChemDraw",version:"26")
+            driver.live = root.appendingPathComponent("sdk-live.cdxml")
+            let original = Data("<CDXML><page/></CDXML>".utf8); try original.write(to:driver.live)
+            try require(try driver.exportPDF(driver.live,application:app) == Data("%PDF-SDK-test".utf8),"SDK output changed")
+            try require(try driver.pinned == app && driver.received == original && Data(contentsOf:driver.live) == driver.newer,"SDK export lost the pinned app, saved revision or later input")
+            try require(!fm.fileExists(atPath:driver.copied!.deletingLastPathComponent().path),"SDK export retained completed temporary files")
+        }
+        try check("SDK failures retain the captured source and never open a visible fallback") {
+            class SDKFailure: NativeAutomation {
+                var copied:URL?
+                override func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? { nil }
+                override func windowlessPDFSDK(_ application:ChemDrawApplication) -> URL? { URL(fileURLWithPath:"/Installed SDK") }
+                override func exportSDKPDF(_ source:URL,application:ChemDrawApplication) throws -> Data {
+                    copied = source; throw ChemOfficeError("Injected SDK failure")
+                }
+                override func script(_ body:String,_ arguments:[String],timeout:TimeInterval = 45) throws -> String { throw ChemOfficeError("SDK failure opened a fallback window") }
+            }
+            let driver = SDKFailure(root:root), source = root.appendingPathComponent("sdk-failure.cdxml")
+            let original = Data("<CDXML><page/></CDXML>".utf8); try original.write(to:source)
+            do {
+                _ = try driver.exportPDF(source,application:ChemDrawApplication(path:"/ChemDraw 26.app",bundle:"example.ChemDraw",version:"26"))
+                throw ChemOfficeError("SDK failure was accepted")
+            } catch { try require(error.localizedDescription.contains("Injected SDK failure"),"SDK failure lost its cause or opened a window") }
+            defer { if let copied = driver.copied { try? fm.removeItem(at:copied.deletingLastPathComponent()) } }
+            try require(try Data(contentsOf:source) == original && Data(contentsOf:driver.copied!) == original,"SDK failure discarded the captured source")
+        }
+        try check("The SDK child must return PDF bytes before Office can be changed") {
+            let base = root.appendingPathComponent("sdk-child"), executable = base.appendingPathComponent("build/chemdraw-renderer")
+            try fm.createDirectory(at:executable.deletingLastPathComponent(),withIntermediateDirectories:true)
+            try Data("#!/bin/sh\nprintf 'not a PDF'\n".utf8).write(to:executable)
+            try fm.setAttributes([.posixPermissions:0o700],ofItemAtPath:executable.path)
+            try rejects { _ = try NativeAutomation(root:base).exportSDKPDF(root.appendingPathComponent("source.cdx"),application:ChemDrawApplication(path:"/Pinned.app",bundle:"example.ChemDraw",version:"26")) }
         }
         try check("Empty native exports keep a white canvas") {
             class EmptyExportProbe: NativeAutomation {
