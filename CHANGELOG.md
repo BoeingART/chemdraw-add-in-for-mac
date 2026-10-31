@@ -1,11 +1,10 @@
 # Changelog
 
-## Unreleased
+## v1.5.4 — 2026-11-01
 
-- Use ChemDraw’s native windowless PDF renderer when available so saves and close/write-back avoid temporary drawing windows. Retain the compatible AppleScript PDF route for builds without that interface.
-
-- Fit pasted and synchronized previews to the drawing’s paths, text and pictures instead of the full PDF page. Retain a small protective margin and the editable native source.
-- Keep the ChemDraw 26 AppleScript PDF export path and use the same content bounds for paste, saved snapshots and close/write-back. Preserve stroke widths, clipping, transformed artwork and empty editable canvases.
+- Generate ChemDraw 26 previews through its installed preview components in an isolated background renderer. Paste, save synchronization and close/write-back no longer open temporary drawing windows. Keep the live editor and subsequent input intact.
+- Fit pasted and synchronized previews to the drawing’s paths, text and pictures instead of the full PDF page. Preserve vector artwork, editable source and a small protective margin.
+- Use the native windowless PDF interface on supported earlier ChemDraw builds. Report rendering failures and retain the captured structure for retry.
 
 ## v1.5.3 — 2026-10-31
 

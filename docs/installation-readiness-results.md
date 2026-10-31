@@ -1,5 +1,17 @@
 # Installation readiness validation
 
+## v1.5.4 release build 24 — 2026-11-01
+
+Pulled `origin/codex/chemdraw26-no-flash`, including the isolated ChemDraw 26 SDK renderer, on top of the content-bounds and earlier windowless-export fixes. The ChemDraw 26.0.0.6599 acceptance results from that implementation are recorded in [ChemDraw 26 windowless results](chemdraw26-windowless-results.md). This release machine currently has ChemDraw 22.0.0.22; the fresh desktop checks below exercised its native windowless backend.
+
+- The native suite passed 230 checks and four actual AppKit lifecycle scenarios. All 71 Python installer/localization/signing/release/notarization checks passed. Nine task-pane checks passed in each language, discovery passed, and the generated catalog verified 353 bilingual entries.
+- Actual renderer acceptance passed nine sources, including the retained oversized-paste capture, plus a blank drawing. Two-millisecond observation found no additional visible ChemDraw windows. PDF/vector agreement, cropped content, exact source bytes, existing document states and foreground focus were retained.
+- A Developer ID-signed test application passed direct paste into independent unsaved Word and PowerPoint documents, exact editable source recovery, reopening and saved-snapshot synchronization. Later input and the live ChemDraw editor were retained; Office documents remained unsaved. Original ChemDraw documents were retained and only the test documents were closed.
+- The universal DMG and automatic-update ZIP passed package validation, including all four executable signatures and architectures, current resources, four language settings, archive privacy, size budgets and the renderer-only vendor-library entitlement. Apple notarization returned Accepted. The DMG and the ZIP's extracted application carry validated tickets and pass Gatekeeper.
+- Six signed lifecycle scenarios passed against the final notarized ZIP. Complete update and timeout/retry both exercised production GUI shutdown, helper exit, application replacement and actual GUI relaunch, retaining drafts and removing completed staging. The replaced applications retained valid Apple tickets and passed Gatekeeper.
+
+Local transcripts are retained as `build/release-1.5.4-*.log`. The installed application and user documents were retained during release preparation.
+
 ## Windowless snapshots — local fix, 2026-10-31
 
 Opening an export copy and then hiding its window can display a temporary drawing window during save and close/write-back. The former renderer acceptance test only rejected windows belonging to new processes and therefore missed export windows in an already running ChemDraw process. It now observes new visible ChemDraw window IDs across all processes at two-millisecond intervals and separately checks pinned process lifetime, document identities, modification states and foreground focus.
