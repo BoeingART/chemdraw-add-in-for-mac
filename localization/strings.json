@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "版本1.5.1 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Version 1.5.1 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "版本1.5.2 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Version 1.5.2 · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2492,6 +2492,13 @@
     "en": "Drag ChemDraw Add-in for Mac into the Applications folder in the disk image, then open the installed app to complete first-run setup.",
     "locations": [
       "src/NativeApplication.swift"
+    ]
+  },
+  "native.pdfExport": {
+    "en": "ChemDraw could not export the PDF preview. Save the structure again in ChemDraw, or copy it again and retry pasting. {0}",
+    "zh": "ChemDraw无法导出PDF预览。请在ChemDraw中重新保存结构，或重新复制结构后粘贴。{0}",
+    "locations": [
+      "src/NativeAutomation.swift"
     ]
   }
 }

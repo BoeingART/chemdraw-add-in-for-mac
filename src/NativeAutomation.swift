@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import Cocoa
+import Darwin
 
 @discardableResult
 func command(_ executable: String, _ arguments: [String] = [], timeout: TimeInterval = 45) throws -> Data {
@@ -191,11 +192,78 @@ class NativeAutomation: ChemistryAutomation {
         try renderPNG(Data(contentsOf:vector)).write(to:image)
     }
     func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
-        guard let executable = Bundle(url:URL(fileURLWithPath:application.path))?.executableURL else { throw ChemOfficeError(L("native.123")) }
-        let binary = try Data(contentsOf:executable,options:.mappedIfSafe)
-        try require(binary.range(of:Data("/renderpdf:".utf8)) != nil,L("native.pdfVector","ChemDraw /renderpdf"))
-        let pdf = try command(executable.path,["/renderpdf:"+source.path,"/thumbnail:0"],timeout:20)
-        try pdfVectorSVG(pdf).write(to:vector,options:.atomic)
+        let pdf = try exportPDF(source,application:application)
+        try (pdf.map { try pdfVectorSVG($0) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
+    }
+    // ChemDraw 26 for Mac exports PDF through its save Apple event. Render a
+    // uniquely named copy so exporting never saves or retargets the live edit.
+    // nil represents an empty drawing, which keeps the editable white canvas.
+    func exportPDF(_ source:URL, application:ChemDrawApplication) throws -> Data? {
+        let original = try Data(contentsOf:source)
+        try validateSource(original)
+        // AppleScript aliases use /private/var; Foundation's URL resolver can
+        // abbreviate that back to /var. Use the physical path for comparisons.
+        guard let physicalRoot = realpath(FileManager.default.temporaryDirectory.path,nil) else { throw POSIXError(.ENOENT) }
+        defer { free(physicalRoot) }
+        let temporary = URL(fileURLWithPath:String(cString:physicalRoot)).appendingPathComponent("CFM-preview-"+UUID().uuidString)
+        try FileManager.default.createDirectory(at:temporary,withIntermediateDirectories:true)
+        let copy = temporary.appendingPathComponent(temporary.lastPathComponent).appendingPathExtension(source.pathExtension)
+        let pdf = copy.deletingPathExtension().appendingPathExtension("pdf")
+        try original.write(to:copy,options:.atomic)
+        // Retain the isolated copy if automation fails to close it. The caller
+        // still owns its captured source or immutable saved snapshot.
+        var completed = false
+        defer { if completed { try? FileManager.default.removeItem(at:temporary) } }
+        do {
+            let result = try script("""
+            with timeout of 30 seconds
+            set sourcePath to item 1 of argv
+            set outputPath to item 2 of argv
+            set previewName to item 3 of argv
+            tell application \(appleQuote(application.path))
+                open ((POSIX file sourcePath) as alias)
+                try
+                    set d to document previewName
+                    if POSIX path of ((file of d) as alias) is not sourcePath then error "Cannot identify captured chemistry for vector export"
+                    try
+                        set visible of window of d to false
+                    end try
+                    if modified of d then error "Captured source unexpectedly has pending edits"
+                    if (count objects of d) is 0 then
+                        close document previewName saving no
+                        return "empty"
+                    end if
+                    save document previewName in (POSIX file outputPath) as "PDF"
+                    set exportError to ""
+                on error messageText number errorNumber
+                    set exportError to messageText
+                    set exportNumber to errorNumber
+                end try
+                -- Saving as PDF can change the copy's file and name. Resolve
+                -- only our two unique paths again before closing anything.
+                set closedCopy to false
+                repeat with documentIndex from (count documents) to 1 by -1
+                    set candidate to document documentIndex
+                    set candidatePath to ""
+                    try
+                        set candidatePath to POSIX path of ((file of candidate) as alias)
+                    end try
+                    if candidatePath is sourcePath or candidatePath is outputPath then
+                        close document (name of candidate) saving no
+                        set closedCopy to true
+                    end if
+                end repeat
+                if exportError is not "" then error exportError number exportNumber
+                if not closedCopy then error "Cannot identify captured chemistry for vector export"
+            end tell
+            return "exported"
+            end timeout
+            """,[copy.path,pdf.path,copy.lastPathComponent])
+            try require(try Data(contentsOf:copy) == original,L("native.141"))
+            let data = result == "empty" ? nil : try Data(contentsOf:pdf)
+            completed = true
+            return data
+        } catch { throw ChemOfficeError(L("native.pdfExport",error.localizedDescription)) }
     }
     func close(_ path:URL) throws { try closeWithoutActivation(path) }
     func closeWithoutActivation(_ path:URL) throws {

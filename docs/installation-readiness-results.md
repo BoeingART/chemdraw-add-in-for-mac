@@ -1,5 +1,17 @@
 # Installation readiness validation
 
+## v1.5.2 local test build 22 — 2026-10-31
+
+ChemDraw 26.0.0.6599 on this Mac rejected the previous `/renderpdf:` feature check. The new production path exports a unique, hidden structure copy through AppleScript as PDF and converts that PDF to vector SVG. Both capture previews and saved revisions share this path. The original editing file and later unsaved input stay separate.
+
+- Actual renderer acceptance passed for eight CDX/CDXML fixtures and an empty drawing. Each nonempty fixture passed vector preservation and visual comparison with its native PDF. Original source bytes, existing ChemDraw document identities and modification states, foreground application and process membership were retained. Export documents were closed.
+- The native regression suite passed 218 checks, including paste during editing, saved snapshots, newer-input preservation, failed PDF export, white canvases and update rollback. Four language settings passed localization checks. Nine task-pane checks and 71 Python installer/localization/signing/release/notarization fixtures passed.
+- Universal arm64/x86_64 application, DMG and ZIP build completed. Local package checks passed versions, signatures, architectures, system runtime dependencies, four interface language settings, archive privacy, image resources, disk-image contents and size budgets.
+- The optional real Office test reached Word preview staging, where macOS denied the new command-line test process access to the Word container. Word insertion, reopening and live save synchronization remain to be rerun with an authorized test process. The independent test document was closed; the original unsaved ChemDraw document remained open and modified. Excel is not installed on this Mac; its host and package regression checks passed.
+- This machine has no usable Developer ID signing identity. The generated artifacts are explicitly named local test packages with ad-hoc signatures. Apple notarization and Gatekeeper distribution checks have not been performed for 1.5.2. No GitHub Release or release tag was created; the code is prepared on `codex/fix-chemdraw-pdf-1.5.2`.
+
+Local icon preparation used a temporary AppKit SVG rasterizer through `CFM_INKSCAPE`; the committed Office icons were retained. The normal build continues to use Inkscape. Test transcripts are retained locally under `build/paste-diagnosis`.
+
 ## v1.5.1 test build 21 — 2026-10-31
 
 The application icon, Office panel artwork and template menu-bar icon use the current SVG sources. The native main window was inspected on this Mac: it has no banner and retains its compact layout, three actions and login checkbox.

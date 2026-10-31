@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.5.2 — 2026-10-31
+
+- Restore ChemDraw 26 for Mac paste and preview generation through AppleScript PDF export. Keep the PDF-to-SVG vector conversion shared by paste, save synchronization and close/write-back.
+- Export uniquely named structure copies, resolve macOS temporary paths consistently, close export copies and retain newer edits in the original ChemDraw document.
+- Keep empty drawings editable and display a specific PDF-export failure with retry instructions.
+- Add explicitly named local test packages and validation for development machines without Developer ID signing credentials.
+
 ## v1.5.1 — 2026-10-31
 
 - Synchronize updated SVG artwork with the application icon, Office icons, Office panel banner and adaptive menu-bar icon. Keep the application window compact.

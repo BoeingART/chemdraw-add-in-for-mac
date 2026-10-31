@@ -311,7 +311,7 @@ Your ChemDraw."
 300	manifest.help	office/addin/manifest.xml	打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。	Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.		
 301	system.automation	packaging/Info.plist	ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。	ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.		
 302	installer.welcome.0	packaging/Welcome.html	ChemDraw Add-in for Mac	ChemDraw Add-in for Mac		
-303	installer.welcome.1	packaging/Welcome.html	版本1.5.1 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.1 · Apple Silicon + Intel · macOS 12 or later		
+303	installer.welcome.1	packaging/Welcome.html	版本1.5.2 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.2 · Apple Silicon + Intel · macOS 12 or later		
 304	installer.welcome.2	packaging/Welcome.html	更新应用图标、横幅和菜单栏图标，Office面板同步使用新标识。	Update the application icon, banner, menu-bar icon and Office panel artwork.		
 305	installer.welcome.3	packaging/Welcome.html	升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。	Choose Check for Updates and confirm to download, replace and reopen the app automatically.		
 306	installer.welcome.4	packaging/Welcome.html	安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。	Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.		
@@ -358,3 +358,4 @@ Your ChemDraw."
 343	excel.error.6	office/excel/adapter.applescript	Excel图片回写验证失败，编辑草稿已保留，请重试。	Excel replacement could not be verified; draft retained		
 344	install.copyTitle	src/NativeApplication.swift	先将应用拖入Applications	Move the App to Applications		
 345	install.copyHint	src/NativeApplication.swift	请将ChemDraw Add-in for Mac拖到磁盘映像旁的Applications文件夹，再打开应用完成首次设置。	Drag ChemDraw Add-in for Mac into the Applications folder in the disk image, then open the installed app to complete first-run setup.		
+346	native.pdfExport	src/NativeAutomation.swift	ChemDraw无法导出PDF预览。请在ChemDraw中重新保存结构，或重新复制结构后粘贴。{0}	ChemDraw could not export the PDF preview. Save the structure again in ChemDraw, or copy it again and retry pasting. {0}		
