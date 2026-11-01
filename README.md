@@ -12,6 +12,10 @@ English | [简体中文](README_CN.md)
 
 Copy a chemical structure in ChemDraw, paste an editable drawing into Word, PowerPoint or Excel, and double-click it to keep editing. Saving in ChemDraw updates the original Office image while keeping the editor open. Each drawing carries its editable source and vector artwork.
 
+## Demo
+
+![ChemDraw Add-in for Mac demo](assets/demo.gif)
+
 ## Install and configure
 
 Requires **macOS 12 or later**, **ChemDraw** and **Office for Mac**, installed and activated separately. Word, PowerPoint and Excel are supported.

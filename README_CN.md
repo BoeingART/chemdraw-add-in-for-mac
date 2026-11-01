@@ -12,6 +12,10 @@
 
 在 ChemDraw 中复制化学结构，即可将可编辑的绘图粘贴到 Word、PowerPoint 或 Excel，双击绘图可继续编辑。在 ChemDraw 中保存后，原 Office 图片会同步更新，编辑窗口保持打开。每个绘图都携带可编辑的源数据和 矢量图形。
 
+## 功能演示
+
+![ChemDraw Add-in for Mac 功能演示](assets/demo.gif)
+
 ## 安装与配置
 
 需要 **macOS 12 或更高版本**，以及已单独安装并激活的 **ChemDraw** 和 **Office for Mac**。支持 Word、PowerPoint 和 Excel。
