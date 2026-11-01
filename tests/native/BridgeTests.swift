@@ -765,6 +765,31 @@ class TestAutomation: ChemistryAutomation {
             try require(driver.argumentsSeen == [[source.path],[source.path]] && driver.bodies.allSatisfy { $0.contains("/Applications/Pinned ChemDraw.app") && !$0.contains("activate") && !$0.contains("document 1") },"Detached cleanup changed the application, document or focus")
             try require(try Data(contentsOf:source) == driver.latest,"Close altered the retained draft")
         }
+        try check("Office lifecycle queries use a fresh process before inspecting document identity") {
+            let base = root.appendingPathComponent("office-running"), monitor = base.appendingPathComponent("build/event-monitor")
+            try fm.createDirectory(at:monitor.deletingLastPathComponent(),withIntermediateDirectories:true)
+            let driver = NativeAutomation(root:base)
+            for host in OfficeHost.allCases {
+                let adapter = base.appendingPathComponent("office/\(host.rawValue)/adapter.applescript")
+                try fm.createDirectory(at:adapter.deletingLastPathComponent(),withIntermediateDirectories:true)
+                try Data("on run argv\nreturn \"open\"\nend run\n".utf8).write(to:adapter)
+                func probe(_ result:String) throws {
+                    let script = "#!/bin/sh\n[ \"$1\" = '--is-running' ] && [ \"$2\" = '\(host.bundle)' ] || exit 2\necho '\(result)'\n"
+                    try Data(script.utf8).write(to:monitor)
+                    try fm.setAttributes([.posixPermissions:0o755],ofItemAtPath:monitor.path)
+                }
+                try probe("yes")
+                try require(try driver.office("document-status",host.rawValue,["cfm-document:test"]) == "open","A running Office document was treated as closed")
+                try probe("no")
+                try require(try driver.office("document-status",host.rawValue,["cfm-document:test"]) == "closed","Closed Office was scripted or a stale workspace observation was used")
+                for result in ["", "unavailable"] {
+                    try probe(result)
+                    try rejects { _ = try driver.office("document-status",host.rawValue,["cfm-document:test"]) }
+                }
+                try Data("#!/bin/sh\nexit 2\n".utf8).write(to:monitor)
+                try rejects { _ = try driver.office("document-status",host.rawValue,["cfm-document:test"]) }
+            }
+        }
         try check("Native cold-launch failure cannot script an unready ChemDraw") {
             class LaunchProbe: NativeAutomation {
                 var scripted = false
@@ -779,6 +804,9 @@ class TestAutomation: ChemistryAutomation {
             try require(!driver.scripted,"Script sent after failed launch")
             try Data("#!/bin/sh\necho no\n".utf8).write(to:monitor)
             try require(try !driver.isOpen(base.appendingPathComponent("draft.cdx")) && !driver.scripted,"Checking a closed editor launched it")
+            try Data("#!/bin/sh\necho unknown\n".utf8).write(to:monitor)
+            try rejects { _ = try driver.isOpen(base.appendingPathComponent("draft.cdx")) }
+            try require(!driver.scripted,"Unknown process availability was treated as an open or closed editor")
         }
         print("Passed \(count) native transaction checks")
     }

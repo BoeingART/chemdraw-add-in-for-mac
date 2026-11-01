@@ -67,8 +67,10 @@ class NativeAutomation: ChemistryAutomation {
     func office(_ action:String, _ host:String, _ arguments:[String] = []) throws -> String {
         try require(OfficeHost(rawValue:host) != nil,L("native.126"))
         if action == "selected", host == "excel", let name = selectedExcelDrawingName() { return name }
-        // A lifecycle check must never reopen a quit Office application.
-        if action == "document-status", NSRunningApplication.runningApplications(withBundleIdentifier:NativePaths.officeBundles[host]!).isEmpty { return "closed" }
+        // Query from a fresh AppKit process. The long-lived transaction worker
+        // has no application event loop to keep workspace observations current.
+        // A failed query is unknown availability, never permission to close an edit.
+        if action == "document-status", try !isApplicationRunning(NativePaths.officeBundles[host]!) { return "closed" }
         let adapter = try String(contentsOf:root.appendingPathComponent("office/\(host)/adapter.applescript"),encoding:.utf8)
         let data = try command("/usr/bin/osascript",["-e",NativeLocalization.appleScript(adapter),"--",action]+arguments)
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
@@ -110,8 +112,7 @@ class NativeAutomation: ChemistryAutomation {
     }
     func isOpen(_ path:URL) throws -> Bool {
         let app = try application()
-        let running = try command(monitor,["--is-running",app.path])
-        if String(decoding:running,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines) != "yes" { return false }
+        if try !isApplicationRunning(app.path) { return false }
         return try script("""
         tell application \(appleQuote(app.path))
             repeat with d in documents
@@ -122,6 +123,11 @@ class NativeAutomation: ChemistryAutomation {
             return "closed"
         end tell
         """,[path.path]) == "open"
+    }
+    func isApplicationRunning(_ identifier:String) throws -> Bool {
+        let result = String(decoding:try command(monitor,["--is-running",identifier]),as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
+        try require(result == "yes" || result == "no",L("native.122","--is-running"))
+        return result == "yes"
     }
     func saveSource(_ path:URL) throws -> Data {
         let app = try application()

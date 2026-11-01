@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.5.6 — 2026-11-01
+
+- Fix background Office lifecycle checks incorrectly closing the ChemDraw editor and skipping image updates after Save. Command-S and menu Save keep the editing window open and synchronize the original Office figure.
+- Retain the editor and draft when an application status query fails. Verify actual Command-S, menu Save and immediate save/close in Word and PowerPoint using the background helper execution model.
+
 ## v1.5.5 — 2026-11-01
 
 - Fix edits being skipped when ChemDraw saves and closes before the saved-file observer runs. Synchronize the final saved drawing and return to the original Office document.

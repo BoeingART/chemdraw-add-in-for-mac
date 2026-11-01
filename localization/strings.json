@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "版本1.5.5 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Version 1.5.5 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "版本1.5.6 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Version 1.5.6 · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "ChemDraw 26在后台生成预览，保存和关闭回写时不再弹出临时绘图窗口；粘贴预览按实际内容裁切。",
-    "en": "Generate ChemDraw 26 previews in the background without temporary drawing windows during save or close/write-back. Fit pasted previews to their content.",
+    "zh": "修复保存后误关ChemDraw窗口、Office图片未更新的问题。⌘S和菜单“保存”同步原图片，并保持编辑窗口打开。",
+    "en": "Fix the ChemDraw editor closing and Office figures missing updates after Save. Command-S and menu Save synchronize the original figure and keep the editor open.",
     "locations": [
       "packaging/Welcome.html"
     ],
