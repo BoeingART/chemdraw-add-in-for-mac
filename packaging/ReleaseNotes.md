@@ -1,13 +1,17 @@
-## ChemDraw Add-in for Mac 1.5.6
+## ChemDraw Add-in for Mac 1.5.7
 
 ### 中文
 
-- 修复按⌘S或菜单“保存”后，ChemDraw窗口自动关闭、修改未回写Office图片的问题。保存后同步原图片，并保持编辑窗口打开。
-- 改善后台文档状态检查，查询失败时保留编辑窗口和草稿。已在Word、PowerPoint中实测快捷键保存、菜单保存和快速保存后关闭。
+- 修复从多页ChemDraw文档复制结构时的PDF矢量预览报错，按原页面布局合并预览并裁去空白。
+- 打开编辑时恢复结构自身的键长、线宽、字体和字号等设置，保留Nature等模板及自定义格式；返回已打开的编辑窗口时保留后续修改。
+- 改善ChemDraw识别与启动，排除虚拟机启动器，使用本机Mac版ChemDraw，并重新检查旧编辑会话的应用目标。
+- 已在ChemDraw 22与PowerPoint中验证45页文档复制，以及ACS、Nature、自定义格式的粘贴、编辑、保存回写和重新打开。
 - 完成当前编辑后，在应用中选择“检查更新”升级；已有授权和编辑草稿继续保留。
 
 ### English
 
-- Fix the ChemDraw editor closing and Office figures missing edits after Command-S or menu Save. Saving updates the original figure and keeps the editor open.
-- Improve background document status checks and retain the editor and draft when a query fails. Actual keyboard saves, menu saves and immediate save/close were verified in Word and PowerPoint.
+- Fix PDF vector preview errors when copying structures from multi-page ChemDraw documents. Combine pages using the original layout and crop blank space.
+- Restore each drawing’s saved bond lengths, line widths, fonts and text sizes when opening an edit, including Nature and custom formats. Returning to an open editor retains subsequent changes.
+- Improve ChemDraw discovery and launch: exclude virtual-machine launchers, select native Mac ChemDraw and recheck application targets retained by older editing sessions.
+- Verified copying from a 45-page document and paste/edit/save/reopen round trips for ACS, Nature and custom formats with ChemDraw 22 and PowerPoint.
 - Finish editing, then choose Check for Updates in the app to upgrade. Existing permissions and editing drafts are retained.

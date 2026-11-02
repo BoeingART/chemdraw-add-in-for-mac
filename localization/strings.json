@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "版本1.5.6 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Version 1.5.6 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "版本1.5.7 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Version 1.5.7 · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "修复保存后误关ChemDraw窗口、Office图片未更新的问题。⌘S和菜单“保存”同步原图片，并保持编辑窗口打开。",
-    "en": "Fix the ChemDraw editor closing and Office figures missing updates after Save. Command-S and menu Save synchronize the original figure and keep the editor open.",
+    "zh": "支持从多页ChemDraw文档复制结构。打开编辑时恢复结构原有的绘图设置，并选择本机Mac版ChemDraw。",
+    "en": "Paste structures from multi-page ChemDraw documents. Opening an edit restores the drawing’s saved settings and selects native Mac ChemDraw.",
     "locations": [
       "packaging/Welcome.html"
     ],

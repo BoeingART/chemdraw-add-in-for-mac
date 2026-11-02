@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.5.7 — 2026-11-02
 
 - Support structures copied from multi-page ChemDraw documents. Combine PDF pages using the original print grid and margins before fitting the vector preview to the selected artwork.
 - Restore each drawing's saved bond, line, font and text-size settings when opening its editor, including Nature and custom formats. Retain subsequent settings when returning to an open edit.
