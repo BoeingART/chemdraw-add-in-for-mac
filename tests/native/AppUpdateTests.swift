@@ -90,12 +90,27 @@ import CryptoKit
                 let draft = work.appendingPathComponent("recovery/retained.cdx")
                 try fm.createDirectory(at:draft.deletingLastPathComponent(),withIntermediateDirectories:true)
                 try Data("retained editing draft".utf8).write(to:draft)
+                let baseline = Bundle(url:installed)!, targetBuild = Bundle(url:current)!.object(forInfoDictionaryKey:"CFBundleVersion") as! String
+                if baseline.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String == version {
+                    try rejects { _ = try NativeAppUpdate.prepare(archive:download,release:release,current:isolated,work:work,workerSource:current.appendingPathComponent("Contents/Resources/build/chemoffice")) }
+                    print("PASS same-version reissues require manual replacement rather than an automatic update")
+                    let replacement = try NativeAppUpdate.extract(download,to:root.appendingPathComponent("manual-replacement"))
+                    let log = root.appendingPathComponent("manual-reopened.log"), errors = root.appendingPathComponent("manual-reopened-errors.log")
+                    try NativeAppUpdate.swap(staged:replacement,destination:isolated,verify:{ try NativeAppUpdate.validate($0,version:version,team:team) },launch:{ app in
+                        _ = try command("/usr/bin/open",["-n","-W","--stdout",log.path,"--stderr",errors.path,app.path,"--args","--app-self-test"],timeout:30)
+                        try require(try String(contentsOf:log,encoding:.utf8).contains("PASS menu bar startup"),"Replacement did not launch")
+                    })
+                    let info = try PropertyListSerialization.propertyList(from:Data(contentsOf:isolated.appendingPathComponent("Contents/Info.plist")),format:nil) as! [String:Any]
+                    try require(info["CFBundleVersion"] as? String == targetBuild && String(contentsOf:draft,encoding:.utf8) == "retained editing draft","Replacement retained the withdrawn build or lost its draft")
+                    print("PASS signed same-version bundle replacement launches the corrected build and retains the draft")
+                    return
+                }
                 let manifest = try NativeAppUpdate.prepare(archive:download,release:release,current:isolated,work:work,workerSource:current.appendingPathComponent("Contents/Resources/build/chemoffice"))
                 let request = try JSONDecoder().decode(AppUpdateRequest.self,from:Data(contentsOf:manifest))
                 try require(request.destination == isolated.path,"Preparation changed the isolated target")
                 let discovered = try command(manifest.deletingLastPathComponent().appendingPathComponent("update-worker").path,["discover"])
                 _ = try JSONSerialization.jsonObject(with:discovered)
-                try require(Bundle(url:installed)!.object(forInfoDictionaryKey:"CFBundleShortVersionString") as! String != version,"Preparation replaced the installed application")
+                try require(baseline.object(forInfoDictionaryKey:"CFBundleShortVersionString") as! String != version || baseline.object(forInfoDictionaryKey:"CFBundleVersion") as! String != targetBuild,"Preparation replaced the installed application")
                 print("PASS signed update preparation and copied helper execution preserve the installed application")
                 let parent = Process(); parent.executableURL = URL(fileURLWithPath:"/bin/sleep"); parent.arguments = ["0.3"]; try parent.run()
                 DispatchQueue.global().async { parent.waitUntilExit() }
@@ -112,6 +127,7 @@ import CryptoKit
                 })
                 let info = try PropertyListSerialization.propertyList(from:Data(contentsOf:isolated.appendingPathComponent("Contents/Info.plist")),format:nil) as! [String:Any]
                 try require(info["CFBundleShortVersionString"] as? String == version && launches == 1,"The automatic update failed to replace or reopen the application")
+                try require(info["CFBundleVersion"] as? String == targetBuild,"The replacement retained the withdrawn build")
                 try require(try String(contentsOf:draft,encoding:.utf8) == "retained editing draft","Update removed an editing draft")
                 try require(!fm.fileExists(atPath:manifest.deletingLastPathComponent().path) && !fm.fileExists(atPath:download.path),"Completed update staging was retained")
                 print("PASS real signed application update waits for exit, replaces and reopens once, preserves drafts and removes completed download files")

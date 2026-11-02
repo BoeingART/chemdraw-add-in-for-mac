@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "支持从多页ChemDraw文档复制结构。打开编辑时恢复结构原有的绘图设置，并选择本机Mac版ChemDraw。",
-    "en": "Paste structures from multi-page ChemDraw documents. Opening an edit restores the drawing’s saved settings and selects native Mac ChemDraw.",
+    "zh": "修复结构预览被截断、重复和大片空白的问题，保留多页文档中结构的相对位置。编辑时保留原有绘图设置，并使用本机Mac版ChemDraw。",
+    "en": "Fix clipped, repeated and partly blank previews while retaining positions across pages. Editing preserves saved drawing settings and uses native Mac ChemDraw.",
     "locations": [
       "packaging/Welcome.html"
     ],

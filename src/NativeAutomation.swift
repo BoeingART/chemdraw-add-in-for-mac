@@ -217,9 +217,10 @@ class NativeAutomation: ChemistryAutomation {
         try renderPNG(Data(contentsOf:vector)).write(to:image)
     }
     func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
+        let fullPaper = try windowlessPDFRenderer(application) == nil && windowlessPDFSDK(application) == nil
         let pdf = try exportPDF(source,application:application)
         let settings = try ChemDrawSourceSettings(Data(contentsOf:source))
-        try (pdf.map { try pdfVectorSVG($0,columns:settings.columns,pageMargins:settings.printMargins) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
+        try (pdf.map { try pdfVectorSVG($0,columns:settings.columns,pageMargins:settings.printMargins,fullPaperPages:fullPaper) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
     }
     func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? {
         guard let executable = Bundle(url:URL(fileURLWithPath:application.path))?.executableURL else { return nil }
@@ -232,6 +233,7 @@ class NativeAutomation: ChemistryAutomation {
     func exportWindowlessPDF(_ source:URL,renderer:URL) throws -> Data {
         let data = try command(renderer.path,["/renderpdf:"+source.path,"/thumbnail:0"],timeout:20)
         try require(data.starts(with:Data("%PDF-".utf8)) && data.count <= 48*1024*1024,L("native.pdfOutput"))
+        try require(CGDataProvider(data:data as CFData).flatMap(CGPDFDocument.init)?.numberOfPages == 1,L("native.pdfOutput"))
         return data
     }
     func windowlessPDFSDK(_ application:ChemDrawApplication) -> URL? {
@@ -269,14 +271,18 @@ class NativeAutomation: ChemistryAutomation {
         defer { if completed { try? FileManager.default.removeItem(at:temporary) } }
         do {
             if let renderer = try windowlessPDFRenderer(application) {
+                let preview = try unpaginatedPreviewSource(original)
+                try preview.write(to:copy,options:.atomic)
                 let data = try exportWindowlessPDF(copy,renderer:renderer)
-                try require(try Data(contentsOf:copy) == original,L("native.141"))
+                try require(try Data(contentsOf:copy) == preview,L("native.141"))
                 completed = true
                 return data
             }
             if windowlessPDFSDK(application) != nil {
+                let preview = try unpaginatedPreviewSource(original)
+                try preview.write(to:copy,options:.atomic)
                 let data = try exportSDKPDF(copy,application:application)
-                try require(try Data(contentsOf:copy) == original,L("native.141"))
+                try require(try Data(contentsOf:copy) == preview,L("native.141"))
                 completed = true
                 return data
             }

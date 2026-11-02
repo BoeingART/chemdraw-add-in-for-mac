@@ -65,6 +65,89 @@ func validateSource(_ source: Data) throws {
 
 // Clipboard CDX is a document: its drawing defaults and page grid belong to the
 // captured structure, rather than the current ChemDraw application's defaults.
+func unpaginatedPreviewSource(_ source:Data) throws -> Data {
+    if source.starts(with:Data("VjCD0100".utf8)) {
+        var offset = 22, objects = [Int](), pages = [Int](), layout = [Range<Int>]()
+        var margins:Range<Int>?, rootStart = 28, paginated = false
+        var maxX = 0.0, maxY = 0.0
+        while offset < source.count {
+            let start = offset
+            let tag = try source.integer(offset,2); offset += 2
+            if tag == 0 {
+                guard !objects.isEmpty else { throw ChemOfficeError(L("native.156")) }
+                objects.removeLast(); if objects.isEmpty { break }
+            } else if tag & 0x8000 != 0 {
+                _ = try source.integer(offset,4); offset += 4; objects.append(tag)
+                if tag == 0x8000 { rootStart = offset }
+                if tag == 0x8001 { pages.append(offset) }
+            } else {
+                var length = try source.integer(offset,2); offset += 2
+                if length == 0xffff { length = try source.integer(offset,4); offset += 4 }
+                try require(offset <= source.count-length,L("native.156"))
+                if objects.count == 1 && tag == 0x0802 { margins = start..<offset+length }
+                if objects.last == 0x8001 && (0x080f...0x0813).contains(tag) {
+                    layout.append(start..<offset+length)
+                    if [0x080f,0x0810].contains(tag) {
+                        try require(length == 2,L("native.156"))
+                        let count = try source.integer(offset,2)
+                        paginated = paginated || count > 1
+                    }
+                }
+                func coordinate(_ at:Int) throws -> Double { Double(Int32(bitPattern:UInt32(try source.integer(at,4))))/65536 }
+                if objects.last != 0x8001 {
+                    if tag == 0x0204 && length == 16 {
+                        maxY = max(maxY,try coordinate(offset+8)); maxX = max(maxX,try coordinate(offset+12))
+                    } else if tag == 0x0200 && length == 8 {
+                        maxY = max(maxY,try coordinate(offset)); maxX = max(maxX,try coordinate(offset+4))
+                    }
+                }
+                offset += length
+            }
+        }
+        try require(objects.isEmpty,L("native.156"))
+        guard paginated else { return source }
+        // A continuous Poster canvas avoids both per-page folding and clipping
+        // of later-page coordinates. Geometry and drawing styles stay byte exact.
+        let width = max(100,ceil(maxX+8)), height = max(100,ceil(maxY+8))
+        try require(width < 32768 && height < 32768,L("native.156"))
+        func property(_ tag:UInt16,_ data:Data) -> Data {
+            var result = Data([UInt8(tag & 255),UInt8(tag >> 8),UInt8(data.count & 255),UInt8(data.count >> 8)])
+            result.append(data); return result
+        }
+        func size(_ value:Double) -> Data {
+            var v = Int32(value*65536).littleEndian; return withUnsafeBytes(of:&v) { Data($0) }
+        }
+        let poster = property(0x080f,Data([1,0]))+property(0x0810,Data([1,0]))+property(0x0811,Data([1]))+property(0x0812,size(width))+property(0x0813,size(height))
+        var edits = layout.map { ($0,Data()) }
+        edits += pages.map { ($0..<$0,poster) }
+        edits.append((margins ?? rootStart..<rootStart,property(0x0802,Data(repeating:0,count:16))))
+        var result = source
+        // Delete existing page properties before inserting at the same offset.
+        for (range,data) in edits.sorted(by:{ $0.0.lowerBound == $1.0.lowerBound ? $0.0.count > $1.0.count : $0.0.lowerBound > $1.0.lowerBound }) {
+            result.replaceSubrange(range,with:data)
+        }
+        return result
+    }
+    let document = try xml(source)
+    let pages = try nodes(document,"/CDXML/page")
+    guard pages.contains(where:{ (Int(attribute($0,"WidthPages")) ?? 1) > 1 || (Int(attribute($0,"HeightPages")) ?? 1) > 1 }) else { return source }
+    var maxX = 0.0, maxY = 0.0
+    for node in try nodes(document,"//*") where node.name != "page" {
+        let box = attribute(node,"BoundingBox").split(separator:" ").compactMap { Double($0) }
+        let p = attribute(node,"p").split(separator:" ").compactMap { Double($0) }
+        if box.count == 4 { maxX = max(maxX,box[2]); maxY = max(maxY,box[3]) }
+        if p.count == 2 { maxX = max(maxX,p[0]); maxY = max(maxY,p[1]) }
+    }
+    for page in pages {
+        for (key,value) in [("WidthPages","1"),("HeightPages","1"),("DrawingSpace","Poster"),("Width",String(max(100,ceil(maxX+8)))),("Height",String(max(100,ceil(maxY+8))))] {
+            page.removeAttribute(forName:key); page.addAttribute(XMLNode.attribute(withName:key,stringValue:value) as! XMLNode)
+        }
+    }
+    let root = document.rootElement()!
+    root.removeAttribute(forName:"PrintMargins"); root.addAttribute(XMLNode.attribute(withName:"PrintMargins",stringValue:"0 0 0 0") as! XMLNode)
+    return document.xmlData
+}
+
 struct ChemDrawSourceSettings {
     var columns = 1
     var printMargins = NSEdgeInsets()

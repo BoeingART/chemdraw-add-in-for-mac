@@ -107,10 +107,10 @@ private final class DefaultingImporterAutomation: NativeAutomation {
             if index == 0 {
                 let pdf = try automation.exportPDF(path,application:app)!
                 let count = CGPDFDocument(CGDataProvider(data:pdf as CFData)!)!.numberOfPages
-                try require(count == 45,"The multi-page reproduction did not produce 45 PDF pages")
+                try require(count == 1,"The multi-page source did not produce one unpaginated preview")
                 let preview = try pdfVectorSVG(pdf)
                 try require(try hasVectors(xml(preview)),"The multi-page selection lost vector paths")
-                print("PASS actual ChemDraw export: 45 PDF pages converted to content-sized vectors")
+                print("PASS actual ChemDraw export: a 45-page source produces one content-sized vector preview")
             }
             _ = try automation.script("tell application id \"com.microsoft.Powerpoint\" to activate",[])
             let bridge = NativeBridge(root:root.appendingPathComponent(label),automation:automation)

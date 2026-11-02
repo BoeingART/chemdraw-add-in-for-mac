@@ -58,6 +58,10 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var latestActivity: HelperActivity?
     var failurePresentation = FailurePresentationPolicy()
     var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? L("native.development") }
+    var versionTitle: String {
+        let build = Bundle.main.object(forInfoDictionaryKey:"CFBundleVersion") as? String
+        return build.map { "v\(version) (\($0))" } ?? "v\(version)"
+    }
     var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemDraw Add-in for Mac" }
     var helperReady: Bool {
         guard let helper, helper.isRunning else { return false }
@@ -127,7 +131,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         item.button?.title = ""; item.button?.image = NativeMenuIcon.image(); item.button?.imagePosition = .imageOnly
         item.button?.toolTip = appName
         let menu = NSMenu(); menu.autoenablesItems = false
-        let versionItem = NSMenuItem(title:"v\(version)",action:nil,keyEquivalent:""); versionItem.isEnabled = false
+        let versionItem = NSMenuItem(title:versionTitle,action:nil,keyEquivalent:""); versionItem.isEnabled = false
         menu.addItem(versionItem); menu.addItem(.separator())
         for (title,action) in [(L("native.017"),#selector(checkUpdates)),(L("native.015"),#selector(showMain)),(L("native.019"),#selector(hideStatusIcon)),(L("native.016"),#selector(quitApp))] {
             let entry = NSMenuItem(title:title,action:action,keyEquivalent:""); entry.target = self
@@ -404,7 +408,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             && buttons(mainWindow.contentView!).map(\.title) == expectedMain
             && details.count == 5 && buttons(setupWindow.contentView!).count == 6
             && menu.items.filter { $0.action != nil }.map(\.title) == [L("native.017"),L("native.015"),L("native.019"),L("native.016")]
-            && menu.items.first?.title == "v\(version)" && menu.items.first?.isEnabled == false
+            && menu.items.first?.title == versionTitle && menu.items.first?.isEnabled == false
             && statusItem?.button?.title == "" && statusItem?.button?.image?.isTemplate == true
             && initiallyBlocked && finishButton.isEnabled && NSApp.activationPolicy() == .accessory
             && Bundle.main.object(forInfoDictionaryKey:"LSUIElement") as? Bool == true

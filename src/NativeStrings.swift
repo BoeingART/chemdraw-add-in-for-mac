@@ -307,7 +307,7 @@ enum NativeStrings {
         "system.automation": ["en":"ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.","zh":"ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。"],
         "installer.welcome.0": ["en":"ChemDraw Add-in for Mac","zh":"ChemDraw Add-in for Mac"],
         "installer.welcome.1": ["en":"Version 1.5.7 · Apple Silicon + Intel · macOS 12 or later","zh":"版本1.5.7 · Apple Silicon + Intel · macOS 12或更新"],
-        "installer.welcome.2": ["en":"Paste structures from multi-page ChemDraw documents. Opening an edit restores the drawing’s saved settings and selects native Mac ChemDraw.","zh":"支持从多页ChemDraw文档复制结构。打开编辑时恢复结构原有的绘图设置，并选择本机Mac版ChemDraw。"],
+        "installer.welcome.2": ["en":"Fix clipped, repeated and partly blank previews while retaining positions across pages. Editing preserves saved drawing settings and uses native Mac ChemDraw.","zh":"修复结构预览被截断、重复和大片空白的问题，保留多页文档中结构的相对位置。编辑时保留原有绘图设置，并使用本机Mac版ChemDraw。"],
         "installer.welcome.3": ["en":"Choose Check for Updates and confirm to download, replace and reopen the app automatically.","zh":"升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。"],
         "installer.welcome.4": ["en":"Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.","zh":"安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。"],
         "installer.welcome.5": ["en":"Existing drawings, connection certificates, and recovery drafts are retained. When upgrading from an older version, confirm Accessibility and Automation access when prompted.","zh":"已有绘图、连接证书及恢复草稿继续保留。从旧版升级时，按系统提示确认辅助功能和自动化授权。"],

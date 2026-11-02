@@ -20,6 +20,47 @@ import Cocoa
             try require(try encodeSource(source,id:id) == old,"Wire format changed")
         }
         let cdx = try Data(contentsOf:root.appendingPathComponent("tests/fixtures/clipboard-ethanol.cdx"))
+        try check("Render-only CDX copies change print counts without changing objects or drawing settings") {
+            var paged = cdx, offset = 22, depth = 0, changed = Set<Int>()
+            while offset < paged.count {
+                let tag = try paged.integer(offset,2); offset += 2
+                if tag == 0 { depth -= 1; if depth == 0 { break }; continue }
+                if tag & 0x8000 != 0 { offset += 4; depth += 1; continue }
+                var length = try paged.integer(offset,2); offset += 2
+                if length == 0xffff { length = try paged.integer(offset,4); offset += 4 }
+                if depth == 2 && [0x080f,0x0810].contains(tag) { paged[offset] = 45; changed.insert(offset) }
+                offset += length
+            }
+            try require(changed.count == 2,"Missing test page counts")
+            let preview = try unpaginatedPreviewSource(paged)
+            func content(_ data:Data) throws -> Data {
+                var cursor = 22, nesting = 0
+                while cursor < data.count {
+                    let start = cursor, tag = try data.integer(cursor,2); cursor += 2
+                    if tag == 0 { nesting -= 1; continue }
+                    if tag & 0x8000 != 0 {
+                        nesting += 1; cursor += 4
+                        if nesting == 3 { return data.subdata(in:start..<data.count) }
+                    } else {
+                        var length = try data.integer(cursor,2); cursor += 2
+                        if length == 0xffff { length = try data.integer(cursor,4); cursor += 4 }
+                        cursor += length
+                    }
+                }
+                throw ChemOfficeError("Missing drawing content")
+            }
+            try require(try content(preview) == content(cdx),"Preview changed native objects, coordinates or settings")
+            let before = try ChemDrawSourceSettings(paged), after = try ChemDrawSourceSettings(preview)
+            try require(before.numbers == after.numbers && before.fonts == after.fonts && after.columns == 1,"Preview changed drawing defaults")
+        }
+        try check("Render-only CDXML copies preserve coordinates, fonts and their editable source") {
+            let source = Data("<CDXML BondLength=\"21\"><page WidthPages=\"3\" HeightPages=\"15\"><fragment><n id=\"2\" p=\"900 31000\"/></fragment></page></CDXML>".utf8)
+            let preview = try xml(unpaginatedPreviewSource(source)), page = try nodes(preview,"/CDXML/page")[0]
+            try require(attribute(page,"WidthPages") == "1" && attribute(page,"HeightPages") == "1","Preview still paginates")
+            try require(attribute(page,"DrawingSpace") == "Poster" && Double(attribute(page,"Height"))! > 31000,"Poster canvas clips later-page artwork")
+            try require(attribute(try nodes(page,"./fragment/n")[0],"p") == "900 31000","Preview moved later-page artwork")
+            try require(try attribute(xml(source).rootElement()!,"BondLength") == "21","Preview changed original defaults")
+        }
         try check("Captured CDX document settings retain their own drawing defaults") {
             let settings = try ChemDrawSourceSettings(cdx)
             try require(settings.numbers["fixed length"] == 600 && settings.numbers["line width"] == 20 && settings.numbers["label size"] == 240,"Native document defaults were replaced by ACS defaults")

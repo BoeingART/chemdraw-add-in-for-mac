@@ -2,7 +2,7 @@
 
 ## v1.5.7 — 2026-11-02
 
-- Support structures copied from multi-page ChemDraw documents. Combine PDF pages using the original print grid and margins before fitting the vector preview to the selected artwork.
+- Fix clipped and repeated previews from multi-page ChemDraw documents. Render on a continuous private canvas while preserving object coordinates, cross-page spacing and the original editable source.
 - Restore each drawing's saved bond, line, font and text-size settings when opening its editor, including Nature and custom formats. Retain subsequent settings when returning to an open edit.
 - Select native Mac ChemDraw installations by their application identity. Exclude virtual-machine launchers and recheck targets retained by older editing sessions.
 
