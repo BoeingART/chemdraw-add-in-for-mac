@@ -1,5 +1,7 @@
 # v1.5.7 release validation
 
+Release withdrawn on 2 November 2026 after a cropped multi-page preview regression. Version 1.5.6 is the latest public release. See `rendering-1.5.7-withdrawal.md` for the reproduction, cause and missing visual checks. The checks below describe the original distribution validation; they did not establish complete artwork fidelity.
+
 Date: 2026-11-02. Version: 1.5.7, build 27. Office manifest: 1.5.7.0.
 
 ## Fixes and acceptance
