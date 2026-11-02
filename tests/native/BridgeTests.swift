@@ -35,6 +35,7 @@ class TestAutomation: ChemistryAutomation {
         case "ole-claim": tag = arguments[2]; return "ok"
         case "document-status": statusTargets.append((host,arguments[0])); return documentStatus
         case "context": return document
+        case "reference": return document
         case "payload": return tag
         case "path": return savedDocument.isEmpty ? (document.hasPrefix("/") ? document : "") : savedDocument
         case "inspect": return tag + "\t" + dimensions
@@ -112,7 +113,21 @@ class TestAutomation: ChemistryAutomation {
         try check("An invalid native OLE capture leaves the original shape unclaimed") {
             let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.nativeOLE = Data([1,2,3])
             try rejects { try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Object 1") }
-            try require(bridge.session == nil && !driver.calls.contains("ole-claim") && !driver.opened,"Invalid capture modified Office or opened a draft")
+            try require(bridge.session == nil && !driver.calls.contains("context") && !driver.calls.contains("ole-claim") && !driver.opened,"Invalid capture modified Office or opened a draft")
+        }
+        try check("Foreign native OLE activation retains the open chemistry draft without modifying Office") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            let previous = bridge.session!.id
+            let source = Data("VjCD0100".utf8)+Data(repeating:0,count:22)
+            let original = try CompoundFile(ChemDrawOLE.create(source:source,preview:renderPNG(driver.vector)))
+            let streams = try original.rootStreams()
+            driver.nativeOLE = try original.replacing([streams["\u{1}CompObj"]!:Data("Excel.Sheet.12".utf8)])
+            driver.supportsNativeOLE = true; driver.calls.removeAll()
+            var unsupported = false
+            do { try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Workbook",reference:driver.document) }
+            catch is UnsupportedChemDrawOLE { unsupported = true }
+            try require(unsupported && bridge.session?.id == previous && driver.opened,"Foreign OLE disturbed the chemistry draft")
+            try require(!driver.calls.contains("context") && !driver.calls.contains("ole-claim") && !driver.calls.contains("close"),"Foreign OLE changed Office or closed the editor")
         }
         for failTransfer in [false,true] {
             try check("Native OLE save \(failTransfer ? "failure retains the original and editor" : "updates source and retains the editor")") {

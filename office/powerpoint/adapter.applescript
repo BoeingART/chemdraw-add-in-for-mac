@@ -103,7 +103,10 @@ on run argv
                 return ""
             end try
         else if actionName is "context" then
+            if (count argv) > 2 then return my contextID(my findDocument(item 3 of argv), item 2 of argv)
             return my contextID(active presentation, item 2 of argv)
+        else if actionName is "reference" then
+            return full name of active presentation
         else if actionName is "path" then
             set p to my findDocument(item 2 of argv)
             set pathText to full name of p

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-// Only managed-figure double clicks and managed ChemDraw window-close gestures are intercepted.
+// Managed figures and native OLE double clicks use the chemistry transaction worker.
 // Clipboard access is scoped to an explicit Office paste of recognized chemical data.
 import Cocoa
 import ApplicationServices
 let emitLock = NSLock()
+let nativeOLEReplaySignature: Int64 = 0x43464d4f4c45
 
 if CommandLine.arguments.dropFirst().first == "--discover-chemdraw" {
     let data = try JSONEncoder().encode(ChemDrawApplication.installed())
@@ -26,6 +27,23 @@ if CommandLine.arguments.dropFirst().first == "--frontmost" {
 if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--is-running" {
     print(runningApplication(CommandLine.arguments[2]) == nil ? "no" : "yes")
     exit(0)
+}
+if CommandLine.arguments.count == 5 && CommandLine.arguments[1] == "--native-ole-open" {
+    guard let app = runningApplication("com.microsoft.Powerpoint"),
+          NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier,
+          let selected = selectedOfficeFigure("powerpoint"),
+          selected.reference == CommandLine.arguments[3], selected.tag == CommandLine.arguments[4],
+          let data = Data(base64Encoded:CommandLine.arguments[2]), data.count < 16384,
+          let down = CGEvent(withDataAllocator:nil,data:data as CFData), down.type == .leftMouseDown,
+          down.getIntegerValueField(.mouseEventClickState) == 2,
+          let up = down.copy() else { print("skipped"); exit(0) }
+    down.setIntegerValueField(.eventSourceUserData,value:nativeOLEReplaySignature)
+    up.setIntegerValueField(.eventSourceUserData,value:nativeOLEReplaySignature)
+    down.timestamp = DispatchTime.now().uptimeNanoseconds
+    up.type = .leftMouseUp; up.timestamp = down.timestamp+1_000_000
+    down.post(tap:.cghidEventTap); up.post(tap:.cghidEventTap)
+    RunLoop.main.run(until:Date().addingTimeInterval(0.05))
+    print("replayed"); exit(0)
 }
 func cancelOfficeMenus(_ ax:AXUIElement) {
     guard let raw = attribute(ax,kAXMenuBarAttribute) else { return }
@@ -144,6 +162,7 @@ let statePath = CommandLine.arguments[1]
 var tap: CFMachPort?
 var swallowPasteMouseUp = false
 var swallowCloseMouseUp = false
+var swallowOpenMouseUp = false
 
 func emit(_ object: [String: Any]) {
     guard let data = try? JSONSerialization.data(withJSONObject:object) else { return }
@@ -222,8 +241,8 @@ func serviceCloseWindow(_ point: CGPoint, _ expected: String) -> AXUIElement? {
     return window
 }
 
-func selectedManagedTag(_ host: String) -> String? {
-    if host == "excel", let name = selectedExcelDrawingName() { return name }
+func selectedOfficeFigure(_ host: String) -> (tag:String,reference:String?)? {
+    if host == "excel", let name = selectedExcelDrawingName() { return (name,nil) }
     let source: String
     if host == "word" {
         source = """
@@ -250,7 +269,12 @@ func selectedManagedTag(_ host: String) -> String? {
             try
                 set selectedShapes to shape range of selection of active window
                 if (count shapes of selectedShapes) is not 1 then return ""
-                return name of shape 1 of selectedShapes
+                set pic to shape 1 of selectedShapes
+                set tagText to name of pic
+                if shape type of pic is shape type embedded OLE control and tagText does not start with "ChemOffice Drawing:" then
+                    set tagText to "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":" & tagText
+                end if
+                return {tagText, full name of active presentation}
             on error
                 return ""
             end try
@@ -258,11 +282,14 @@ func selectedManagedTag(_ host: String) -> String? {
         """
     }
     var error: NSDictionary?
-    guard let script = NSAppleScript(source: source),
-          let value = script.executeAndReturnError(&error).stringValue,
+    guard let script = NSAppleScript(source: source) else { return nil }
+    let result = script.executeAndReturnError(&error)
+    let reference = host == "powerpoint" ? result.atIndex(2)?.stringValue : nil
+    guard let value = host == "powerpoint" ? result.atIndex(1)?.stringValue : result.stringValue,
           (value.hasPrefix("ChemOffice Drawing:") ||
+           (host == "powerpoint" && value.hasPrefix("ChemOffice OLE Selection:")) ||
            (host == "word" ? (value.hasPrefix("CFM1:") || value.hasPrefix("CFM2:")) : value.hasPrefix("CFM1_"))) else { return nil }
-    return value
+    return (value,reference)
 }
 
 struct PasteMenuTarget {
@@ -397,6 +424,7 @@ func capturePaste(_ item:(String,Data,Int),host:String,menuPID:pid_t? = nil,menu
 }
 
 let callback: CGEventTapCallBack = { _, type, event, _ in
+    if event.getIntegerValueField(.eventSourceUserData) == nativeOLEReplaySignature { return Unmanaged.passUnretained(event) }
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
         emit(["event": "tapResumed"])
@@ -404,6 +432,7 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     }
     if type == .leftMouseUp && swallowPasteMouseUp { swallowPasteMouseUp = false; return nil }
     if type == .leftMouseUp && swallowCloseMouseUp { swallowCloseMouseUp = false; return nil }
+    if type == .leftMouseUp && swallowOpenMouseUp { swallowOpenMouseUp = false; return nil }
     let targetPID = pid_t(event.getIntegerValueField(.eventTargetUnixProcessID))
     let recipient = targetPID > 0 ? NSRunningApplication(processIdentifier: targetPID) : nil
     guard let front = recipient ?? NSWorkspace.shared.frontmostApplication,
@@ -440,8 +469,16 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     if type == .leftMouseDown && event.getIntegerValueField(.mouseEventClickState) == 2,
        OfficeHost(bundle:bundle) != nil {
         let host = OfficeHost(bundle:bundle)!.rawValue
-        if let tag = selectedManagedTag(host) {
-            emit(["event": "open", "host": host, "tag": tag])
+        if let selected = selectedOfficeFigure(host) {
+            var request: [String:Any] = ["event":"open","host":host,"tag":selected.tag]
+            if let reference = selected.reference { request["reference"] = reference }
+            if selected.tag.hasPrefix("ChemOffice OLE Selection:") {
+                guard event.flags.intersection([.maskCommand,.maskControl,.maskAlternate,.maskShift]).isEmpty,
+                      let data = event.data else { return Unmanaged.passUnretained(event) }
+                request["nativeOLEEvent"] = (data as Data).base64EncodedString()
+            }
+            swallowOpenMouseUp = true
+            emit(request)
             return nil
         }
     }

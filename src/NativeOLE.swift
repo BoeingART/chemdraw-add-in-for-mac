@@ -2,6 +2,10 @@
 import Cocoa
 import zlib
 
+struct UnsupportedChemDrawOLE: LocalizedError {
+    var errorDescription: String? { L("ole.notChemDraw") }
+}
+
 // MS-CFB storage, shared by Windows Office and the Mac Office pasteboard.
 // Keep directory metadata and every unknown stream when rewriting an object.
 struct CompoundFile {
@@ -108,9 +112,10 @@ struct CompoundFile {
     }
     func chemdrawSource() throws -> Data {
         let streams = try rootStreams()
-        guard let contents = streams["CONTENTS"], let metadata = streams["\u{1}CompObj"] else { throw ChemOfficeError(L("ole.notChemDraw")) }
+        guard let metadata = streams["\u{1}CompObj"] else { throw UnsupportedChemDrawOLE() }
         let comp = try read(metadata)
-        try require(comp.range(of:Data("ChemDraw.Document.".utf8)) != nil,L("ole.notChemDraw"))
+        guard comp.range(of:Data("ChemDraw.Document.".utf8)) != nil else { throw UnsupportedChemDrawOLE() }
+        guard let contents = streams["CONTENTS"] else { throw ChemOfficeError(L("ole.cdx")) }
         let source = try read(contents)
         try require(source.starts(with:Data("VjCD0100".utf8)),L("ole.cdx")); try validateSource(source)
         return source

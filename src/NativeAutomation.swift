@@ -91,6 +91,7 @@ class NativeAutomation: ChemistryAutomation {
             do { _ = try office("ole-copy-direct","powerpoint",[document,target]) }
             catch { throw ChemOfficeError(L("ole.copyFailed",error.localizedDescription)) }
             guard let object = NSPasteboard.general.data(forType:ChemDrawOLE.objectType) else { throw ChemOfficeError(L("ole.clipboard")) }
+            guard object.range(of:Data("ChemDraw.Document.".utf8)) != nil else { throw UnsupportedChemDrawOLE() }
             _ = try CompoundFile(object).chemdrawSource(); return object
         }
     }

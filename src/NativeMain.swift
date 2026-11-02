@@ -23,9 +23,22 @@ class NativeMonitorRuntime {
             try bridge.handle(event)
             if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen) }
         } catch {
-            if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen,error:error.localizedDescription) }
-            bridge.record("error",["operation":name,"message":error.localizedDescription])
-            throw error
+            var failure = error
+            if error is UnsupportedChemDrawOLE, name == "open", event["host"] as? String == "powerpoint",
+               let nativeEvent = event["nativeOLEEvent"] as? String,
+               let reference = event["reference"] as? String, let tag = event["tag"] as? String {
+                // Leave foreign OLE activation to PowerPoint, only while the
+                // original document and object are still selected.
+                do {
+                    try command(bridge.root.appendingPathComponent("build/event-monitor").path,["--native-ole-open",nativeEvent,reference,tag])
+                    if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen) }
+                    bridge.record("native_ole_passthrough",["host":"powerpoint"])
+                    return
+                } catch { failure = error }
+            }
+            if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen,error:failure.localizedDescription) }
+            bridge.record("error",["operation":name,"message":failure.localizedDescription])
+            throw failure
         }
     }
     func pasteClipboard(_ host:String) throws {
