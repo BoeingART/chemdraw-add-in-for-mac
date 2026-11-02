@@ -151,8 +151,7 @@ class NativeBridge {
         let marker = try cacheFigure(carrier.svg)
         if host == "powerpoint" && automation.supportsNativeOLEWrite && source.starts(with:Data("VjCD0100".utf8)) {
             let object = try ChemDrawOLE.create(source:source,preview:expected)
-            let pdf = try? Data(contentsOf:vectorPath.deletingPathExtension().appendingPathExtension("pdf"))
-            try automation.transferOLE("ole-insert",arguments:[document,id,marker,String(try svgAspect(carrier.svg))],object:object,pdf:pdf)
+            try automation.transferOLE("ole-insert",arguments:[document,id,marker,String(try svgAspect(carrier.svg))],object:object,vector:vector)
         } else {
             let preview = try officePreview(host,carrier.svg)
             _ = try automation.office("insert",host,[preview.path,marker,id,document,String(try svgAspect(carrier.svg))])
@@ -326,8 +325,7 @@ class NativeBridge {
                 // Compare the immutable capture again just before replacing it.
                 if let original { try require(try encodeSource(CompoundFile(original).chemdrawSource(),id:current.id) == oldTag,L("native.143")) }
                 let object = try ChemDrawOLE.create(source:source,preview:expected,original:original)
-                let pdf = try? Data(contentsOf:image.deletingPathExtension().appendingPathExtension("pdf"))
-                try automation.transferOLE("ole-update",arguments:[current.document,current.id,marker,String(try svgAspect(carrier.svg))],object:object,pdf:pdf)
+                try automation.transferOLE("ole-update",arguments:[current.document,current.id,marker,String(try svgAspect(carrier.svg))],object:object,vector:vector)
             } else {
                 let preview = try officePreview(current.host,carrier.svg)
                 _ = try automation.office("update",current.host,[current.document,current.id,preview.path,marker,String(try svgAspect(carrier.svg))])

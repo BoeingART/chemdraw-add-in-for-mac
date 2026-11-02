@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "开发版新增Windows ChemDraw OLE源数据读取、编辑及PPT副本导出实验。OLE实时回写与插入仍在验证。",
-    "en": "This development build adds experiments for reading Windows ChemDraw OLE source, editing it, and exporting PowerPoint copies. Live OLE write-back and insertion are under validation.",
+    "zh": "新增PowerPoint原生ChemDraw OLE粘贴与自动回写。ChemDraw保存后更新原对象并保持编辑窗口打开，支持尚未保存的PPT。",
+    "en": "Add native ChemDraw OLE paste and automatic write-back in PowerPoint. Saving in ChemDraw updates the original object and keeps the editor open, including in unsaved presentations.",
     "locations": [
       "packaging/Welcome.html"
     ],

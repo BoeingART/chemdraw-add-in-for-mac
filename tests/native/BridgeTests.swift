@@ -5,6 +5,7 @@ class TestAutomation: ChemistryAutomation {
     var supportsNativeOLE = false
     var supportsNativeOLEWrite = false
     var nativeOLE: Data?
+    var transferredVector: Data?
     let app = ChemDrawApplication(path:"/Applications/ChemDraw 30.app",bundle:"example.ChemDraw.30",version:"30")
     var document = "", savedDocument = "", tag = "", finalSource = Data("<CDXML><page><t>FINAL Z</t></page></CDXML>".utf8)
     var renderedSavedSource: Data?
@@ -20,6 +21,11 @@ class TestAutomation: ChemistryAutomation {
         calls.append("captureOLE")
         guard let nativeOLE else { throw ChemOfficeError("No native OLE source") }
         return nativeOLE
+    }
+    func transferOLE(_ action:String,arguments:[String],object:Data,vector:Data) throws {
+        calls.append(action)
+        if failure == "transferOLE" { throw ChemOfficeError("Injected native OLE transfer failure") }
+        nativeOLE = object; tag = arguments[2]; targets.append(arguments[0]); transferredVector = vector
     }
     func office(_ action:String, _ host:String, _ arguments:[String]) throws -> String {
         calls.append(action)
@@ -107,6 +113,38 @@ class TestAutomation: ChemistryAutomation {
             let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.nativeOLE = Data([1,2,3])
             try rejects { try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Object 1") }
             try require(bridge.session == nil && !driver.calls.contains("ole-claim") && !driver.opened,"Invalid capture modified Office or opened a draft")
+        }
+        for failTransfer in [false,true] {
+            try check("Native OLE save \(failTransfer ? "failure retains the original and editor" : "updates source and retains the editor")") {
+                let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.supportsNativeOLEWrite = true
+                let source = Data("VjCD0100".utf8)+Data(repeating:0,count:22)
+                let original = try ChemDrawOLE.create(source:source,preview:renderPNG(driver.vector))
+                driver.nativeOLE = original
+                try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Object 1")
+                let path = URL(fileURLWithPath:bridge.session!.path), document = bridge.session!.document
+                driver.finalSource = source+Data([1,2,3]); try driver.finalSource.write(to:path)
+                if failTransfer { driver.failure = "transferOLE" }
+                let save = { try bridge.save(SavedDrawingChange(id:bridge.session!.id,path:path.path,source:driver.finalSource)) }
+                if failTransfer { try rejects(save); try require(driver.nativeOLE == original,"Failed native transfer changed the original") }
+                else {
+                    try save()
+                    try require(try CompoundFile(driver.nativeOLE!).chemdrawSource() == driver.finalSource,"OLE save lost native source")
+                    try require(bridge.session?.syncedSourceRevision == sha256(driver.finalSource) && driver.targets == [document],"Native OLE saved to the wrong document or revision")
+                }
+                try require(driver.opened && bridge.session != nil && Data(contentsOf:path) == driver.finalSource,"OLE save lost the editor or its latest input")
+                try require(driver.calls.contains("ole-update") && !driver.calls.contains("update") && !driver.calls.contains("close"),"Native save used the picture replacement or close path")
+            }
+        }
+        try check("Native OLE paste retains a captured vector when no PDF rendering was needed") {
+            let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.supportsNativeOLEWrite = true
+            let source = Data("VjCD0100".utf8)+Data(repeating:0,count:22)
+            let snapshot = bridge.work.appendingPathComponent("carrier-paste")
+            try fm.createDirectory(at:snapshot,withIntermediateDirectories:true)
+            let carrier = try createCarrier(source,id:UUID().uuidString.lowercased(),vector:driver.vector)
+            try carrier.svg.write(to:snapshot.appendingPathComponent("carrier.svg"))
+            try bridge.paste("powerpoint",snapshot:snapshot)
+            try require(driver.transferredVector == carrier.svg && !driver.calls.contains("render"),"OLE paste lost the existing artwork or rendered an unrelated source")
+            try require(try CompoundFile(driver.nativeOLE!).chemdrawSource() == source,"OLE paste lost captured source")
         }
         try check("A resumed edit keeps its latest retained draft") {
             let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)

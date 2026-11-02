@@ -3,6 +3,8 @@ import Cocoa
 
 // Explicit developer acceptance harness. Operates only on a deck under build/.
 // begin: select a Windows ChemDraw object in the test deck first.
+// watch [count]: observe Command-S/menu Save through the production observer.
+// insert: paste a separate native OLE while retaining the original editing session.
 // save: after editing and saving its managed ChemDraw document.
 // verify: after the user saves the PowerPoint test deck.
 @main struct OLELiveTests {
@@ -11,18 +13,51 @@ import Cocoa
         do {
             let root = URL(fileURLWithPath:FileManager.default.currentDirectoryPath)
             let automation = NativeAutomation(root:root)
-            let bridge = NativeBridge(root:root.appendingPathComponent("build/ole-live"),automation:automation)
+            let testWork = ProcessInfo.processInfo.environment["CFM_OLE_TEST_WORK"] ?? "build/ole-live"
+            try require(testWork.hasPrefix("build/") && !testWork.contains(".."),"Use a test work directory under build/")
+            let bridge = NativeBridge(root:root.appendingPathComponent(testWork),automation:automation)
             let mode = CommandLine.arguments.dropFirst().first ?? "begin"
             if mode == "begin" {
                 let document = try automation.office("context","powerpoint",[UUID().uuidString.lowercased()])
                 let path = try automation.office("path","powerpoint",[document])
-                try require(path.hasPrefix(root.appendingPathComponent("build/").path),"Open a PowerPoint test copy under build/ first")
+                let unsavedTest = path.isEmpty && ProcessInfo.processInfo.environment["CFM_OLE_ALLOW_UNSAVED"] == "1"
+                try require(path.hasPrefix(root.appendingPathComponent("build/").path) || unsavedTest,"Open a PowerPoint test copy under build/ first")
                 try bridge.handle(["event":"edit-selection","host":"powerpoint"])
                 print("PASS opened Windows ChemDraw OLE in Mac ChemDraw")
             } else {
                 try bridge.restore()
                 guard let session = bridge.session else { throw ChemOfficeError("No OLE test editing session") }
-                if mode == "export" {
+                if mode == "insert" {
+                    let snapshot = bridge.work.appendingPathComponent("pastes/"+UUID().uuidString)
+                    try FileManager.default.createDirectory(at:snapshot,withIntermediateDirectories:true)
+                    try Data(contentsOf:URL(fileURLWithPath:session.path)).write(to:snapshot.appendingPathComponent("source.cdx"))
+                    try bridge.paste("powerpoint",snapshot:snapshot)
+                    try require(bridge.session?.id == session.id && bridge.session?.document == session.document,"Paste changed the original editing target")
+                    print("PASS inserted a new native OLE and retained the original edit")
+                } else if mode == "watch" {
+                    let count = CommandLine.arguments.count > 2 ? Int(CommandLine.arguments[2]) ?? 1 : 1
+                    let completed = DispatchSemaphore(value:0), worker = DispatchQueue(label:"OLE live save acceptance")
+                    var remaining = count, failure: Error?
+                    let changes = NativeSavedChanges(state:bridge.state) { change in
+                        worker.async {
+                            do {
+                                try bridge.save(change)
+                                try require(automation.isOpen(URL(fileURLWithPath:session.path)),"The editor closed after an automatic save")
+                                print("PASS automatic save updated original OLE and kept ChemDraw open")
+                                remaining -= 1
+                                if remaining == 0 { completed.signal() }
+                            } catch { failure = error; completed.signal() }
+                        }
+                    }
+                    changes.start(); print("READY watching native ChemDraw saves")
+                    let result = completed.wait(timeout:.now()+600)
+                    changes.stop()
+                    try require(result == .success,"Timed out waiting for ChemDraw saves")
+                    if let failure { throw failure }
+                } else if mode == "capture" {
+                    let object = try automation.captureOLE(session.document,target:session.id)
+                    print("PASS captured native OLE source",try CompoundFile(object).chemdrawSource().count)
+                } else if mode == "export" {
                     try require(CommandLine.arguments.count == 4,"Use export <original.pptx> <new-copy.pptx>")
                     let input = URL(fileURLWithPath:CommandLine.arguments[2]).standardizedFileURL
                     let output = URL(fileURLWithPath:CommandLine.arguments[3]).standardizedFileURL
@@ -53,10 +88,11 @@ import Cocoa
                     let expected = try Data(contentsOf:URL(fileURLWithPath:session.path).deletingLastPathComponent().appendingPathComponent("committed.cdx"))
                     let figure = try readSavedFigure(path,host:"powerpoint",id:session.id)
                     try require(figure.source == expected && figure.evidence["ole_object"] as? Bool == true && figure.evidence["prog_id"] as? String == "ChemDraw.Document.6.0","Saved PPT lost its OLE class or source")
-                    _ = try renderImage(figure.preview)
-                    try JSONSerialization.data(withJSONObject:figure.evidence,options:[.prettyPrinted,.sortedKeys]).write(to:root.appendingPathComponent("build/ole-live/verification.json"))
-                    print("PASS saved PPT contains edited ChemDraw.Document.6.0 OLE",figure.evidence)
-                } else { throw ChemOfficeError("Use begin, save, verify or export") }
+                    let cachedVector = bridge.work.appendingPathComponent("figures/\(session.id)/\(sha256(expected)).svg")
+                    let evidence = try verifySavedFigure(path,host:"powerpoint",id:session.id,source:expected,expected:renderPNG(Data(contentsOf:cachedVector)))
+                    try JSONSerialization.data(withJSONObject:evidence,options:[.prettyPrinted,.sortedKeys]).write(to:bridge.work.appendingPathComponent("verification.json"))
+                    print("PASS saved PPT contains edited ChemDraw.Document.6.0 OLE and matching preview",evidence)
+                } else { throw ChemOfficeError("Use begin, capture, insert, watch, save, verify or export") }
             }
         } catch { fputs("FAIL \(error.localizedDescription)\n",stderr); exit(1) }
     }

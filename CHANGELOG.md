@@ -4,7 +4,9 @@
 
 - Add PowerPoint file experiments for extracting Windows ChemDraw OLE drawings, editing their CDX source in Mac ChemDraw, and exporting presentation copies with Windows ChemDraw OLE objects and vector previews.
 - Add commands to extract a drawing, export an edited presentation copy, and create a new OLE presentation from a Mac CDX file. Existing output files are retained.
-- Keep live OLE replacement and insertion behind a development switch while PowerPoint window selection is investigated. Existing editable picture paste and save synchronization remain the default.
+- Enable native PowerPoint OLE paste and automatic write-back on ChemDraw Command-S and menu Save. Keep the editor open and preserve subsequent input using independent saved snapshots.
+- Resolve the target by its stable document identity and presentation name. Use direct shape copy and verified native paste, including unsaved presentations and switching between documents; retain the original until the new OLE source is read back successfully.
+- Recognize PowerPoint's saved OLE preview as part of its containing object. Keep Word/Excel OLE integration in development.
 
 ## v1.5.6 — 2026-11-01
 

@@ -112,22 +112,12 @@ on run argv
         else if actionName is "ole-active" then
             if my matchesDocument(active presentation, item 2 of argv) then return "yes"
             return "no"
-        else if actionName is "ole-is-selected" then
-            set p to my findDocument(item 2 of argv)
-            if not my matchesDocument(active presentation, item 2 of argv) then return "no"
-            try
-                set selectedShapes to shape range of selection of document window 1 of p
-                if (count shapes of selectedShapes) is 1 and name of shape 1 of selectedShapes is (item 3 of argv) then return "yes"
-            end try
-            return "no"
         else if actionName is "ole-debug" then
             return (full name of active presentation) & tab & ((count shapes of slide of view of active window) as string)
         else if actionName is "ole-window" then
             set p to my findDocument(item 2 of argv)
-            set index of document window 1 of p to 1
-            activate
-            return caption of document window 1 of p
-        else if actionName is "ole-copy" or actionName is "ole-claim" or actionName is "ole-kind" then
+            return name of p
+        else if actionName is "ole-copy-direct" or actionName is "ole-claim" or actionName is "ole-kind" then
             set p to my findDocument(item 2 of argv)
             set targetText to item 3 of argv
             set matches to {}
@@ -147,10 +137,8 @@ on run argv
                 return "picture"
             end if
             if shape type of pic is not shape type embedded OLE control then error "The selected shape is not an embedded OLE object"
-            if actionName is "ole-copy" then
-                set index of window (name of p) to 1
-                if (slide ID of slide of view of document window 1 of p) is not (slide ID of s) then set slide of view of document window 1 of p to s
-                activate
+            if actionName is "ole-copy-direct" then
+                copy shape pic
                 return name of pic
             else
                 set name of pic to item 4 of argv
@@ -167,7 +155,6 @@ on run argv
                 set pictureTop to 120
                 set pictureWidth to 400
                 set pictureRotation to 0
-                if (count shapes of s) is 0 then make new text box at end of s with properties {name:"CFM_OLE_ANCHOR:" & figureID, left position:0, top:0, width:1, height:1}
             else
                 set matches to {}
                 repeat with slideIndex from 1 to (count slides of p)
@@ -185,15 +172,14 @@ on run argv
                 set pictureWidth to width of oldPic
                 set pictureRotation to rotation of oldPic
             end if
-            set index of window (name of p) to 1
-            set slide of view of document window 1 of p to s
-            activate
+            if not my matchesDocument(active presentation, item 2 of argv) then error "The target PowerPoint document changed before paste"
+            go to slide view of active window number (slide index of s)
             return (slide ID of s as string) & tab & ((count of shapes of s) as string) & tab & (pictureLeft as string) & tab & (pictureTop as string) & tab & (pictureWidth as string) & tab & (pictureRotation as string)
         else if actionName is "ole-transport-close" then
             set p to my findDocument(item 2 of argv)
             close p saving no
             return "closed"
-        else if actionName is "ole-target" or actionName is "ole-stage" then
+        else if actionName is "ole-paste-direct" or actionName is "ole-stage" then
             set p to my findDocument(item 2 of argv)
             set targetID to (item 6 of argv) as integer
             set foundSlides to {}
@@ -203,17 +189,12 @@ on run argv
             if (count foundSlides) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to slide (item 1 of foundSlides) of p
             set previousCount to (item 7 of argv) as integer
-            if actionName is "ole-target" then
+            if actionName is "ole-paste-direct" then
                 if (count shapes of s) is not previousCount then error "Original image identity changed; retained both versions"
-                set index of window (name of p) to 1
-                set slide of view of document window 1 of p to s
-                activate
-                repeat with pictureIndex from 1 to (count shapes of s)
-                    set pic to shape pictureIndex of s
-                    if my matchesSource(name of pic, item 3 of argv) then return name of pic
-                end repeat
-                if (count shapes of s) > 0 then return name of shape 1 of s
-                error "Ambiguous or missing original PowerPoint figure"
+                if not my matchesDocument(active presentation, item 2 of argv) then error "The target PowerPoint document changed before paste"
+                go to slide view of active window number (item 1 of foundSlides)
+                paste object view of active window
+                return "pasted"
             end if
             if (count shapes of s) is previousCount then return "waiting"
             if (count shapes of s) is not previousCount + 1 then error "PowerPoint did not insert exactly one OLE object; source retained"

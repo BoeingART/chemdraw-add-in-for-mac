@@ -348,7 +348,9 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
                 let name = try nodes(shape,"./*[local-name()='nvSpPr']/*[local-name()='cNvPr']").first.map { attribute($0,"name") }
                 if name == "CFM_DATA_\(id)" { tag = try nodes(shape,".//*[local-name()='t']").map { $0.stringValue ?? "" }.joined() }
             }
-            for picture in try nodes(root,"//*[local-name()='pic']") {
+            // PowerPoint copies the frame's name onto the OLE preview picture
+            // when saving. That nested picture belongs to the same object.
+            for picture in try nodes(root,"//*[local-name()='pic' and not(ancestor::*[local-name()='graphicFrame'])]") {
                 let name = try nodes(picture,"./*[local-name()='nvPicPr']/*[local-name()='cNvPr']").first.map { attribute($0,"name") }
                 if let name, name == "CFM1_\(id)" || name == "ChemOffice Drawing:\(id)" || name.hasPrefix("ChemOffice Drawing:\(id):") { candidates.append((part,picture,name.hasPrefix("ChemOffice Drawing:\(id):") ? name : tag)) }
             }

@@ -60,6 +60,15 @@ import Cocoa
         try check(figure.source == source && figure.evidence["prog_id"] as? String == "ChemDraw.Document.6.0","PPT transport lost the native class or source")
         try check(try decodeSource(readCarrier(figure.preview)).source == source,"PPT vector preview lost the editable source")
         let archive = try OfficeArchive(temporary)
+        var normalizedParts = [String:Data]()
+        for name in archive.entries.keys { normalizedParts[name] = try archive.read(name) }
+        let normalizedSlide = try xml(normalizedParts["ppt/slides/slide1.xml"]!)
+        try nodes(normalizedSlide,"//*[local-name()='pic']/*[local-name()='nvPicPr']/*[local-name()='cNvPr']")[0].attribute(forName:"name")?.stringValue = marker
+        normalizedParts["ppt/slides/slide1.xml"] = normalizedSlide.xmlData
+        let normalizedFile = temporary.deletingPathExtension().appendingPathExtension("normalized.pptx")
+        defer { try? FileManager.default.removeItem(at:normalizedFile) }
+        try zipPackage(normalizedParts).write(to:normalizedFile)
+        try check(try readSavedFigure(normalizedFile.path,host:"powerpoint",id:id).source == source,"PowerPoint's nested preview name was counted as another OLE object")
         try check(try ChemDrawOLE.powerPointSource(temporary) == source,"Extraction changed the native CDX source")
         try rejects("missing OLE figure index") { _ = try ChemDrawOLE.powerPointSource(temporary,index:1) }
         let relationships = try nodes(xml(archive.read("ppt/slides/_rels/slide1.xml.rels")),"//*[local-name()='Relationship']")
