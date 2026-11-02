@@ -339,6 +339,11 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
             }
         } else {
             var tag = ""
+            for frame in try nodes(root,"//*[local-name()='graphicFrame']") {
+                guard let properties = try nodes(frame,"./*[local-name()='nvGraphicFramePr']/*[local-name()='cNvPr']").first else { continue }
+                let name = attribute(properties,"name")
+                if name == "ChemOffice Drawing:\(id)" || name.hasPrefix("ChemOffice Drawing:\(id):") { candidates.append((part,frame,name)) }
+            }
             for shape in try nodes(root,"//*[local-name()='sp']") {
                 let name = try nodes(shape,"./*[local-name()='nvSpPr']/*[local-name()='cNvPr']").first.map { attribute($0,"name") }
                 if name == "CFM_DATA_\(id)" { tag = try nodes(shape,".//*[local-name()='t']").map { $0.stringValue ?? "" }.joined() }
@@ -366,6 +371,22 @@ func readSavedFigure(_ document: String, host: String, id: String) throws -> Sav
     }
     let target = segments.joined(separator:"/")
     let preview = try archive.read(target), portable = svgBlip != nil || target.lowercased().hasSuffix(".svg")
+    if let ole = try nodes(drawing,".//*[local-name()='oleObj']").first {
+        let relationships = try nodes(xml(archive.read(relPath)),"//*[local-name()='Relationship']").filter {
+            attribute($0,"Id") == localAttribute(ole,"id") && attribute($0,"TargetMode") != "External" && attribute($0,"Type").hasSuffix("/oleObject")
+        }
+        try require(relationships.count == 1,L("native.221"))
+        let rawOLE = attribute(relationships[0],"Target")
+        let base = URL(fileURLWithPath:"/"+directory,isDirectory:true)
+        let olePart = URL(fileURLWithPath:rawOLE,relativeTo:base).standardizedFileURL.path.dropFirst()
+        let source = try CompoundFile(archive.read(String(olePart))).chemdrawSource()
+        if let revision = try figureRevision(metadata) { try require(sha256(source) == revision,L("native.223")) }
+        let extent = try nodes(drawing,"./*[local-name()='xfrm']/*[local-name()='ext']").first
+        let dimensions: [Double] = extent.map { [Double(attribute($0,"cx")) ?? 0.0,Double(attribute($0,"cy")) ?? 0.0] } ?? []
+        return SavedFigure(tag:try encodeSource(source,id:id),source:source,preview:preview,
+            evidence:["ole_object":true,"prog_id":attribute(ole,"progId"),"source_bytes":source.count,"verified_part":part,"embedded_part":String(olePart),"preview_part":target,"display_size_emu":dimensions],
+            aspect:nil,dimensions:dimensions)
+    }
     let tag = portable ? try readCarrier(preview) : metadata
     let decoded = try decodeSource(tag)
     if let revision = try figureRevision(metadata) { try require(sha256(decoded.source) == revision,L("native.223")) }

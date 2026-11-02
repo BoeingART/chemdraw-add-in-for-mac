@@ -14,6 +14,12 @@
 
 ## 功能演示
 
+当前分支为 **2.0.0 开发版**，新增 Windows ChemDraw OLE 文件往返实验。已验证从 PowerPoint 提取 CDX、在 Mac ChemDraw 编辑，以及导出保留 OLE 对象与矢量预览的 PPT 副本。实时 OLE 回写、插入和 Word／Excel 的 OLE 接入继续开发。
+
+构建后可使用 `build/chemoffice ole-extract 输入.pptx 输出.cdx` 提取首个 ChemDraw 对象，使用 `ole-export 输入.pptx 编辑后.cdx 新副本.pptx` 导出修改副本，或使用 `ole-new 源文件.cdx 新演示文稿.pptx` 创建含原生 OLE 对象的演示文稿。输出使用新文件名；Office 文档的保存仍由用户决定。`zsh scripts/test-ole.sh` 检查 OLE 与 PPT 文件格式。
+
+已在 Mac PowerPoint 验证：打开 `ole-new` 生成的演示文稿，复制其中的对象，再粘贴到另一份演示文稿并保存，仍保留 ChemDraw OLE 类别、完整 CDX 和可见预览。可用此路径继续进行 Windows ChemDraw 打开与编辑测试。
+
 ![ChemDraw Add-in for Mac 功能演示](assets/demo.gif)
 
 ## 安装与配置

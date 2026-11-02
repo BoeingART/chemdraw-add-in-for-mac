@@ -27,6 +27,121 @@ if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--is-running
     print(runningApplication(CommandLine.arguments[2]) == nil ? "no" : "yes")
     exit(0)
 }
+func cancelOfficeMenus(_ ax:AXUIElement) {
+    guard let raw = attribute(ax,kAXMenuBarAttribute) else { return }
+    var pending = [unsafeBitCast(raw,to:AXUIElement.self)], menus = [AXUIElement](), visited = 0
+    while let item = pending.popLast(), visited < 5000 {
+        visited += 1
+        if attribute(item,kAXRoleAttribute) as? String == "AXMenu" { menus.append(item) }
+        pending += attribute(item,kAXChildrenAttribute) as? [AXUIElement] ?? []
+    }
+    for menu in menus { _ = AXUIElementPerformAction(menu,kAXCancelAction as CFString) }
+}
+
+if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--select-office-shape" {
+    func failSelection(_ message:String) -> Never { fputs(message+"\n",stderr); exit(2) }
+    guard let app = runningApplication("com.microsoft.Powerpoint"), NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { failSelection(L("ole.selectionInactive")) }
+    let ax = AXUIElementCreateApplication(app.processIdentifier), expected = CommandLine.arguments[2]
+    cancelOfficeMenus(ax)
+    func descendants(_ root:AXUIElement) -> [AXUIElement] {
+        var result = [AXUIElement](), pending = [root]
+        while let item = pending.popLast(), result.count < 10000 {
+            result.append(item); pending += (attribute(item,kAXChildrenAttribute) as? [AXUIElement] ?? []).reversed()
+        }
+        return result
+    }
+    func targetRows() -> [AXUIElement] {
+        let windows = (attribute(ax,kAXWindowsAttribute) as? [AXUIElement] ?? []).filter { attribute($0,kAXTitleAttribute) as? String == CommandLine.arguments[3] }
+        guard windows.count == 1 else { return [] }
+        return descendants(windows[0]).filter { row in
+            attribute(row,kAXRoleAttribute) as? String == "AXRow" && descendants(row).contains { child in [kAXValueAttribute,kAXTitleAttribute,kAXDescriptionAttribute,kAXHelpAttribute].contains { name in (attribute(child,name) as? String) == expected } }
+        }
+    }
+    var rows = targetRows()
+    let hasRows = (attribute(ax,kAXWindowsAttribute) as? [AXUIElement] ?? []).contains { window in attribute(window,kAXTitleAttribute) as? String == CommandLine.arguments[3] && descendants(window).contains { attribute($0,kAXRoleAttribute) as? String == "AXRow" } }
+    if rows.isEmpty && !hasRows, let value = attribute(ax,kAXMenuBarAttribute) {
+        let bar = unsafeBitCast(value,to:AXUIElement.self)
+        let arrange = (attribute(bar,kAXChildrenAttribute) as? [AXUIElement] ?? []).first { ["Arrange","排列"].contains(attribute($0,kAXTitleAttribute) as? String ?? "") }
+        guard let arrange, AXUIElementPerformAction(arrange,kAXPressAction as CFString) == .success else { failSelection(L("ole.selectionMenu")) }
+        let menu = descendants(arrange).first {
+            let title = attribute($0,kAXTitleAttribute) as? String ?? ""
+            return ["Selection Pane","选择窗格","選取窗格"].contains { title.hasPrefix($0) }
+        }
+        guard let menu, AXUIElementPerformAction(menu,kAXPressAction as CFString) == .success else { failSelection(L("ole.selectionMenu")) }
+        let deadline = Date().addingTimeInterval(3)
+        repeat { RunLoop.main.run(until:Date().addingTimeInterval(0.05)); rows = targetRows() } while rows.isEmpty && Date() < deadline
+    }
+    let rowDeadline = Date().addingTimeInterval(3)
+    while rows.isEmpty && Date() < rowDeadline { RunLoop.main.run(until:Date().addingTimeInterval(0.05)); rows = targetRows() }
+    guard rows.count == 1 else { failSelection(L("ole.selectionRows",rows.count)) }
+    let row = rows[0]
+    let parent = attribute(row,kAXParentAttribute).map { unsafeBitCast($0,to:AXUIElement.self) }
+    if parent.map({ AXUIElementSetAttributeValue($0,kAXSelectedRowsAttribute as CFString,[row] as CFArray) }) != .success {
+        _ = AXUIElementPerformAction(row,"AXScrollToVisible" as CFString)
+        guard let rawPosition = attribute(row,kAXPositionAttribute), let rawSize = attribute(row,kAXSizeAttribute) else { failSelection(L("ole.selectionPosition")) }
+        var position = CGPoint.zero, size = CGSize.zero
+        guard AXValueGetValue(unsafeBitCast(rawPosition,to:AXValue.self),.cgPoint,&position), AXValueGetValue(unsafeBitCast(rawSize,to:AXValue.self),.cgSize,&size), size.width > 40, size.height > 0 else { failSelection(L("ole.selectionPosition")) }
+        let point = CGPoint(x:position.x+min(60,size.width/2),y:position.y+size.height/2)
+        CGWarpMouseCursorPosition(point)
+        for type in [CGEventType.leftMouseDown,.leftMouseUp] {
+            if let event = CGEvent(mouseEventSource:nil,mouseType:type,mouseCursorPosition:point,mouseButton:.left) {
+                event.flags = []; event.setIntegerValueField(.mouseEventClickState,value:1); event.post(tap:.cghidEventTap)
+            }
+        }
+    }
+    let deadline = Date().addingTimeInterval(3)
+    while Date() < deadline {
+        if attribute(row,kAXSelectedAttribute) as? Bool == true,
+           parent.map({ descendants($0).filter { attribute($0,kAXRoleAttribute) as? String == "AXRow" && attribute($0,kAXSelectedAttribute) as? Bool == true }.count }) == 1 { print("selected"); exit(0) }
+        RunLoop.main.run(until:Date().addingTimeInterval(0.02))
+    }
+    failSelection(L("ole.selectionTimeout"))
+}
+if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--focus-office-canvas" {
+    guard let app = runningApplication("com.microsoft.Powerpoint"), NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { exit(2) }
+    let ax = AXUIElementCreateApplication(app.processIdentifier)
+    cancelOfficeMenus(ax)
+    let windows = (attribute(ax,kAXWindowsAttribute) as? [AXUIElement] ?? []).filter { attribute($0,kAXTitleAttribute) as? String == CommandLine.arguments[2] }
+    guard windows.count == 1 else { exit(2) }
+    var pending = [windows[0]], visited = 0, canvases = [(AXUIElement,CGPoint,CGSize)]()
+    while let item = pending.popLast(), visited < 10000 {
+        visited += 1
+        pending += attribute(item,kAXChildrenAttribute) as? [AXUIElement] ?? []
+        if attribute(item,kAXRoleAttribute) as? String == "AXLayoutArea", let rawPosition = attribute(item,kAXPositionAttribute), let rawSize = attribute(item,kAXSizeAttribute) {
+            var position = CGPoint.zero, size = CGSize.zero
+            if AXValueGetValue(unsafeBitCast(rawPosition,to:AXValue.self),.cgPoint,&position), AXValueGetValue(unsafeBitCast(rawSize,to:AXValue.self),.cgSize,&size), size.width > 100, size.height > 100 { canvases.append((item,position,size)) }
+        }
+    }
+    guard let canvas = canvases.max(by:{ $0.2.width*$0.2.height < $1.2.width*$1.2.height }) else { exit(2) }
+    let point = CGPoint(x:canvas.1.x+canvas.2.width/2,y:canvas.1.y+canvas.2.height/2)
+    CGWarpMouseCursorPosition(point)
+    for type in [CGEventType.leftMouseDown,.leftMouseUp] {
+            if let event = CGEvent(mouseEventSource:nil,mouseType:type,mouseCursorPosition:point,mouseButton:.left) {
+                event.flags = []; event.setIntegerValueField(.mouseEventClickState,value:1); event.post(tap:.cghidEventTap)
+            }
+    }
+    RunLoop.main.run(until:Date().addingTimeInterval(0.1))
+    print("focused"); exit(0)
+}
+if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--office-clipboard" {
+    let action = CommandLine.arguments[2]
+    guard ["copy","paste"].contains(action), let app = runningApplication("com.microsoft.Powerpoint"), NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else { exit(2) }
+    cancelOfficeMenus(AXUIElementCreateApplication(app.processIdentifier))
+    let generation = NSPasteboard.general.changeCount
+    let code:CGKeyCode = action == "copy" ? 8 : 9
+    for down in [true,false] {
+        guard let event = CGEvent(keyboardEventSource:nil,virtualKey:code,keyDown:down) else { exit(2) }
+        event.flags = down ? .maskCommand : []
+        event.setIntegerValueField(.eventSourceUserData,value:0x43464d4f4c45)
+        event.postToPid(app.processIdentifier)
+    }
+    if action == "copy" {
+        let deadline = Date().addingTimeInterval(3)
+        while NSPasteboard.general.changeCount == generation && Date() < deadline { RunLoop.main.run(until:Date().addingTimeInterval(0.02)) }
+        guard NSPasteboard.general.changeCount != generation else { exit(2) }
+    }
+    print("performed"); exit(0)
+}
 if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-document" {
     let identifier = CommandLine.arguments[2]
     let document = URL(fileURLWithPath: CommandLine.arguments[3])
@@ -56,6 +171,7 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-docum
 if CommandLine.arguments.count == 4 && ["--activate-office", "--activate-window"].contains(CommandLine.arguments[1]) {
     guard let app = runningApplication(CommandLine.arguments[2]) else { exit(2) }
     let ax = AXUIElementCreateApplication(app.processIdentifier)
+    if app.bundleIdentifier == "com.microsoft.Powerpoint" { cancelOfficeMenus(ax) }
     guard let windows = attribute(ax, kAXWindowsAttribute) as? [AXUIElement] else { exit(2) }
     let expected = CommandLine.arguments[3]
     let matches = windows.filter { (attribute($0, kAXTitleAttribute) as? String) == expected }
@@ -63,14 +179,22 @@ if CommandLine.arguments.count == 4 && ["--activate-office", "--activate-window"
     app.activate(options: [])
     AXUIElementSetAttributeValue(matches[0], kAXMinimizedAttribute as CFString, kCFBooleanFalse)
     AXUIElementSetAttributeValue(matches[0], kAXMainAttribute as CFString, kCFBooleanTrue)
+    AXUIElementSetAttributeValue(matches[0], kAXFocusedAttribute as CFString, kCFBooleanTrue)
     guard AXUIElementPerformAction(matches[0], kAXRaiseAction as CFString) == .success else { exit(2) }
+    let deadline = Date().addingTimeInterval(3)
+    while Date() < deadline {
+        let focused = attribute(ax,kAXFocusedWindowAttribute).map { unsafeBitCast($0,to:AXUIElement.self) }
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier,
+           (focused.flatMap({ attribute($0,kAXTitleAttribute) as? String }) == expected || attribute(matches[0],kAXMainAttribute) as? Bool == true) { break }
+        RunLoop.main.run(until:Date().addingTimeInterval(0.02))
+    }
     print("activated")
     exit(0)
 }
 if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--focused" {
     let app = NSWorkspace.shared.frontmostApplication
     let ax = app.map { AXUIElementCreateApplication($0.processIdentifier) }
-    let window = ax.flatMap { attribute($0, kAXFocusedWindowAttribute) } as! AXUIElement?
+    let window = (ax.flatMap { attribute($0, kAXFocusedWindowAttribute) } as! AXUIElement?) ?? ax.flatMap { (attribute($0,kAXWindowsAttribute) as? [AXUIElement])?.first }
     emit(["bundle": app?.bundleIdentifier ?? "none", "title": window.flatMap { attribute($0, kAXTitleAttribute) as? String } ?? "none"])
     exit(0)
 }
@@ -345,6 +469,7 @@ func capturePaste(_ item:(String,Data,Int),host:String,menuPID:pid_t? = nil,menu
 }
 
 let callback: CGEventTapCallBack = { _, type, event, _ in
+    if event.getIntegerValueField(.eventSourceUserData) == 0x43464d4f4c45 { return Unmanaged.passUnretained(event) }
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
         if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
         emit(["event": "tapResumed"])

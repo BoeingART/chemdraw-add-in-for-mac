@@ -27,6 +27,10 @@ func appleQuote(_ value: String) -> String {
     "\"" + value.replacingOccurrences(of:"\\",with:"\\\\").replacingOccurrences(of:"\"",with:"\\\"").replacingOccurrences(of:"\r",with:"\\r").replacingOccurrences(of:"\n",with:"\\n") + "\""
 }
 protocol ChemistryAutomation: AnyObject {
+    var supportsNativeOLE: Bool { get }
+    var supportsNativeOLEWrite: Bool { get }
+    func captureOLE(_ document:String, target:String) throws -> Data
+    func transferOLE(_ action:String, arguments:[String], object:Data, pdf:Data?) throws
     func application() throws -> ChemDrawApplication
     func preferredApplication() throws -> ChemDrawApplication
     func useApplication(_ application: ChemDrawApplication)
@@ -43,9 +47,117 @@ protocol ChemistryAutomation: AnyObject {
     func activateOffice(_ host:String, _ document:String, _ id:String) throws -> String
 }
 extension ChemistryAutomation {
+    var supportsNativeOLE: Bool { false }
+    var supportsNativeOLEWrite: Bool { false }
+    func captureOLE(_ document:String, target:String) throws -> Data { throw ChemOfficeError(L("ole.unsupported")) }
+    func transferOLE(_ action:String, arguments:[String], object:Data, pdf:Data?) throws { throw ChemOfficeError(L("ole.unsupported")) }
     func preferredApplication() throws -> ChemDrawApplication { try application() }
 }
 class NativeAutomation: ChemistryAutomation {
+    var supportsNativeOLE: Bool { true }
+    var supportsNativeOLEWrite: Bool { ProcessInfo.processInfo.environment["CFM_NATIVE_OLE_WRITE"] == "1" }
+    // Office's internal clipboard references are process pointers. Keep them
+    // owned by Office during transfer; restore portable data after the operation.
+    func withClipboard<T>(_ body:() throws -> T) rethrows -> T {
+        let board = NSPasteboard.general
+        let focused = (try? JSONSerialization.jsonObject(with:command(monitor,["--focused"]))) as? [String:String]
+        let items = (board.pasteboardItems ?? []).map { item in
+            item.types.filter { type in
+                !type.rawValue.contains("-Internal-") && type.rawValue != "com.microsoft.DataObject" && !type.rawValue.hasPrefix("com.microsoft.ole.source.")
+            }.compactMap { type in item.data(forType:type).map { (type,$0) } }
+        }
+        defer {
+            board.clearContents()
+            let restored = items.map { values -> NSPasteboardItem in
+                let item = NSPasteboardItem(); for (type,data) in values { item.setData(data,forType:type) }; return item
+            }
+            board.writeObjects(restored)
+            if let bundle = focused?["bundle"], let title = focused?["title"], bundle != "com.microsoft.Powerpoint" {
+                _ = try? command(monitor,["--activate-window",bundle,title])
+            }
+        }
+        return try body()
+    }
+    func oleCommand(_ arguments:[String],_ step:String) throws {
+        do { try command(monitor,arguments) }
+        catch { throw ChemOfficeError(L(step,error.localizedDescription)) }
+    }
+    func captureOLE(_ document:String, target:String) throws -> Data {
+        try withClipboard {
+            NSPasteboard.general.clearContents()
+            let title = try focusOLEDocument(document)
+            let name = try office("ole-copy","powerpoint",[document,target])
+            if try office("ole-is-selected","powerpoint",[document,name]) != "yes" {
+                try oleCommand(["--select-office-shape",name,title],"ole.selectFailed")
+            }
+            try oleCommand(["--office-clipboard","copy"],"ole.copyFailed")
+            guard let object = NSPasteboard.general.data(forType:ChemDrawOLE.objectType) else { throw ChemOfficeError(L("ole.clipboard")) }
+            _ = try CompoundFile(object).chemdrawSource(); return object
+        }
+    }
+    @discardableResult func focusOLEDocument(_ document:String) throws -> String {
+        let title = try office("ole-window","powerpoint",[document])
+        if try office("ole-active","powerpoint",[document]) == "yes" { return title }
+        try oleCommand(["--activate-window",OfficeHost.powerpoint.bundle,title],"ole.focusFailed")
+        try oleCommand(["--focus-office-canvas",title],"ole.focusFailed")
+        let deadline = Date().addingTimeInterval(3)
+        repeat {
+            if try office("ole-active","powerpoint",[document]) == "yes" { return title }
+            Thread.sleep(forTimeInterval:0.1)
+        } while Date() < deadline
+        let path = try office("path","powerpoint",[document])
+        if path.hasPrefix("/"), FileManager.default.fileExists(atPath:path) {
+            try command(monitor,["--open-document",OfficeHost.powerpoint.bundle,path])
+            if try office("ole-active","powerpoint",[document]) == "yes" { return title }
+        }
+        throw ChemOfficeError(L("ole.selectionInactive"))
+    }
+    func transferOLE(_ action:String, arguments:[String], object:Data, pdf:Data?) throws {
+        try withClipboard {
+            try focusOLEDocument(arguments[0])
+            let preparation = try office(action+"-prepare","powerpoint",arguments).components(separatedBy:"\t")
+            try require(preparation.count == 6,L("ole.clipboard"))
+            let pending = "CFM_OLE_PENDING:"+UUID().uuidString.lowercased()
+            let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("CFM-OLE-"+UUID().uuidString).appendingPathExtension("pptx")
+            var openedTransport = false
+            defer {
+                if openedTransport { _ = try? office("ole-transport-close","powerpoint",[temporary.path]) }
+                try? FileManager.default.removeItem(at:temporary)
+            }
+            do {
+                let vector = try pdf.map { try pdfVectorSVG($0) } ?? blankDrawingSVG()
+                try ChemDrawOLE.transport(template:root.appendingPathComponent("assets/ole-transport.pptx"),object:object,vector:vector,id:arguments[1],marker:arguments[2]).write(to:temporary,options:.atomic)
+                try command(monitor,["--open-document",OfficeHost.powerpoint.bundle,temporary.path])
+                openedTransport = true
+                let sourceTitle = try focusOLEDocument(temporary.path)
+                let sourceName = try office("ole-copy","powerpoint",[temporary.path,arguments[1]])
+                try oleCommand(["--select-office-shape",sourceName,sourceTitle],"ole.selectFailed")
+                try oleCommand(["--office-clipboard","copy"],"ole.copyFailed")
+                if ProcessInfo.processInfo.environment["CFM_OLE_TRACE"] == "1" { fputs("source clipboard: \(NSPasteboard.general.types ?? [])\n",stderr) }
+                let targetTitle = try focusOLEDocument(arguments[0])
+                _ = try office("ole-target","powerpoint",arguments+preparation)
+                try oleCommand(["--focus-office-canvas",targetTitle],"ole.selectFailed")
+                if ProcessInfo.processInfo.environment["CFM_OLE_TRACE"] == "1" { fputs("before paste: \(try office("ole-debug","powerpoint",[]))\n",stderr) }
+                try oleCommand(["--office-clipboard","paste"],"ole.pasteFailed")
+                if ProcessInfo.processInfo.environment["CFM_OLE_TRACE"] == "1" { fputs("after paste: \(try office("ole-debug","powerpoint",[]))\n",stderr) }
+                let deadline = Date().addingTimeInterval(8)
+                var staged = false
+                repeat {
+                    let result = try office("ole-stage","powerpoint",arguments+preparation+[pending])
+                    if result == "staged" { staged = true; break }
+                    try require(result == "waiting",L("ole.clipboard"))
+                    Thread.sleep(forTimeInterval:0.1)
+                } while Date() < deadline
+                try require(staged,L("ole.clipboard"))
+                let actual = try captureOLE(arguments[0],target:pending)
+                try require(try CompoundFile(actual).chemdrawSource() == CompoundFile(object).chemdrawSource(),L("ole.clipboard"))
+                _ = try office(action+"-commit","powerpoint",arguments+[pending])
+            } catch {
+                _ = try? office("ole-discard","powerpoint",[arguments[0],pending])
+                throw error
+            }
+        }
+    }
     let root: URL
     var selected: ChemDrawApplication?
     var monitor: String { root.appendingPathComponent("build/event-monitor").path }
@@ -65,6 +177,7 @@ class NativeAutomation: ChemistryAutomation {
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
     }
     func office(_ action:String, _ host:String, _ arguments:[String] = []) throws -> String {
+        if ProcessInfo.processInfo.environment["CFM_OLE_TRACE"] == "1" { fputs("office action: \(action)\n",stderr) }
         try require(OfficeHost(rawValue:host) != nil,L("native.126"))
         if action == "selected", host == "excel", let name = selectedExcelDrawingName() { return name }
         // Query from a fresh AppKit process. The long-lived transaction worker
@@ -199,6 +312,7 @@ class NativeAutomation: ChemistryAutomation {
     }
     func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
         let pdf = try exportPDF(source,application:application)
+        if let pdf { try pdf.write(to:vector.deletingPathExtension().appendingPathExtension("pdf"),options:.atomic) }
         try (pdf.map { try pdfVectorSVG($0) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
     }
     func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? {

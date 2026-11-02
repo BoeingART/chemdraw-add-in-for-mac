@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "版本1.5.6 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Version 1.5.6 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "开发版2.0.0 · Apple Silicon + Intel · macOS 12或更新",
+    "en": "Development version 2.0.0 · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "修复保存后误关ChemDraw窗口、Office图片未更新的问题。⌘S和菜单“保存”同步原图片，并保持编辑窗口打开。",
-    "en": "Fix the ChemDraw editor closing and Office figures missing updates after Save. Command-S and menu Save synchronize the original figure and keep the editor open.",
+    "zh": "开发版新增Windows ChemDraw OLE源数据读取、编辑及PPT副本导出实验。OLE实时回写与插入仍在验证。",
+    "en": "This development build adds experiments for reading Windows ChemDraw OLE source, editing it, and exporting PowerPoint copies. Live OLE write-back and insertion are under validation.",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2548,6 +2548,161 @@
     "en": "ChemDraw returned an invalid PDF preview. Copy the structure again and retry.",
     "locations": [
       "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.storage": {
+    "zh": "OLE对象的数据目录损坏或超出可处理范围。请重新打开原文档后重试。",
+    "en": "The OLE storage is damaged or exceeds the supported size. Reopen the original document and retry.",
+    "locations": [
+      "src/NativeOLE.swift",
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.notChemDraw": {
+    "zh": "选中的OLE对象不包含ChemDraw结构。请选中ChemDraw绘图。",
+    "en": "The selected OLE object has no ChemDraw structure. Select a ChemDraw drawing.",
+    "locations": [
+      "src/NativeOLE.swift",
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.cdx": {
+    "zh": "OLE对象需要CDX结构数据。请在ChemDraw中重新复制结构后粘贴。",
+    "en": "OLE objects need CDX source data. Copy the structure again in ChemDraw and paste.",
+    "locations": [
+      "src/NativeOLE.swift",
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.clipboard": {
+    "zh": "Office未提供完整的OLE对象数据。请重新选中绘图后重试。",
+    "en": "Office did not provide a complete OLE object. Select the drawing again and retry.",
+    "locations": [
+      "src/NativeOLE.swift",
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.unsupported": {
+    "zh": "当前Office应用的OLE编辑接口尚未接入。",
+    "en": "OLE editing is not connected for this Office application.",
+    "locations": [
+      "src/NativeOLE.swift",
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.script.0": {
+    "en": "The selected shape is not an embedded OLE object",
+    "zh": "选中的绘图不是嵌入式OLE对象。请重新选择ChemDraw绘图。",
+    "script_error": "The selected shape is not an embedded OLE object",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ]
+  },
+  "ole.script.1": {
+    "en": "PowerPoint did not insert exactly one OLE object; source retained",
+    "zh": "PowerPoint插入的OLE对象数量异常，已保留结构源数据。请重试。",
+    "script_error": "PowerPoint did not insert exactly one OLE object; source retained",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ]
+  },
+  "ole.script.2": {
+    "en": "PowerPoint pasted a picture instead of an OLE object; please retry",
+    "zh": "PowerPoint将结构粘贴成了普通图片。请重新复制结构后重试。",
+    "script_error": "PowerPoint pasted a picture instead of an OLE object; please retry",
+    "locations": [
+      "office/powerpoint/adapter.applescript"
+    ]
+  },
+  "ole.selectionInactive": {
+    "zh": "无法激活目标PowerPoint窗口。请关闭弹出的对话框后重试。",
+    "en": "The target PowerPoint window could not be activated. Close any open dialog and retry.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "ole.selectionMenu": {
+    "zh": "无法打开PowerPoint选择窗格。请在“排列”菜单打开“选择窗格”后重试。",
+    "en": "The PowerPoint Selection Pane could not be opened. Open Selection Pane from Arrange and retry.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "ole.selectionRows": {
+    "zh": "无法唯一定位选择窗格中的绘图（匹配项：{0}）。请重新选中原绘图后重试。",
+    "en": "The drawing could not be uniquely located in Selection Pane ({0} matches). Select the original drawing and retry.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "ole.selectionPosition": {
+    "zh": "无法定位PowerPoint选择窗格中的绘图位置。请展开窗口后重试。",
+    "en": "The drawing row position is unavailable. Expand the PowerPoint window and retry.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "ole.selectionTimeout": {
+    "zh": "PowerPoint未完成绘图选择。请重新选中原绘图后重试。",
+    "en": "PowerPoint did not complete the drawing selection. Select the original drawing and retry.",
+    "locations": [
+      "src/EventMonitor.swift"
+    ]
+  },
+  "ole.copyFailed": {
+    "zh": "读取PowerPoint绘图失败：{0}",
+    "en": "Reading the PowerPoint drawing failed: {0}",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.selectFailed": {
+    "zh": "选择PowerPoint绘图失败：{0}",
+    "en": "Selecting the PowerPoint drawing failed: {0}",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.pasteFailed": {
+    "zh": "插入PowerPoint OLE对象失败：{0}",
+    "en": "Inserting the PowerPoint OLE object failed: {0}",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.focusFailed": {
+    "zh": "定位PowerPoint窗口失败：{0}",
+    "en": "Locating the PowerPoint window failed: {0}",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
+  },
+  "ole.writeDisabled": {
+    "zh": "已保留ChemDraw编辑草稿。此开发版的OLE实时回写仍在验证，请使用OLE实验工具导出PPT副本。",
+    "en": "The ChemDraw editing draft is retained. Live OLE write-back is under validation in this development build. Use the OLE experiment tool to export a PowerPoint copy.",
+    "locations": [
+      "src/NativeBridge.swift"
+    ]
+  },
+  "ole.usage": {
+    "zh": "用法：ole-extract <PPTX> <CDX输出>；ole-export <PPTX> <CDX> <PPTX副本>；ole-new <CDX> <PPTX输出>",
+    "en": "Usage: ole-extract <PPTX> <CDX output>; ole-export <PPTX> <CDX> <PPTX copy>; ole-new <CDX> <PPTX output>",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "ole.newOutput": {
+    "zh": "请选择尚不存在的输出文件名，原文档和源文件会保留。",
+    "en": "Choose a new output filename. The original document and source file are retained.",
+    "locations": [
+      "src/NativeMain.swift"
+    ]
+  },
+  "ole.exported": {
+    "zh": "已导出：{0}",
+    "en": "Exported: {0}",
+    "locations": [
+      "src/NativeMain.swift"
     ]
   }
 }

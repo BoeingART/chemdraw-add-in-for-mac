@@ -311,8 +311,8 @@ Your ChemDraw."
 300	manifest.help	office/addin/manifest.xml	打开ChemDraw Add-in for Mac面板，编辑所选绘图、检查连接状态及查看使用说明。	Open the ChemDraw Add-in for Mac panel to edit the selected drawing, check connection status, and view instructions.		
 301	system.automation	packaging/Info.plist	ChemDraw Add-in for Mac控制ChemDraw、Word、PowerPoint和Excel，在本机编辑化学结构并回写到文档。	ChemDraw Add-in for Mac controls ChemDraw, Word, PowerPoint and Excel to edit chemical drawings locally and write them back to your document.		
 302	installer.welcome.0	packaging/Welcome.html	ChemDraw Add-in for Mac	ChemDraw Add-in for Mac		
-303	installer.welcome.1	packaging/Welcome.html	版本1.5.6 · Apple Silicon + Intel · macOS 12或更新	Version 1.5.6 · Apple Silicon + Intel · macOS 12 or later		
-304	installer.welcome.2	packaging/Welcome.html	修复保存后误关ChemDraw窗口、Office图片未更新的问题。⌘S和菜单“保存”同步原图片，并保持编辑窗口打开。	Fix the ChemDraw editor closing and Office figures missing updates after Save. Command-S and menu Save synchronize the original figure and keep the editor open.		
+303	installer.welcome.1	packaging/Welcome.html	开发版2.0.0 · Apple Silicon + Intel · macOS 12或更新	Development version 2.0.0 · Apple Silicon + Intel · macOS 12 or later		
+304	installer.welcome.2	packaging/Welcome.html	开发版新增Windows ChemDraw OLE源数据读取、编辑及PPT副本导出实验。OLE实时回写与插入仍在验证。	This development build adds experiments for reading Windows ChemDraw OLE source, editing it, and exporting PowerPoint copies. Live OLE write-back and insertion are under validation.		
 305	installer.welcome.3	packaging/Welcome.html	升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。	Choose Check for Updates and confirm to download, replace and reopen the app automatically.		
 306	installer.welcome.4	packaging/Welcome.html	安装后自动打开“设置加载项”，按系统提示允许Office文件访问，完成五项检查后即可使用。	Add-in Setup opens automatically after installation. Allow Office file access when prompted, then complete the five checks to start using the app.		
 307	installer.welcome.5	packaging/Welcome.html	已有绘图、连接证书及恢复草稿继续保留。从旧版升级时，按系统提示确认辅助功能和自动化授权。	Existing drawings, connection certificates, and recovery drafts are retained. When upgrading from an older version, confirm Accessibility and Automation access when prompted.		
@@ -366,3 +366,24 @@ Your ChemDraw."
 351	app.quitFailed	src/NativeApplication.swift	应用退出未完成	Application Could Not Quit		
 352	app.stopFailed	src/NativeApplication.swift	助手未能在10秒内停止。请稍后重试退出应用。	The helper did not stop within 10 seconds. Try quitting the app again shortly.		
 353	native.pdfOutput	src/NativeAutomation.swift	ChemDraw返回的PDF预览无效。请重新复制结构后重试。	ChemDraw returned an invalid PDF preview. Copy the structure again and retry.		
+354	ole.storage	src/NativeOLE.swift；src/NativeAutomation.swift	OLE对象的数据目录损坏或超出可处理范围。请重新打开原文档后重试。	The OLE storage is damaged or exceeds the supported size. Reopen the original document and retry.		
+355	ole.notChemDraw	src/NativeOLE.swift；src/NativeAutomation.swift	选中的OLE对象不包含ChemDraw结构。请选中ChemDraw绘图。	The selected OLE object has no ChemDraw structure. Select a ChemDraw drawing.		
+356	ole.cdx	src/NativeOLE.swift；src/NativeAutomation.swift	OLE对象需要CDX结构数据。请在ChemDraw中重新复制结构后粘贴。	OLE objects need CDX source data. Copy the structure again in ChemDraw and paste.		
+357	ole.clipboard	src/NativeOLE.swift；src/NativeAutomation.swift	Office未提供完整的OLE对象数据。请重新选中绘图后重试。	Office did not provide a complete OLE object. Select the drawing again and retry.		
+358	ole.unsupported	src/NativeOLE.swift；src/NativeAutomation.swift	当前Office应用的OLE编辑接口尚未接入。	OLE editing is not connected for this Office application.		
+359	ole.script.0	office/powerpoint/adapter.applescript	选中的绘图不是嵌入式OLE对象。请重新选择ChemDraw绘图。	The selected shape is not an embedded OLE object		
+360	ole.script.1	office/powerpoint/adapter.applescript	PowerPoint插入的OLE对象数量异常，已保留结构源数据。请重试。	PowerPoint did not insert exactly one OLE object; source retained		
+361	ole.script.2	office/powerpoint/adapter.applescript	PowerPoint将结构粘贴成了普通图片。请重新复制结构后重试。	PowerPoint pasted a picture instead of an OLE object; please retry		
+362	ole.selectionInactive	src/EventMonitor.swift	无法激活目标PowerPoint窗口。请关闭弹出的对话框后重试。	The target PowerPoint window could not be activated. Close any open dialog and retry.		
+363	ole.selectionMenu	src/EventMonitor.swift	无法打开PowerPoint选择窗格。请在“排列”菜单打开“选择窗格”后重试。	The PowerPoint Selection Pane could not be opened. Open Selection Pane from Arrange and retry.		
+364	ole.selectionRows	src/EventMonitor.swift	无法唯一定位选择窗格中的绘图（匹配项：{0}）。请重新选中原绘图后重试。	The drawing could not be uniquely located in Selection Pane ({0} matches). Select the original drawing and retry.		
+365	ole.selectionPosition	src/EventMonitor.swift	无法定位PowerPoint选择窗格中的绘图位置。请展开窗口后重试。	The drawing row position is unavailable. Expand the PowerPoint window and retry.		
+366	ole.selectionTimeout	src/EventMonitor.swift	PowerPoint未完成绘图选择。请重新选中原绘图后重试。	PowerPoint did not complete the drawing selection. Select the original drawing and retry.		
+367	ole.copyFailed	src/NativeAutomation.swift	读取PowerPoint绘图失败：{0}	Reading the PowerPoint drawing failed: {0}		
+368	ole.selectFailed	src/NativeAutomation.swift	选择PowerPoint绘图失败：{0}	Selecting the PowerPoint drawing failed: {0}		
+369	ole.pasteFailed	src/NativeAutomation.swift	插入PowerPoint OLE对象失败：{0}	Inserting the PowerPoint OLE object failed: {0}		
+370	ole.focusFailed	src/NativeAutomation.swift	定位PowerPoint窗口失败：{0}	Locating the PowerPoint window failed: {0}		
+371	ole.writeDisabled	src/NativeBridge.swift	已保留ChemDraw编辑草稿。此开发版的OLE实时回写仍在验证，请使用OLE实验工具导出PPT副本。	The ChemDraw editing draft is retained. Live OLE write-back is under validation in this development build. Use the OLE experiment tool to export a PowerPoint copy.		
+372	ole.usage	src/NativeMain.swift	用法：ole-extract <PPTX> <CDX输出>；ole-export <PPTX> <CDX> <PPTX副本>；ole-new <CDX> <PPTX输出>	Usage: ole-extract <PPTX> <CDX output>; ole-export <PPTX> <CDX> <PPTX copy>; ole-new <CDX> <PPTX output>		
+373	ole.newOutput	src/NativeMain.swift	请选择尚不存在的输出文件名，原文档和源文件会保留。	Choose a new output filename. The original document and source file are retained.		
+374	ole.exported	src/NativeMain.swift	已导出：{0}	Exported: {0}		

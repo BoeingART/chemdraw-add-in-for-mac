@@ -2,6 +2,9 @@
 import Cocoa
 
 class TestAutomation: ChemistryAutomation {
+    var supportsNativeOLE = false
+    var supportsNativeOLEWrite = false
+    var nativeOLE: Data?
     let app = ChemDrawApplication(path:"/Applications/ChemDraw 30.app",bundle:"example.ChemDraw.30",version:"30")
     var document = "", savedDocument = "", tag = "", finalSource = Data("<CDXML><page><t>FINAL Z</t></page></CDXML>".utf8)
     var renderedSavedSource: Data?
@@ -13,10 +16,17 @@ class TestAutomation: ChemistryAutomation {
     var vector = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"100\" viewBox=\"0 0 200 100\"><path d=\"M10 20L150 80\" stroke=\"black\"/></svg>".utf8)
     func application() throws -> ChemDrawApplication { app }
     func useApplication(_ application:ChemDrawApplication) { calls.append("use:"+application.path) }
+    func captureOLE(_ document:String,target:String) throws -> Data {
+        calls.append("captureOLE")
+        guard let nativeOLE else { throw ChemOfficeError("No native OLE source") }
+        return nativeOLE
+    }
     func office(_ action:String, _ host:String, _ arguments:[String]) throws -> String {
         calls.append(action)
         if action == failure { throw ChemOfficeError("Injected "+action+" failure") }
         switch action {
+        case "ole-kind": return nativeOLE == nil ? "picture" : "ole"
+        case "ole-claim": tag = arguments[2]; return "ok"
         case "document-status": statusTargets.append((host,arguments[0])); return documentStatus
         case "context": return document
         case "payload": return tag
@@ -77,6 +87,26 @@ class TestAutomation: ChemistryAutomation {
             driver.tag = try encodeSource(Data("<CDXML><page><t>old</t></page></CDXML>".utf8))
             if !liveVerification { bridge.verify = { _,_,_,_,_ in ["verified":true] } }
             return (bridge,driver)
+        }
+        try check("A Windows OLE selection opens its CDX and retains the original storage") {
+            let (bridge,driver) = try fixture()
+            driver.supportsNativeOLE = true
+            let source = Data("VjCD0100".utf8)+Data(repeating:0,count:22)
+            driver.nativeOLE = try ChemDrawOLE.create(source:source,preview:renderPNG(driver.vector))
+            try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Object 1")
+            let path = URL(fileURLWithPath:bridge.session!.path)
+            try require(path.pathExtension == "cdx" && Data(contentsOf:path) == source && driver.opened,"OLE source did not reach the editor")
+            try require(try Data(contentsOf:path.deletingLastPathComponent().appendingPathComponent("original.ole")) == driver.nativeOLE,"Original OLE storage was lost")
+            driver.finalSource = source+Data([1,2,3]); try driver.finalSource.write(to:path)
+            driver.calls.removeAll()
+            try rejects { try bridge.save(SavedDrawingChange(id:bridge.session!.id,path:path.path,source:driver.finalSource)) }
+            try require(driver.opened && bridge.session != nil && Data(contentsOf:path) == driver.finalSource,"Pending native OLE edit was lost")
+            try require(!driver.calls.contains("update") && !driver.calls.contains("savedSnapshot"),"Disabled native writer replaced the OLE with a picture")
+        }
+        try check("An invalid native OLE capture leaves the original shape unclaimed") {
+            let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.nativeOLE = Data([1,2,3])
+            try rejects { try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Object 1") }
+            try require(bridge.session == nil && !driver.calls.contains("ole-claim") && !driver.opened,"Invalid capture modified Office or opened a draft")
         }
         try check("A resumed edit keeps its latest retained draft") {
             let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)

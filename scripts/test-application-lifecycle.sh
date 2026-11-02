@@ -6,7 +6,7 @@ cd "$CFM_PROJECT"
 mkdir -p build
 CFM_LIFECYCLE_BINARY="${CFM_LIFECYCLE_BINARY:-$CFM_PROJECT/build/test-application-lifecycle}"
 CFM_SOURCES=()
-for CFM_SOURCE in NativeLocalization OfficeHost NativeExcelSelection NativeStrings NativePaths NativeCore ChemDrawDiscovery NativePDFVector NativeAutomation NativeSetup NativeActivity NativeUpdates NativeUpdateDownload NativeAppUpdate NativeInstaller NativeLoginItem NativeMenuIcon NativeApplication; do
+for CFM_SOURCE in NativeLocalization OfficeHost NativeExcelSelection NativeStrings NativePaths NativeCore NativeOLE ChemDrawDiscovery NativePDFVector NativeAutomation NativeSetup NativeActivity NativeUpdates NativeUpdateDownload NativeAppUpdate NativeInstaller NativeLoginItem NativeMenuIcon NativeApplication; do
     CFM_SOURCES+=("src/$CFM_SOURCE.swift")
 done
 xcrun swiftc -O $CFM_SOURCES tests/native/ApplicationLifecycleTests.swift -o "$CFM_LIFECYCLE_BINARY" -framework Cocoa -framework Security -framework ServiceManagement

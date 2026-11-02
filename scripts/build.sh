@@ -14,7 +14,7 @@ if [[ "${1:-}" == --universal ]]; then CFM_ARCHS=(arm64 x86_64); fi
 cp "$PROJECT_DIR/src/EventMonitor.swift" "$PROJECT_DIR/build/main.swift"
 CFM_OPT=(-O -whole-module-optimization -Xlinker -dead_strip)
 CFM_COMMON=()
-for CFM_SOURCE in NativeLocalization OfficeHost NativeExcelSelection NativeStrings NativePaths NativeCore ChemDrawDiscovery NativePDFVector NativeAutomation NativeSetup NativeActivity NativeUpdates NativeUpdateDownload NativeAppUpdate; do
+for CFM_SOURCE in NativeLocalization OfficeHost NativeExcelSelection NativeStrings NativePaths NativeCore NativeOLE ChemDrawDiscovery NativePDFVector NativeAutomation NativeSetup NativeActivity NativeUpdates NativeUpdateDownload NativeAppUpdate; do
     CFM_COMMON+=("$PROJECT_DIR/src/$CFM_SOURCE.swift")
 done
 for CFM_ARCH in $CFM_ARCHS; do

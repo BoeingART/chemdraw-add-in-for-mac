@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.0 — Development
+
+- Add PowerPoint file experiments for extracting Windows ChemDraw OLE drawings, editing their CDX source in Mac ChemDraw, and exporting presentation copies with Windows ChemDraw OLE objects and vector previews.
+- Add commands to extract a drawing, export an edited presentation copy, and create a new OLE presentation from a Mac CDX file. Existing output files are retained.
+- Keep live OLE replacement and insertion behind a development switch while PowerPoint window selection is investigated. Existing editable picture paste and save synchronization remain the default.
+
 ## v1.5.6 — 2026-11-01
 
 - Fix background Office lifecycle checks incorrectly closing the ChemDraw editor and skipping image updates after Save. Command-S and menu Save keep the editing window open and synchronize the original Office figure.

@@ -14,6 +14,12 @@ Copy a chemical structure in ChemDraw, paste an editable drawing into Word, Powe
 
 ## Demo
 
+This branch is the **2.0.0 development version**, adding Windows ChemDraw OLE file experiments. Extraction to CDX, editing in Mac ChemDraw, and exporting PowerPoint copies with OLE source and vector previews have been checked. Live OLE replacement, insertion, and Word/Excel OLE integration are in development.
+
+After building, use `build/chemoffice ole-extract input.pptx output.cdx` to extract the first ChemDraw object, `ole-export input.pptx edited.cdx new-copy.pptx` to export an edited copy, or `ole-new source.cdx new-presentation.pptx` to create an OLE presentation. Choose new output filenames. Users control when Office documents are saved. Run `zsh scripts/test-ole.sh` for the OLE and PowerPoint format checks.
+
+Checked in Mac PowerPoint: open an `ole-new` presentation, copy its object, paste into another presentation, and save. The saved object retains its ChemDraw OLE class, complete CDX source, and visible preview. This provides a path for further opening and editing tests with Windows ChemDraw.
+
 ![ChemDraw Add-in for Mac demo](assets/demo.gif)
 
 ## Install and configure
