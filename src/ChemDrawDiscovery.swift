@@ -10,10 +10,11 @@ struct ChemDrawApplication: Codable, Equatable {
         guard url.pathExtension.lowercased() == "app",
               let app = Bundle(url: url), let identifier = app.bundleIdentifier,
               app.executableURL.map({ FileManager.default.isExecutableFile(atPath: $0.path) }) == true else { return nil }
-        let name = app.object(forInfoDictionaryKey: "CFBundleName") as? String ?? url.deletingPathExtension().lastPathComponent
-        let pattern = #"(?i)(?:^|[.\s_-])chemdraw(?:$|[.\s_\d-])"#
-        guard identifier.range(of: pattern, options: .regularExpression) != nil ||
-              name.range(of: pattern, options: .regularExpression) != nil else { return nil }
+        // A Windows application shared by Parallels also has an .app wrapper
+        // named ChemDraw. Only the native editor's publisher identifiers qualify;
+        // display names also match this add-in, launchers and preview helpers.
+        let pattern = #"(?i)^com\.(?:cambridgesoft|camsoft|perkinelmer|revvity)\.chemdraw(?:\.\d+)*$"#
+        guard identifier.range(of: pattern, options: .regularExpression) != nil else { return nil }
         let version = app.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
             ?? app.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
         return ChemDrawApplication(path: url.resolvingSymlinksInPath().path, bundle: identifier, version: version)

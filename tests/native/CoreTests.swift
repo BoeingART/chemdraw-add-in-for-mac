@@ -20,6 +20,21 @@ import Cocoa
             try require(try encodeSource(source,id:id) == old,"Wire format changed")
         }
         let cdx = try Data(contentsOf:root.appendingPathComponent("tests/fixtures/clipboard-ethanol.cdx"))
+        try check("Captured CDX document settings retain their own drawing defaults") {
+            let settings = try ChemDrawSourceSettings(cdx)
+            try require(settings.numbers["fixed length"] == 600 && settings.numbers["line width"] == 20 && settings.numbers["label size"] == 240,"Native document defaults were replaced by ACS defaults")
+            try require(settings.fonts["label font"] == "Arial" && settings.columns == 1,"Native font table or page grid was lost")
+            try require(settings.printMargins.top == 36 && settings.printMargins.left == 36 && settings.printMargins.bottom == 36 && settings.printMargins.right == 36,"Native print margins were lost")
+        }
+        try check("Custom CDXML fonts, widths and page grids are independent of the default template") {
+            let custom = Data("<CDXML BondLength=\"21\" LineWidth=\"1.2\" LabelFont=\"12\" LabelSize=\"14\" CaptionFont=\"13\" CaptionSize=\"9\"><fonttable><font id=\"12\" name=\"Helvetica\"/><font id=\"13\" name=\"Times New Roman\"/></fonttable><page WidthPages=\"3\" HeightPages=\"15\"/></CDXML>".utf8)
+            let settings = try ChemDrawSourceSettings(custom)
+            try require(settings.numbers["fixed length"] == 420 && settings.numbers["line width"] == 24 && settings.numbers["label size"] == 280 && settings.numbers["caption size"] == 180,"Custom drawing units changed")
+            try require(settings.fonts == ["label font":"Helvetica","caption font":"Times New Roman"] && settings.columns == 3,"Custom fonts/page layout changed")
+            let asymmetric = try ChemDrawSourceSettings(Data("<CDXML PrintMargins=\"10 20 30 40\"><page/></CDXML>".utf8))
+            try require(asymmetric.printMargins.top == 20 && asymmetric.printMargins.left == 10 && asymmetric.printMargins.bottom == 40 && asymmetric.printMargins.right == 30,"CDXML margins used binary CDX coordinate order")
+            for end in [23,29,34,50,cdx.count/2] { try rejects { _ = try ChemDrawSourceSettings(Data(cdx.prefix(end))) } }
+        }
         try check("Native CDX and both object identities round-trip") {
             try require(try decodeSource(encodeSource(cdx,id:id)).source == cdx,"CDX mismatch")
             for tag in ["CFM1_"+id,"ChemOffice Drawing:"+id] { try require(try objectID(tag) == id,"Identity mismatch") }

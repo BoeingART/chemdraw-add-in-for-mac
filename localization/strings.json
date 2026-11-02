@@ -2549,5 +2549,12 @@
     "locations": [
       "src/NativeAutomation.swift"
     ]
+  },
+  "native.drawingSettings": {
+    "zh": "无法恢复此结构的原始绘图设置（{0}）。请保留编辑草稿并重试打开。",
+    "en": "Could not restore this drawing’s original settings ({0}). Keep the editing draft and retry opening.",
+    "locations": [
+      "src/NativeAutomation.swift"
+    ]
   }
 }

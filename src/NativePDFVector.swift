@@ -605,10 +605,41 @@ private final class PDFVectorWriter {
         return PDFVectorPreview(svg:svg,bounds:bounds)
     }
 }
-func pdfVectorPreview(_ data:Data,cropToContent:Bool = true) throws -> PDFVectorPreview {
-    guard data.starts(with:Data("%PDF-".utf8)), data.count <= 48 * 1024 * 1024, let provider = CGDataProvider(data:data as CFData), let pdf = CGPDFDocument(provider), pdf.numberOfPages == 1, let page = pdf.page(at:1) else { throw PDFVectorError(operation:"PDF page") }
+func pdfVectorPreview(_ data:Data,cropToContent:Bool = true,columns:Int = 1,pageMargins:NSEdgeInsets = .init()) throws -> PDFVectorPreview {
+    guard data.starts(with:Data("%PDF-".utf8)), data.count <= 48 * 1024 * 1024, let provider = CGDataProvider(data:data as CFData), let pdf = CGPDFDocument(provider), (1...1024).contains(pdf.numberOfPages), let page = pdf.page(at:1) else { throw PDFVectorError(operation:"PDF page") }
+    if pdf.numberOfPages > 1 {
+        // Older ChemDraw exports the source document's whole print grid even
+        // when the captured CDX contains only a small selection. Join every PDF
+        // tile before cropping, so selections on later pages or across a page
+        // boundary survive. Quartz embeds the original vector streams/fonts.
+        let columns = min(max(columns,1),pdf.numberOfPages), rows = (pdf.numberOfPages+columns-1)/columns
+        func drawingBox(_ tile:CGPDFPage) -> CGRect {
+            let box = tile.getBoxRect(.mediaBox).intersection(tile.getBoxRect(.cropBox))
+            return CGRect(x:box.minX+pageMargins.left,y:box.minY+pageMargins.bottom,width:box.width-pageMargins.left-pageMargins.right,height:box.height-pageMargins.top-pageMargins.bottom)
+        }
+        var width:CGFloat = 0, height:CGFloat = 0
+        for index in 1...pdf.numberOfPages {
+            guard let tile = pdf.page(at:index), tile.rotationAngle == 0 else { throw PDFVectorError(operation:"page bounds") }
+            let box = drawingBox(tile)
+            guard !box.isNull, box.width > 0, box.height > 0 else { throw PDFVectorError(operation:"page bounds") }
+            width = max(width,box.width); height = max(height,box.height)
+        }
+        var bounds = CGRect(x:0,y:0,width:width*CGFloat(columns),height:height*CGFloat(rows))
+        guard bounds.width.isFinite, bounds.height.isFinite, bounds.width <= 1_000_000, bounds.height <= 1_000_000 else { throw PDFVectorError(operation:"page bounds") }
+        let joined = NSMutableData()
+        guard let consumer = CGDataConsumer(data:joined as CFMutableData), let context = CGContext(consumer:consumer,mediaBox:&bounds,nil) else { throw PDFVectorError(operation:"PDF page") }
+        context.beginPDFPage(nil)
+        for index in 0..<pdf.numberOfPages {
+            let tile = pdf.page(at:index+1)!, box = drawingBox(tile)
+            context.saveGState()
+            context.translateBy(x:CGFloat(index%columns)*width-box.minX,y:CGFloat(rows-1-index/columns)*height-box.minY)
+            context.clip(to:box); context.drawPDFPage(tile); context.restoreGState()
+        }
+        context.endPDFPage(); context.closePDF()
+        return try pdfVectorPreview(joined as Data,cropToContent:cropToContent)
+    }
     return try PDFVectorWriter().convert(page,cropToContent:cropToContent)
 }
-func pdfVectorSVG(_ data:Data,cropToContent:Bool = true) throws -> Data {
-    try pdfVectorPreview(data,cropToContent:cropToContent).svg
+func pdfVectorSVG(_ data:Data,cropToContent:Bool = true,columns:Int = 1,pageMargins:NSEdgeInsets = .init()) throws -> Data {
+    try pdfVectorPreview(data,cropToContent:cropToContent,columns:columns,pageMargins:pageMargins).svg
 }

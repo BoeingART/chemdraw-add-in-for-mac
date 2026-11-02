@@ -48,10 +48,8 @@ class NativeBridge {
                 if FileManager.default.fileExists(atPath:previous.path) {
                     session = previous; session?.busy = false
                     if let app = previous.chemApplication { automation.useApplication(app) }
-                    else {
-                        let app = try automation.application()
-                        session?.chemApplication = app; session?.chemBundle = app.bundle
-                    }
+                    let app = try automation.application()
+                    session?.chemApplication = app; session?.chemBundle = app.bundle
                     record("session_resumed",["drawing_id":previous.id])
                 }
             }

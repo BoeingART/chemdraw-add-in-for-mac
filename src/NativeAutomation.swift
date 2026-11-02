@@ -59,7 +59,11 @@ class NativeAutomation: ChemistryAutomation {
         if let selected, ChemDrawApplication.inspect(URL(fileURLWithPath:selected.path)) == selected { return selected }
         selected = nil; return try application()
     }
-    func useApplication(_ application:ChemDrawApplication) { selected = application }
+    func useApplication(_ application:ChemDrawApplication) {
+        // Recheck persisted session targets as well as fresh discovery. Older
+        // sessions may have pinned a Windows integration wrapper by its name.
+        selected = ChemDrawApplication.inspect(URL(fileURLWithPath:application.path))
+    }
     func script(_ body:String, _ arguments:[String], timeout:TimeInterval = 45) throws -> String {
         let data = try command("/usr/bin/osascript",["-e",NativeLocalization.appleScript("on run argv\n"+body+"\nend run"),"--"]+arguments,timeout:timeout)
         return String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
@@ -77,6 +81,19 @@ class NativeAutomation: ChemistryAutomation {
     }
     func open(_ path:URL) throws {
         let app = try application()
+        // Restore captured document defaults only for a newly opened editor.
+        // Resuming an existing window must keep subsequent unsaved settings.
+        let existing = try isOpen(path)
+        let settings = try existing ? nil : ChemDrawSourceSettings(Data(contentsOf:path))
+        var restore = ""
+        if let settings {
+            let assignments = settings.numbers.mapValues(String.init).merging(settings.fonts.mapValues(appleQuote)) { _,new in new }
+            for property in assignments.keys.sorted() {
+                let value = assignments[property]!
+                restore += "if \(property) of d is not \(value) then set \(property) of d to \(value)\n"
+                restore += "if \(property) of d is not \(value) then error \(appleQuote(L("native.drawingSettings",property)))\n"
+            }
+        }
         try command(monitor,["--open-document",app.path,path.path])
         _ = try script("""
         with timeout of 40 seconds
@@ -87,8 +104,8 @@ class NativeAutomation: ChemistryAutomation {
                 repeat with d in documents
                     try
                         if POSIX path of ((file of d) as alias) is targetPath then
-                            set index of window of d to 1
                             set targetFound to true
+                            exit repeat
                         end if
                     end try
                 end repeat
@@ -96,6 +113,8 @@ class NativeAutomation: ChemistryAutomation {
                 delay 0.1
             end repeat
             if not targetFound then error "ChemDraw did not open the managed source"
+            \(restore)
+            set index of window of d to 1
             activate
         end tell
         end timeout
@@ -199,7 +218,8 @@ class NativeAutomation: ChemistryAutomation {
     }
     func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
         let pdf = try exportPDF(source,application:application)
-        try (pdf.map { try pdfVectorSVG($0) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
+        let settings = try ChemDrawSourceSettings(Data(contentsOf:source))
+        try (pdf.map { try pdfVectorSVG($0,columns:settings.columns,pageMargins:settings.printMargins) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
     }
     func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? {
         guard let executable = Bundle(url:URL(fileURLWithPath:application.path))?.executableURL else { return nil }

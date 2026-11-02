@@ -20,10 +20,15 @@ import Cocoa
         try app("ChemDraw 22", "22.0", "com.perkinelmer.ChemDraw.22")
         try app("ChemDraw 30", "30.2", "com.revvity.ChemDraw")
         try app("Unrelated", "99", "example.Other")
+        try app("ChemDraw 99 Windows", "99.0", "com.parallels.winapp.ChemDraw.exe")
+        try app("ChemDraw VMware", "99.1", "com.vmware.proxyApp.ChemDraw")
+        try app("ChemDraw Add-in for Mac", "100", "com.chemdraw_addin.mac")
+        try app("ChemDraw Preview", "100", "com.revvity.ChemDraw.QuickLook")
         let found = ChemDrawApplication.installed(roots: [root], spotlight: false)
         precondition(found.map(\.version) == ["30.2", "22.0", "9.0"], "Numeric version ordering or discovery failed")
         precondition(found.first?.path.hasSuffix("ChemDraw 30.app") == true)
         precondition(ChemDrawApplication.installed(roots: [root.appendingPathComponent("missing")], spotlight: false).isEmpty)
-        print("Passed: discover old/new ChemDraw identifiers, choose newest numerically, reject unrelated apps, handle no installation")
+        precondition(ChemDrawApplication.inspect(root.appendingPathComponent("ChemDraw 99 Windows.app")) == nil)
+        print("Passed: native ChemDraw discovery and numeric ordering; Windows/VM launchers, add-in and preview helpers rejected")
     }
 }

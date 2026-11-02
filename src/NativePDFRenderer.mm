@@ -75,10 +75,10 @@ static int render(NSString *application, NSString *source) {
             error.localizedDescription ?: @"ChemDraw returned an invalid PDF preview");
     CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)pdf);
     CGPDFDocumentRef preview = CGPDFDocumentCreateWithProvider(provider);
-    bool valid = preview && CGPDFDocumentGetNumberOfPages(preview) == 1;
+    bool valid = preview && CGPDFDocumentGetNumberOfPages(preview) > 0 && CGPDFDocumentGetNumberOfPages(preview) <= 1024;
     if (preview) CGPDFDocumentRelease(preview);
     CGDataProviderRelease(provider);
-    require(valid, @"ChemDraw did not return a single-page PDF preview");
+    require(valid, @"ChemDraw did not return a readable PDF preview with 1–1024 pages");
     require([input isEqualToData:[NSData dataWithContentsOfURL:url]], @"The captured ChemDraw source changed during preview generation");
     [NSFileHandle.fileHandleWithStandardOutput writeData:pdf];
     return 0;

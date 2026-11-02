@@ -32,7 +32,7 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-docum
     let document = URL(fileURLWithPath: CommandLine.arguments[3])
     let applicationURL = identifier.hasPrefix("/") ? URL(fileURLWithPath: identifier) : NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
     guard FileManager.default.fileExists(atPath: document.path),
-          let application = applicationURL, FileManager.default.fileExists(atPath: application.path) else {
+          let application = applicationURL, ChemDrawApplication.inspect(application) != nil else {
         fputs(L("native.000"), stderr)
         exit(2)
     }
