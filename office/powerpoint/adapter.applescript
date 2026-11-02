@@ -16,26 +16,76 @@ end selectedOLETag
 
 on existingID(p)
     tell application id "com.microsoft.Powerpoint"
-        repeat with shapeIndex from 1 to (count of shapes of slide master of p)
-            set markerName to name of shape shapeIndex of slide master of p
+        set markerNames to get name of every shape of slide master of p
+        repeat with markerName in markerNames
             if markerName starts with "CFM_DOCUMENT_ID:" then return text 17 thru -1 of markerName
         end repeat
         return ""
     end tell
 end existingID
 
+on hintSeparator(valueText)
+    return offset of "|" in valueText
+end hintSeparator
+
 on matchesDocument(p, referenceText)
-    if referenceText starts with "cfm-document:" then return "cfm-document:" & my existingID(p) is referenceText
+    if referenceText starts with "cfm-document:" then
+        set boundary to my hintSeparator(referenceText)
+        if boundary > 0 then set referenceText to text 1 thru (boundary - 1) of referenceText
+        return "cfm-document:" & my existingID(p) is referenceText
+    end if
     tell application id "com.microsoft.Powerpoint" to return full name of p is referenceText
 end matchesDocument
 
+on documentStamp()
+    tell application id "com.microsoft.Powerpoint" to set paths to get full name of every presentation
+    set stampText to ""
+    repeat with pathText in paths
+        set pathValue to pathText as text
+        set stampText to stampText & (length of pathValue) & ":" & pathValue
+    end repeat
+    return stampText
+end documentStamp
+
+on hintedDocumentIndex(referenceText)
+    if referenceText does not start with "cfm-document:" or referenceText does not contain "|" then return 0
+    try
+        set boundary to my hintSeparator(referenceText)
+        set identityText to text 1 thru (boundary - 1) of referenceText
+        set hintText to text (boundary + 1) thru -1 of referenceText
+        set boundary to my hintSeparator(hintText)
+        set hintedIndex to (text 1 thru (boundary - 1) of hintText) as integer
+        set expectedStamp to text (boundary + 1) thru -1 of hintText
+        if my documentStamp() is expectedStamp then
+            tell application id "com.microsoft.Powerpoint" to set p to presentation hintedIndex
+            if my matchesDocument(p, identityText) then return hintedIndex
+        end if
+    end try
+    return 0
+end hintedDocumentIndex
+
 on findDocument(referenceText)
     tell application id "com.microsoft.Powerpoint"
+        -- Validate the full document list and stable ID before using an index.
+        -- Save As, opening a copy and closing documents invalidate this hint.
+        set hintedIndex to my hintedDocumentIndex(referenceText)
+        if hintedIndex > 0 then return presentation hintedIndex
+        if referenceText starts with "cfm-document:" and referenceText contains "|" then
+            set boundary to my hintSeparator(referenceText)
+            set referenceText to text 1 thru (boundary - 1) of referenceText
+        end if
         set matches to {}
-        repeat with documentIndex from 1 to (count of presentations)
-            set p to presentation documentIndex
-            if my matchesDocument(p, referenceText) then set end of matches to p
-        end repeat
+        if referenceText does not start with "cfm-document:" then
+            set paths to get full name of every presentation
+            repeat with documentIndex from 1 to (count paths)
+                if item documentIndex of paths is referenceText then set end of matches to presentation documentIndex
+            end repeat
+        else
+            repeat with documentIndex from 1 to (count of presentations)
+                set p to presentation documentIndex
+                if my matchesDocument(p, referenceText) then set end of matches to p
+            end repeat
+        end if
         if (count matches) is not 1 then error "The original PowerPoint presentation is no longer uniquely available"
         return item 1 of matches
     end tell
@@ -66,12 +116,17 @@ on run argv
     end if
     tell application id "com.microsoft.Powerpoint"
         if actionName is "document-status" then
+            set hintedIndex to my hintedDocumentIndex(item 2 of argv)
+            if hintedIndex > 0 then return "open" & tab & (hintedIndex as string) & tab & my documentStamp()
             set matchingCount to 0
             repeat with documentIndex from 1 to (count of presentations)
-                if my matchesDocument(presentation documentIndex, item 2 of argv) then set matchingCount to matchingCount + 1
+                if my matchesDocument(presentation documentIndex, item 2 of argv) then
+                    set matchingCount to matchingCount + 1
+                    set matchingIndex to documentIndex as integer
+                end if
             end repeat
             if matchingCount is 0 then return "closed"
-            if matchingCount is 1 then return "open"
+            if matchingCount is 1 then return "open" & tab & (matchingIndex as string) & tab & my documentStamp()
             return "ambiguous"
         else if actionName is "demo" then
             if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
@@ -120,29 +175,38 @@ on run argv
         else if actionName is "ole-window" then
             set p to my findDocument(item 2 of argv)
             return name of p
-        else if actionName is "ole-copy-direct" or actionName is "ole-claim" or actionName is "ole-kind" then
+        else if actionName is "ole-copy-direct" or actionName is "ole-capture" or actionName is "ole-transport-copy-close" or actionName is "ole-claim" or actionName is "ole-kind" then
             set p to my findDocument(item 2 of argv)
             set targetText to item 3 of argv
             set matches to {}
             repeat with slideIndex from 1 to (count slides of p)
                 set s to slide slideIndex of p
-                repeat with pictureIndex from 1 to (count shapes of s)
-                    set pic to shape pictureIndex of s
-                    set rawTag to "ChemOffice OLE Selection:" & (slide ID of s as string) & ":" & name of pic
-                    if rawTag is targetText or name of pic is targetText or my matchesSource(name of pic, targetText) then set end of matches to {slideIndex as integer, pictureIndex as integer}
+                set pictureNames to get name of every shape of s
+                set slidePrefix to "ChemOffice OLE Selection:" & (slide ID of s as string) & ":"
+                repeat with pictureIndex from 1 to (count pictureNames)
+                    set pictureName to item pictureIndex of pictureNames
+                    set rawTag to slidePrefix & pictureName
+                    if rawTag is targetText or pictureName is targetText or my matchesSource(pictureName, targetText) then set end of matches to {slideIndex as integer, pictureIndex as integer}
                 end repeat
             end repeat
             if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to slide (item 1 of item 1 of matches) of p
             set pic to shape (item 2 of item 1 of matches) of s
+            set pictureProperties to properties of pic
             if actionName is "ole-kind" then
-                if shape type of pic is shape type embedded OLE control then return "ole"
+                if shape type of pictureProperties is shape type embedded OLE control then return "ole"
                 return "picture"
             end if
-            if shape type of pic is not shape type embedded OLE control then error "The selected shape is not an embedded OLE object"
-            if actionName is "ole-copy-direct" then
+            if actionName is "ole-capture" and shape type of pictureProperties is not shape type embedded OLE control then return "picture"
+            if shape type of pictureProperties is not shape type embedded OLE control then error "The selected shape is not an embedded OLE object"
+            if actionName is "ole-copy-direct" or actionName is "ole-capture" or actionName is "ole-transport-copy-close" then
                 copy shape pic
-                return name of pic
+                if actionName is "ole-transport-copy-close" then
+                    close p saving no
+                    if my matchesDocument(active presentation, item 4 of argv) then return "ready"
+                    return "copied"
+                end if
+                return (slide ID of s as string) & tab & ((count shapes of s) as string) & tab & (left position of pictureProperties as string) & tab & (top of pictureProperties as string) & tab & (width of pictureProperties as string) & tab & (rotation of pictureProperties as string)
             else
                 set name of pic to item 4 of argv
             end if
@@ -162,9 +226,9 @@ on run argv
                 set matches to {}
                 repeat with slideIndex from 1 to (count slides of p)
                     set candidateSlide to slide slideIndex of p
-                    repeat with pictureIndex from 1 to (count shapes of candidateSlide)
-                        set pic to shape pictureIndex of candidateSlide
-                        if my matchesSource(name of pic, figureID) then set end of matches to {candidateSlide, pic}
+                    set pictureNames to get name of every shape of candidateSlide
+                    repeat with pictureIndex from 1 to (count pictureNames)
+                        if my matchesSource(item pictureIndex of pictureNames, figureID) then set end of matches to {candidateSlide, shape pictureIndex of candidateSlide}
                     end repeat
                 end repeat
                 if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
@@ -182,7 +246,7 @@ on run argv
             set p to my findDocument(item 2 of argv)
             close p saving no
             return "closed"
-        else if actionName is "ole-paste-direct" or actionName is "ole-stage" then
+        else if actionName is "ole-paste-direct" or actionName is "ole-stage" or actionName is "ole-paste-stage" then
             set p to my findDocument(item 2 of argv)
             set targetID to (item 6 of argv) as integer
             set foundSlides to {}
@@ -192,12 +256,16 @@ on run argv
             if (count foundSlides) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to slide (item 1 of foundSlides) of p
             set previousCount to (item 7 of argv) as integer
-            if actionName is "ole-paste-direct" then
+            if actionName is "ole-paste-direct" or actionName is "ole-paste-stage" then
                 if (count shapes of s) is not previousCount then error "Original image identity changed; retained both versions"
                 if not my matchesDocument(active presentation, item 2 of argv) then error "The target PowerPoint document changed before paste"
                 go to slide view of active window number (item 1 of foundSlides)
                 paste object view of active window
-                return "pasted"
+                if actionName is "ole-paste-direct" then return "pasted"
+                repeat 80 times
+                    if (count shapes of s) is not previousCount then exit repeat
+                    delay 0.1
+                end repeat
             end if
             if (count shapes of s) is previousCount then return "waiting"
             if (count shapes of s) is not previousCount + 1 then error "PowerPoint did not insert exactly one OLE object; source retained"
@@ -208,11 +276,8 @@ on run argv
             end if
             set name of newPic to item 12 of argv
             set lock aspect ratio of newPic to false
-            set left position of newPic to (item 8 of argv) as real
-            set top of newPic to (item 9 of argv) as real
-            set width of newPic to (item 10 of argv) as real
-            set height of newPic to ((item 10 of argv) as real) * ((item 5 of argv) as real)
-            if ((item 11 of argv) as real) is not 0 then set rotation of newPic to (item 11 of argv) as real
+            set properties of newPic to {left position:(item 8 of argv) as real, top:(item 9 of argv) as real, width:(item 10 of argv) as real, height:((item 10 of argv) as real) * ((item 5 of argv) as real), rotation:(item 11 of argv) as real}
+            if actionName is "ole-paste-stage" then copy shape newPic
             return "staged"
         else if actionName is "ole-discard" then
             set p to my findDocument(item 2 of argv)
@@ -230,10 +295,11 @@ on run argv
             set oldMatches to {}
             repeat with slideIndex from 1 to (count slides of p)
                 set s to slide slideIndex of p
-                repeat with pictureIndex from 1 to (count shapes of s)
-                    set pic to shape pictureIndex of s
-                    if name of pic is (item 6 of argv) then set end of newMatches to {slideIndex as integer, pictureIndex as integer}
-                    if my matchesSource(name of pic, item 3 of argv) then set end of oldMatches to {slideIndex as integer, pictureIndex as integer}
+                set pictureNames to get name of every shape of s
+                repeat with pictureIndex from 1 to (count pictureNames)
+                    set pictureName to item pictureIndex of pictureNames
+                    if pictureName is (item 6 of argv) then set end of newMatches to {slideIndex as integer, pictureIndex as integer}
+                    if my matchesSource(pictureName, item 3 of argv) then set end of oldMatches to {slideIndex as integer, pictureIndex as integer}
                 end repeat
             end repeat
             if (count newMatches) is not 1 then error "Cannot uniquely identify the inserted preview; source retained"
@@ -244,10 +310,13 @@ on run argv
             end if
             set s to slide (item 1 of item 1 of newMatches) of p
             set name of shape (item 6 of argv) of s to item 4 of argv
-            repeat with pictureIndex from (count shapes of s) to 1 by -1
-                if name of shape pictureIndex of s is "CFM_OLE_ANCHOR:" & (item 3 of argv) then delete shape pictureIndex of s
+            set pictureNames to get name of every shape of s
+            repeat with pictureIndex from (count pictureNames) to 1 by -1
+                if item pictureIndex of pictureNames is "CFM_OLE_ANCHOR:" & (item 3 of argv) then delete shape pictureIndex of s
             end repeat
-            return "committed"
+            set committedPic to shape (item 4 of argv) of s
+            set committedProperties to properties of committedPic
+            return (name of committedProperties) & tab & (width of committedProperties as string) & tab & (height of committedProperties as string)
         else if actionName is "payload" or actionName is "inspect" or actionName is "update" then
             set docs to {}
             repeat with documentIndex from 1 to (count of presentations)
@@ -259,17 +328,18 @@ on run argv
             set matches to {}
             repeat with slideIndex from 1 to (count of slides of p)
                 set s to slide slideIndex of p
-                repeat with pictureIndex from 1 to (count of shapes of s)
-                    set pic to shape pictureIndex of s
-                    if my matchesSource(name of pic, item 3 of argv) then set end of matches to {s, pic}
+                set pictureNames to get name of every shape of s
+                repeat with pictureIndex from 1 to (count pictureNames)
+                    if my matchesSource(item pictureIndex of pictureNames, item 3 of argv) then set end of matches to {s, shape pictureIndex of s}
                 end repeat
             end repeat
             if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to item 1 of item 1 of matches
             set oldPic to item 2 of item 1 of matches
             set dataBoxes to {}
-            repeat with pictureIndex from 1 to (count of shapes of s)
-                if name of shape pictureIndex of s is dataName then set end of dataBoxes to shape pictureIndex of s
+            set pictureNames to get name of every shape of s
+            repeat with pictureIndex from 1 to (count pictureNames)
+                if item pictureIndex of pictureNames is dataName then set end of dataBoxes to shape pictureIndex of s
             end repeat
             if (count dataBoxes) > 1 then error "Ambiguous legacy ChemDraw source"
             if actionName is "payload" then

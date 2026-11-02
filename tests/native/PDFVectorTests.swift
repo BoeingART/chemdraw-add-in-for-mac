@@ -31,6 +31,14 @@ func testPDF(bounds pageBounds:CGRect = CGRect(x:0,y:0,width:200,height:100),_ d
             c.setStrokeColor(CGColor(red:0.8,green:0.2,blue:0.5,alpha:1)); c.setLineWidth(3); c.setLineDash(phase:1,lengths:[5,2])
             c.move(to:CGPoint(x:0,y:0)); c.addCurve(to:CGPoint(x:150,y:50),control1:CGPoint(x:10,y:100),control2:CGPoint(x:120,y:80)); c.strokePath(); c.restoreGState()
         }
+        try check("Even-odd rounded clip holes preserve white interiors and offset shadows") { c in
+            c.addRect(CGRect(x:5,y:5,width:185,height:90))
+            c.addPath(CGPath(roundedRect:CGRect(x:20,y:20,width:145,height:65),cornerWidth:10,cornerHeight:10,transform:nil))
+            c.clip(using:.evenOdd)
+            c.setFillColor(CGColor(gray:0.75,alpha:1))
+            c.addPath(CGPath(roundedRect:CGRect(x:25,y:15,width:145,height:65),cornerWidth:10,cornerHeight:10,transform:nil))
+            c.fillPath()
+        }
         for (name,text) in [("ArialMT","CH3 αβγ±"),("PingFangSC-Regular","化学结构")] {
             try check("Embedded \(name) glyphs preserve Unicode outlines and text positions") { c in
                 let font = CTFontCreateWithName(name as CFString,18,nil), characters = Array(text.utf16)

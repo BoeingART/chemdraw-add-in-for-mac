@@ -41,7 +41,7 @@ final class NativeSavedChanges {
     init(state:URL,onChange:@escaping (SavedDrawingChange)->Void) { self.state = state; self.onChange = onChange }
     func start() {
         let timer = DispatchSource.makeTimerSource(queue:queue)
-        timer.schedule(deadline:.now()+0.2,repeating:0.2)
+        timer.schedule(deadline:.now()+0.1,repeating:0.1)
         timer.setEventHandler { [weak self] in self?.poll() }
         self.timer = timer; timer.resume()
     }

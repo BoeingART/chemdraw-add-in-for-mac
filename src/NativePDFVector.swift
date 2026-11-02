@@ -293,7 +293,13 @@ private final class PDFVectorWriter {
         }
         if let rule = pendingClip {
             let id = "pdfclip\(nextClip)"; nextClip += 1
-            definitions += "<clipPath id=\"\(id)\"><path d=\"\(pdfPath(path))\" transform=\"\(pdfMatrix(state.transform))\" clip-rule=\"\(rule)\"/></clipPath>"
+            var clipPath:CGPath = path, clipRule = rule
+            // AppKit's SVG renderer fills even-odd clip holes as solid regions.
+            // Normalised contours express the same holes with either fill rule.
+            if rule == "evenodd", #available(macOS 13.0,*) {
+                clipPath = path.normalized(using:.evenOdd); clipRule = "nonzero"
+            }
+            definitions += "<clipPath id=\"\(id)\"><path d=\"\(pdfPath(clipPath))\" transform=\"\(pdfMatrix(state.transform))\" clip-rule=\"\(clipRule)\"/></clipPath>"
             state.clips.append(id); pendingClip = nil
             var transform = state.transform
             let bounds = path.copy(using:&transform)?.boundingBoxOfPath ?? .null

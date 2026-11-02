@@ -220,13 +220,21 @@ enum ChemDrawOLE {
         for value in [40,width,height] { dib.appendLE(value) }
         dib.appendLE(1,count:2); dib.appendLE(24,count:2)
         for value in [0,stride*height,3780,3780,0,0] { dib.appendLE(value) }
-        for y in (0..<height).reversed() {
-            for x in 0..<width {
-                let color = bitmap.colorAt(x:x,y:y)!.usingColorSpace(.deviceRGB)!
-                dib.append(contentsOf:[color.blueComponent,color.greenComponent,color.redComponent].map { UInt8(max(0,min(255,($0*255).rounded()))) })
+        // renderImage supplies opaque RGBA bytes. Convert rows directly rather
+        // than allocating and colour-converting an NSColor for every pixel.
+        guard let rgba = bitmap.bitmapData else { throw ChemOfficeError(L("native.196")) }
+        var pixels = Data(count:stride*height)
+        pixels.withUnsafeMutableBytes { (destination:UnsafeMutableRawBufferPointer) in
+            let bytes = destination.bindMemory(to:UInt8.self)
+            for y in 0..<height {
+                let source = rgba.advanced(by:(height-1-y)*bitmap.bytesPerRow)
+                for x in 0..<width {
+                    let offset = y*stride+x*3
+                    bytes[offset] = source[x*4+2]; bytes[offset+1] = source[x*4+1]; bytes[offset+2] = source[x*4]
+                }
             }
-            dib.append(Data(count:stride-width*3))
         }
+        dib.append(pixels)
         var result = Data()
         for value in [0xffffffff,8,4,1,0xffffffff,2,0,width,height,dib.count] { result.appendLE(value) }
         result.append(dib); return result

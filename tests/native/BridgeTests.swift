@@ -139,6 +139,7 @@ class TestAutomation: ChemistryAutomation {
                 let path = URL(fileURLWithPath:bridge.session!.path), document = bridge.session!.document
                 driver.finalSource = source+Data([1,2,3]); try driver.finalSource.write(to:path)
                 if failTransfer { driver.failure = "transferOLE" }
+                driver.calls.removeAll()
                 let save = { try bridge.save(SavedDrawingChange(id:bridge.session!.id,path:path.path,source:driver.finalSource)) }
                 if failTransfer { try rejects(save); try require(driver.nativeOLE == original,"Failed native transfer changed the original") }
                 else {
@@ -148,7 +149,21 @@ class TestAutomation: ChemistryAutomation {
                 }
                 try require(driver.opened && bridge.session != nil && Data(contentsOf:path) == driver.finalSource,"OLE save lost the editor or its latest input")
                 try require(driver.calls.contains("ole-update") && !driver.calls.contains("update") && !driver.calls.contains("close"),"Native save used the picture replacement or close path")
+                try require(driver.calls.filter { $0 == "captureOLE" }.count == 1,"Native save recaptured the same original OLE")
             }
+        }
+        try check("A conflicting native OLE edit retains both the Office version and the editor draft") {
+            let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.supportsNativeOLEWrite = true
+            let source = Data("VjCD0100".utf8)+Data(repeating:0,count:22), preview = try renderPNG(driver.vector)
+            driver.nativeOLE = try ChemDrawOLE.create(source:source,preview:preview)
+            try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Object 1")
+            let path = URL(fileURLWithPath:bridge.session!.path)
+            driver.finalSource = source+Data([1]); try driver.finalSource.write(to:path)
+            let conflicting = try ChemDrawOLE.create(source:source+Data([2]),preview:preview,original:driver.nativeOLE)
+            driver.nativeOLE = conflicting; driver.calls.removeAll()
+            try rejects { try bridge.save(SavedDrawingChange(id:bridge.session!.id,path:path.path,source:driver.finalSource)) }
+            try require(driver.nativeOLE == conflicting && driver.opened && bridge.session != nil,"Conflicting native save lost Office content or the editor")
+            try require(!driver.calls.contains("ole-update") && Data(contentsOf:path) == driver.finalSource,"Conflicting native save overwrote Office or the pending draft")
         }
         try check("Native OLE paste retains a captured vector when no PDF rendering was needed") {
             let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.supportsNativeOLEWrite = true

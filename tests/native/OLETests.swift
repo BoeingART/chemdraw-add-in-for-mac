@@ -24,6 +24,15 @@ import Cocoa
         let presentation = try small.read(streams["\u{2}OlePres000"]!)
         try check(try presentation.integer(4,4) == 8 && presentation.integer(40,4) == 40,"OLE preview is not a DIB")
         try check(try presentation.integer(36,4) == presentation.count-40,"OLE preview length is wrong")
+        // DIB rows are bottom-up BGR; the renderer's input is top-down RGBA.
+        // Include transparency to check that Office receives an opaque canvas.
+        let colours = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><path fill=\"#ff0000\" d=\"M0 0h5v5H0z\"/><path fill=\"#0000ff\" d=\"M5 0h5v5H5z\"/><path fill=\"#00ff00\" d=\"M0 5h5v5H0z\"/></svg>".utf8)
+        let coloured = try ChemDrawOLE.presentation(colours)
+        let dibWidth = try coloured.integer(44,4), dibHeight = try coloured.integer(48,4), rowBytes = (dibWidth*3+3)/4*4
+        for (x,y,bgr) in [(256,256,[0,0,255]),(768,256,[255,0,0]),(256,768,[0,255,0]),(768,768,[255,255,255])] {
+            let offset = 80+(dibHeight-1-y)*rowBytes+x*3
+            try check(Array(coloured[offset..<offset+3]) == bgr.map(UInt8.init),"OLE DIB changed colours, row order or transparency")
+        }
         // Cross the mini-stream cutoff in both directions and preserve metadata.
         let largeSource = source+Data(repeating:42,count:12000)
         let large = try CompoundFile(ChemDrawOLE.create(source:largeSource,preview:preview,original:original))

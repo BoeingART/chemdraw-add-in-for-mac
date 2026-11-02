@@ -2,6 +2,9 @@
 
 ## v2.0.0 — Development
 
+- Speed up PowerPoint OLE save synchronization with a warm background preview renderer, batched Office operations and validated document lookup reuse. Keep ChemDraw in front while loading and closing the temporary OLE transport in the background.
+- Preserve rounded-box shadow cutouts in previews on macOS 13 and later.
+
 - Handle original unmarked Windows ChemDraw OLE double-clicks before PowerPoint's system OLE activation. Classify source in the transaction worker and retain native handling for foreign OLE objects without changing document markers or drafts.
 - Add PowerPoint file experiments for extracting Windows ChemDraw OLE drawings, editing their CDX source in Mac ChemDraw, and exporting presentation copies with Windows ChemDraw OLE objects and vector previews.
 - Add commands to extract a drawing, export an edited presentation copy, and create a new OLE presentation from a Mac CDX file. Existing output files are retained.

@@ -7,6 +7,7 @@
 #include <dlfcn.h>
 #include <stdexcept>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 @protocol CFMDocumentPDF <NSObject>
 - (instancetype)initWithDocument:(NSDocument *)document;
@@ -28,7 +29,7 @@ static void validateCode(NSURL *url) {
     require(status == errSecSuccess, [NSString stringWithFormat:@"ChemDraw preview component failed signature validation (%d): %@", (int)status, url.lastPathComponent]);
 }
 
-static int render(NSString *application, NSString *source) {
+static void loadApplication(NSString *application) {
     NSURL *app = [NSURL fileURLWithPath:application isDirectory:YES];
     validateCode(app);
     NSArray<NSString *> *libraries = @[
@@ -52,6 +53,9 @@ static int render(NSString *application, NSString *source) {
     require(context != nullptr, @"This ChemDraw SDK has no preview context entry point");
     require(context() != nullptr, @"ChemDraw could not initialise its preview context");
 
+}
+
+static NSData *render(NSString *source) {
     Class documentClass = NSClassFromString(@"CDDocument"), generatorClass = NSClassFromString(@"CDPDFGenerator");
     require([documentClass isSubclassOfClass:NSDocument.class] &&
             [generatorClass instancesRespondToSelector:@selector(initWithDocument:)] &&
@@ -80,7 +84,51 @@ static int render(NSString *application, NSString *source) {
     CGDataProviderRelease(provider);
     require(valid, @"ChemDraw did not return a single-page PDF preview");
     require([input isEqualToData:[NSData dataWithContentsOfURL:url]], @"The captured ChemDraw source changed during preview generation");
-    [NSFileHandle.fileHandleWithStandardOutput writeData:pdf];
+    [document close];
+    return pdf;
+}
+
+// A private, pipe-only worker keeps the validated SDK and its font services
+// warm. Requests use immutable snapshot paths; no live editor is opened.
+static void writeFrame(NSData *data) {
+    uint32_t length = htonl((uint32_t)data.length);
+    [NSFileHandle.fileHandleWithStandardOutput writeData:[NSData dataWithBytes:&length length:4]];
+    [NSFileHandle.fileHandleWithStandardOutput writeData:data];
+}
+
+static int serve(NSString *application, NSString *warmup) {
+    loadApplication(application);
+    if (warmup) {
+        @autoreleasepool {
+            @try { try { (void)render(warmup); } catch (...) {} }
+            @catch (NSException *exception) {}
+        }
+    }
+    char *line = nullptr;
+    size_t capacity = 0;
+    while (true) {
+        alarm(300);
+        ssize_t length = getline(&line, &capacity, stdin);
+        if (length < 0) break;
+        alarm(20);
+        @autoreleasepool {
+            try {
+                @try {
+                    require(length <= 65536, @"Invalid preview request");
+                    NSData *request = [NSData dataWithBytes:line length:(NSUInteger)length];
+                    id path = [NSJSONSerialization JSONObjectWithData:request options:NSJSONReadingFragmentsAllowed error:nil];
+                    require([path isKindOfClass:NSString.class], @"Invalid preview path");
+                    writeFrame(render(path));
+                } @catch (NSException *exception) {
+                    throw std::runtime_error(exception.reason.UTF8String ?: "ChemDraw preview exception");
+                }
+            } catch (const std::exception &error) {
+                writeFrame(NSData.data);
+                writeFrame([@(error.what()) dataUsingEncoding:NSUTF8StringEncoding]);
+            }
+        }
+    }
+    free(line);
     return 0;
 }
 
@@ -90,8 +138,11 @@ int main(int argc, const char **argv) {
         alarm(20);
         try {
             @try {
-                require(argc == 3, @"Usage: chemdraw-renderer application-path captured-source-path");
-                return render(@(argv[1]), @(argv[2]));
+                require(argc == 3 || (argc == 4 && strcmp(argv[1], "--server") == 0), @"Usage: chemdraw-renderer application-path captured-source-path");
+                if (strcmp(argv[1], "--server") == 0) return serve(@(argv[2]), argc == 4 ? @(argv[3]) : nil);
+                loadApplication(@(argv[1]));
+                [NSFileHandle.fileHandleWithStandardOutput writeData:render(@(argv[2]))];
+                return 0;
             } @catch (NSException *exception) {
                 throw std::runtime_error(exception.reason.UTF8String ?: "ChemDraw preview exception");
             }

@@ -80,7 +80,7 @@ func activatePowerPointWindow(_ ax:AXUIElement,title:String) -> Bool {
     return selected
 }
 
-if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-document" {
+if CommandLine.arguments.count == 4 && ["--open-document","--open-document-background"].contains(CommandLine.arguments[1]) {
     let identifier = CommandLine.arguments[2]
     let document = URL(fileURLWithPath: CommandLine.arguments[3])
     let applicationURL = identifier.hasPrefix("/") ? URL(fileURLWithPath: identifier) : NSWorkspace.shared.urlForApplication(withBundleIdentifier: identifier)
@@ -90,7 +90,8 @@ if CommandLine.arguments.count == 4 && CommandLine.arguments[1] == "--open-docum
         exit(2)
     }
     let configuration = NSWorkspace.OpenConfiguration()
-    configuration.activates = true
+    configuration.activates = CommandLine.arguments[1] == "--open-document"
+    if !configuration.activates { configuration.addsToRecentItems = false }
     var completed = false
     var failure: Error?
     NSWorkspace.shared.open([document], withApplicationAt: application, configuration: configuration) { _, error in

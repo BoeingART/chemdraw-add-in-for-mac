@@ -91,6 +91,7 @@ class NativeBridge {
         return saved.tag
     }
     func verifyOpenFigure(_ document:String, host:String, id:String, source:Data, expected:Data) throws -> [String:Any] {
+        if host == "powerpoint", let evidence = try automation.verifiedOLETransfer(document,id:id,source:source,expected:expected) { return evidence }
         let fields = try automation.office("inspect",host,[document,id]).components(separatedBy:"\t")
         try require(fields.count == 3,L("native.132"))
         let envelope = try payload(host,document,id,marker:fields[0])
@@ -321,17 +322,16 @@ class NativeBridge {
             let expected = try Data(contentsOf:image)
             try require(expected.starts(with:[137,80,78,71,13,10,26,10]),L("native.142"))
             let newTag = try encodeSource(source,id:current.id)
-            let oldTag = try payload(current.host,current.document,current.id)
+            let nativeOLE = current.host == "powerpoint" && automation.supportsNativeOLEWrite && source.starts(with:Data("VjCD0100".utf8))
+            let original = nativeOLE ? try automation.captureEditableOLE(current.document,target:current.id) : nil
+            let oldTag = try original.map { try encodeSource(CompoundFile($0).chemdrawSource(),id:current.id) }
+                ?? payload(current.host,current.document,current.id)
             try require(oldTag == current.originalTag || oldTag == newTag,L("native.143"))
             let vector = try Data(contentsOf:image.deletingPathExtension().appendingPathExtension("svg"))
             let carrier = try createCarrier(source,id:current.id,vector:vector)
             try carrier.svg.write(to:directory.appendingPathComponent("figure-\(UUID().uuidString).svg"))
             let marker = try cacheFigure(carrier.svg)
-            if current.host == "powerpoint" && automation.supportsNativeOLEWrite && source.starts(with:Data("VjCD0100".utf8)) {
-                let isOLE = try automation.office("ole-kind",current.host,[current.document,current.id]) == "ole"
-                let original = isOLE ? try automation.captureOLE(current.document,target:current.id) : nil
-                // Compare the immutable capture again just before replacing it.
-                if let original { try require(try encodeSource(CompoundFile(original).chemdrawSource(),id:current.id) == oldTag,L("native.143")) }
+            if nativeOLE {
                 let object = try ChemDrawOLE.create(source:source,preview:expected,original:original)
                 try automation.transferOLE("ole-update",arguments:[current.document,current.id,marker,String(try svgAspect(carrier.svg))],object:object,vector:vector)
             } else {
