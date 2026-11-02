@@ -319,6 +319,8 @@ struct SavedFigure {
 }
 func readSavedFigure(_ document: String, host: String, id: String) throws -> SavedFigure {
     let archive = try OfficeArchive(URL(fileURLWithPath:document))
+    if host == "word", let native = try ChemDrawOLE.savedWordFigure(archive,id:id) { return native }
+    if host == "excel", let native = try ChemDrawOLE.savedExcelFigure(archive,id:id) { return native }
     let prefix = host == "excel" ? "xl/drawings/drawing" : "ppt/slides/slide"
     let parts = host == "word" ? ["word/document.xml"] : archive.entries.keys.filter { $0.hasPrefix(prefix) && $0.hasSuffix(".xml") }
     var candidates = [(String,XMLElement,String)]()

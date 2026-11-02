@@ -490,3 +490,150 @@ func powerPointSlideParts(_ archive:OfficeArchive) throws -> [String] {
         return String(target.dropFirst())
     }
 }
+
+extension ChemDrawOLE {
+    // Word imports the bookmarked object range directly, without opening a
+    // transport window or changing the user's document path or section setup.
+    static func wordTransport(object:Data,vector:Data,marker:String,bookmark:String = "ChemOfficeOLE") throws -> Data {
+        _ = try CompoundFile(object).chemdrawSource()
+        let height = 320 * (try svgAspect(vector))
+        let shape = element("v:shape",["id":"_x0000_i1025","type":"#_x0000_t75","alt":marker,"style":"width:320pt;height:\(height)pt","o:ole":""])
+        shape.addChild(element("v:imagedata",["r:id":"rIdPNG","o:title":""]))
+        let body = """
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><w:body><w:p><w:bookmarkStart w:id="1" w:name="\(bookmark)"/><w:r><w:object><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" filled="f" stroked="f"><v:path o:extrusionok="f" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype>\(shape.xmlString)<o:OLEObject Type="Embed" ProgID="ChemDraw.Document.6.0" ShapeID="_x0000_i1025" DrawAspect="Content" ObjectID="_1700000001" r:id="rIdOLE"/></w:object></w:r><w:bookmarkEnd w:id="1"/></w:p><w:sectPr/></w:body></w:document>
+        """
+        let base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+        let rels = "http://schemas.openxmlformats.org/package/2006/relationships"
+        let types = """
+        <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="bin" ContentType="application/vnd.openxmlformats-officedocument.oleObject"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>
+        """
+        return try zipPackage([
+            "[Content_Types].xml":Data(types.utf8),
+            "_rels/.rels":Data("<Relationships xmlns=\"\(rels)\"><Relationship Id=\"rId1\" Type=\"\(base)officeDocument\" Target=\"word/document.xml\"/></Relationships>".utf8),
+            "word/document.xml":Data(body.utf8),
+            "word/_rels/document.xml.rels":Data("<Relationships xmlns=\"\(rels)\"><Relationship Id=\"rIdOLE\" Type=\"\(base)oleObject\" Target=\"embeddings/chemdraw.bin\"/><Relationship Id=\"rIdPNG\" Type=\"\(base)image\" Target=\"media/chemdraw.png\"/><Relationship Id=\"rIdSettings\" Type=\"\(base)settings\" Target=\"settings.xml\"/></Relationships>".utf8),
+            "word/settings.xml":Data("<w:settings xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:compat><w:compatSetting w:name=\"compatibilityMode\" w:uri=\"http://schemas.microsoft.com/office/word\" w:val=\"15\"/></w:compat></w:settings>".utf8),
+            "word/embeddings/chemdraw.bin":object,
+            "word/media/chemdraw.png":try renderPNG(vector)
+        ])
+    }
+    static func savedWordFigure(_ archive:OfficeArchive,id:String) throws -> SavedFigure? {
+        let part = "word/document.xml", root = try xml(archive.read(part))
+        var matches = [(XMLElement,XMLElement,String)]()
+        for object in try nodes(root,"//*[local-name()='object']") {
+            guard let ole = try nodes(object,".//*[local-name()='OLEObject']").first,
+                  attribute(ole,"ProgID").hasPrefix("ChemDraw.Document.") else { continue }
+            let shapeID = attribute(ole,"ShapeID")
+            guard let shape = try nodes(object,".//*[local-name()='shape']").first(where:{ attribute($0,"id") == shapeID }) else { throw ChemOfficeError(L("ole.storage")) }
+            let marker = attribute(shape,"alt")
+            if marker == "ChemOffice Drawing:"+id || marker.hasPrefix("ChemOffice Drawing:"+id+":") { matches.append((object,shape,marker)) }
+        }
+        if matches.isEmpty { return nil }
+        try require(matches.count == 1,L("native.219"))
+        let (object,shape,marker) = matches[0]
+        let relationships = try nodes(xml(archive.read("word/_rels/document.xml.rels")),"//*[local-name()='Relationship']")
+        func read(_ id:String,_ kind:String) throws -> (String,Data) {
+            let entries = relationships.filter { attribute($0,"Id") == id && attribute($0,"Type").hasSuffix("/"+kind) && attribute($0,"TargetMode") != "External" }
+            try require(entries.count == 1,L("native.221"))
+            let path = packageTarget(relationshipPart:"word/_rels/document.xml.rels",target:attribute(entries[0],"Target"))
+            return (path,try archive.read(path))
+        }
+        let ole = try nodes(object,".//*[local-name()='OLEObject']")[0]
+        let (olePart,storage) = try read(localAttribute(ole,"id"),"oleObject")
+        let source = try CompoundFile(storage).chemdrawSource()
+        if let revision = try figureRevision(marker) { try require(sha256(source) == revision,L("native.223")) }
+        guard let image = try nodes(shape,".//*[local-name()='imagedata']").first else { throw ChemOfficeError(L("native.220")) }
+        let (previewPart,preview) = try read(localAttribute(image,"id"),"image")
+        let style = Dictionary(attribute(shape,"style").split(separator:";").compactMap { value -> (String,String)? in
+            let pair = value.split(separator:":",maxSplits:1).map { $0.trimmingCharacters(in:.whitespaces) }
+            return pair.count == 2 ? (pair[0],pair[1]) : nil
+        },uniquingKeysWith:{ _,new in new })
+        func emu(_ value:String?) -> Double {
+            guard let value else { return 0 }
+            let units:[(String,Double)] = [("pt",12700),("in",914400),("cm",360000),("mm",36000),("px",9525)]
+            for (unit,scale) in units where value.hasSuffix(unit) { return (Double(value.dropLast(unit.count)) ?? 0)*scale }
+            return (Double(value) ?? 0)*12700
+        }
+        let dimensions = [emu(style["width"]),emu(style["height"])]
+        return SavedFigure(tag:try encodeSource(source,id:id),source:source,preview:preview,
+            evidence:["ole_object":true,"prog_id":attribute(ole,"ProgID"),"source_bytes":source.count,"verified_part":part,"embedded_part":olePart,"preview_part":previewPart,"display_size_emu":dimensions],aspect:nil,dimensions:dimensions)
+    }
+}
+
+extension ChemDrawOLE {
+    static func excelTransport(object:Data,vector:Data,marker:String) throws -> Data {
+        _ = try CompoundFile(object).chemdrawSource()
+        let width = 240*12700, height = Int(240*(try svgAspect(vector))*12700)
+        let row = height/(15*12700), rowOffset = height%(15*12700)
+        let x = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+        let d = "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+        let a = "http://schemas.openxmlformats.org/drawingml/2006/main"
+        let r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+        let rel = "http://schemas.openxmlformats.org/package/2006/relationships"
+        let from = "<xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff>"
+        let to = "<xdr:col>5</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>\(row)</xdr:row><xdr:rowOff>\(rowOffset)</xdr:rowOff>"
+        let properties = element("xdr:cNvPr",["id":"1025","name":marker,"descr":marker])
+        properties.addChild(try xml(Data("<a:extLst xmlns:a=\"\(a)\"><a:ext uri=\"{63B3BB69-23CF-44E3-9099-C40C66FF867C}\"><a14:compatExt xmlns:a14=\"http://schemas.microsoft.com/office/drawing/2010/main\" spid=\"_x0000_s1025\"/></a:ext></a:extLst>".utf8)).rootElement()!.copy() as! XMLElement)
+        let drawing = """
+        <xdr:wsDr xmlns:xdr="\(d)" xmlns:a="\(a)" xmlns:r="\(r)"><xdr:twoCellAnchor editAs="twoCell"><xdr:from>\(from)</xdr:from><xdr:to>\(to)</xdr:to><xdr:sp><xdr:nvSpPr>\(properties.xmlString)<xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="\(width)" cy="\(height)"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:blipFill><a:blip r:embed="rIdPNG"/><a:stretch><a:fillRect/></a:stretch></a:blipFill><a:ln><a:noFill/></a:ln></xdr:spPr></xdr:sp><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>
+        """
+        let sheet = """
+        <worksheet xmlns="\(x)" xmlns:r="\(r)" xmlns:xdr="\(d)"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><sheetData/><drawing r:id="rIdDrawing"/><oleObjects><oleObject progId="ChemDraw.Document.6.0" dvAspect="DVASPECT_CONTENT" shapeId="1025" r:id="rIdOLE"><objectPr defaultSize="0" r:id="rIdPNG"><anchor moveWithCells="1" sizeWithCells="1"><from>\(from)</from><to>\(to)</to></anchor></objectPr></oleObject></oleObjects></worksheet>
+        """
+        let types = """
+        <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="bin" ContentType="application/vnd.openxmlformats-officedocument.oleObject"/><Default Extension="png" ContentType="image/png"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>
+        """
+        return try zipPackage([
+            "[Content_Types].xml":Data(types.utf8),
+            "_rels/.rels":Data("<Relationships xmlns=\"\(rel)\"><Relationship Id=\"rId1\" Type=\"\(r)/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>".utf8),
+            "xl/workbook.xml":Data("<workbook xmlns=\"\(x)\" xmlns:r=\"\(r)\"><bookViews><workbookView activeTab=\"0\"/></bookViews><sheets><sheet name=\"ChemOfficeOLE\" sheetId=\"1\" r:id=\"rIdSheet\"/></sheets></workbook>".utf8),
+            "xl/_rels/workbook.xml.rels":Data("<Relationships xmlns=\"\(rel)\"><Relationship Id=\"rIdSheet\" Type=\"\(r)/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>".utf8),
+            "xl/worksheets/sheet1.xml":Data(sheet.utf8),
+            "xl/worksheets/_rels/sheet1.xml.rels":Data("<Relationships xmlns=\"\(rel)\"><Relationship Id=\"rIdDrawing\" Type=\"\(r)/drawing\" Target=\"../drawings/drawing1.xml\"/><Relationship Id=\"rIdOLE\" Type=\"\(r)/oleObject\" Target=\"../embeddings/chemdraw.bin\"/><Relationship Id=\"rIdPNG\" Type=\"\(r)/image\" Target=\"../media/chemdraw.png\"/></Relationships>".utf8),
+            "xl/drawings/drawing1.xml":Data(drawing.utf8),
+            "xl/drawings/_rels/drawing1.xml.rels":Data("<Relationships xmlns=\"\(rel)\"><Relationship Id=\"rIdPNG\" Type=\"\(r)/image\" Target=\"../media/chemdraw.png\"/></Relationships>".utf8),
+            "xl/embeddings/chemdraw.bin":object,
+            "xl/media/chemdraw.png":try renderPNG(vector)
+        ])
+    }
+    static func savedExcelFigure(_ archive:OfficeArchive,id:String) throws -> SavedFigure? {
+        var candidates = [(String,XMLElement,XMLElement,String,String)]()
+        for part in archive.entries.keys.sorted() where part.hasPrefix("xl/worksheets/") && part.hasSuffix(".xml") && !part.contains("/_rels/") {
+            let sheet = try xml(archive.read(part))
+            let objects = try nodes(sheet,"//*[local-name()='oleObject']").filter { attribute($0,"progId").hasPrefix("ChemDraw.Document.") }
+            if objects.isEmpty { continue }
+            let relPart = (part as NSString).deletingLastPathComponent+"/_rels/"+(part as NSString).lastPathComponent+".rels"
+            let relationships = try nodes(xml(archive.read(relPart)),"//*[local-name()='Relationship']")
+            guard let drawingRef = try nodes(sheet,"//*[local-name()='drawing']").first,
+                  let drawingRel = relationships.first(where:{ attribute($0,"Id") == localAttribute(drawingRef,"id") && attribute($0,"TargetMode") != "External" && attribute($0,"Type").hasSuffix("/drawing") }) else { continue }
+            let drawingPart = packageTarget(relationshipPart:relPart,target:attribute(drawingRel,"Target")), drawing = try xml(archive.read(drawingPart))
+            for object in objects {
+                let properties = try nodes(drawing,"//*[local-name()='cNvPr']").filter { attribute($0,"id") == attribute(object,"shapeId") }
+                try require(properties.count == 1,L("ole.storage"))
+                let marker = [attribute(properties[0],"name"),attribute(properties[0],"descr")].first { $0 == "ChemOffice Drawing:"+id || $0.hasPrefix("ChemOffice Drawing:"+id+":") }
+                if let marker { candidates.append((part,object,properties[0],marker,drawingPart)) }
+            }
+        }
+        if candidates.isEmpty { return nil }
+        try require(candidates.count == 1,L("native.219"))
+        let (part,object,properties,marker,drawingPart) = candidates[0]
+        let relPart = (part as NSString).deletingLastPathComponent+"/_rels/"+(part as NSString).lastPathComponent+".rels"
+        let relationships = try nodes(xml(archive.read(relPart)),"//*[local-name()='Relationship']")
+        func read(_ id:String,_ kind:String) throws -> (String,Data) {
+            let entries = relationships.filter { attribute($0,"Id") == id && attribute($0,"Type").hasSuffix("/"+kind) && attribute($0,"TargetMode") != "External" }
+            try require(entries.count == 1,L("native.221"))
+            let path = packageTarget(relationshipPart:relPart,target:attribute(entries[0],"Target"))
+            return (path,try archive.read(path))
+        }
+        let (olePart,storage) = try read(localAttribute(object,"id"),"oleObject")
+        let source = try CompoundFile(storage).chemdrawSource()
+        if let revision = try figureRevision(marker) { try require(sha256(source) == revision,L("native.223")) }
+        guard let objectProperties = try nodes(object,"./*[local-name()='objectPr']").first else { throw ChemOfficeError(L("native.220")) }
+        let (previewPart,preview) = try read(localAttribute(objectProperties,"id"),"image")
+        guard let shape = properties.parent?.parent as? XMLElement,
+              let extent = try nodes(shape,"./*[local-name()='spPr']/*[local-name()='xfrm']/*[local-name()='ext']").first else { throw ChemOfficeError(L("native.134")) }
+        let dimensions = [Double(attribute(extent,"cx")) ?? 0,Double(attribute(extent,"cy")) ?? 0]
+        return SavedFigure(tag:try encodeSource(source,id:id),source:source,preview:preview,
+            evidence:["ole_object":true,"prog_id":attribute(object,"progId"),"source_bytes":source.count,"verified_part":part,"embedded_part":olePart,"preview_part":previewPart,"drawing_part":drawingPart,"display_size_emu":dimensions],aspect:nil,dimensions:dimensions)
+    }
+}

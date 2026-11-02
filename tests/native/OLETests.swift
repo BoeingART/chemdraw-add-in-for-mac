@@ -62,6 +62,30 @@ import Cocoa
         try check(board.data(forType:ChemDrawOLE.descriptorType)?.subdata(in:4..<20) == ChemDrawOLE.classID,"Object descriptor has the wrong class")
         let root = URL(fileURLWithPath:FileManager.default.currentDirectoryPath)
         let id = UUID().uuidString.lowercased(), marker = try figureMarker(id,source:source)
+        for host in ["word","excel"] {
+            let package = try host == "word" ? ChemDrawOLE.wordTransport(object:original,vector:blankDrawingSVG(),marker:marker) : ChemDrawOLE.excelTransport(object:original,vector:blankDrawingSVG(),marker:marker)
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(host == "word" ? "docx" : "xlsx")
+            try package.write(to:file); defer { try? FileManager.default.removeItem(at:file) }
+            let figure = try readSavedFigure(file.path,host:host,id:id)
+            try check(figure.source == source && figure.evidence["ole_object"] as? Bool == true,"\(host) transport contains a picture instead of native source")
+            try check(figure.evidence["prog_id"] as? String == "ChemDraw.Document.6.0","\(host) transport lost the Windows class")
+            _ = try previewAgreement(figure.preview,preview)
+            try check(figure.dimensions.count == 2 && figure.dimensions.allSatisfy { $0 > 0 },"\(host) OLE has invalid dimensions")
+            let archive = try OfficeArchive(file)
+            let part = host == "word" ? "word/document.xml" : "xl/worksheets/sheet1.xml"
+            let native = try xml(archive.read(part))
+            try check(try nodes(native,"//*[local-name()='OLEObject' or local-name()='oleObject']").count == 1,"\(host) transport duplicated the OLE")
+            var parts = [String:Data]()
+            for name in archive.entries.keys { parts[name] = try archive.read(name) }
+            let relPart = host == "word" ? "word/_rels/document.xml.rels" : "xl/worksheets/_rels/sheet1.xml.rels"
+            let rels = try xml(parts[relPart]!)
+            let objectRel = try nodes(rels,"//*[local-name()='Relationship']").first { attribute($0,"Type").hasSuffix("/oleObject") }!
+            objectRel.addAttribute(XMLNode.attribute(withName:"TargetMode",stringValue:"External") as! XMLNode)
+            parts[relPart] = rels.xmlData
+            let badFile = file.deletingPathExtension().appendingPathExtension("external."+(host == "word" ? "docx" : "xlsx"))
+            try zipPackage(parts).write(to:badFile); defer { try? FileManager.default.removeItem(at:badFile) }
+            try rejects("\(host) external OLE relationship") { _ = try readSavedFigure(badFile.path,host:host,id:id) }
+        }
         let package = try ChemDrawOLE.transport(template:root.appendingPathComponent("assets/ole-transport.pptx"),object:original,vector:blankDrawingSVG(),id:id,marker:marker)
         let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("pptx")
         try package.write(to:temporary); defer { try? FileManager.default.removeItem(at:temporary) }

@@ -129,13 +129,14 @@ class TestAutomation: ChemistryAutomation {
             try require(unsupported && bridge.session?.id == previous && driver.opened,"Foreign OLE disturbed the chemistry draft")
             try require(!driver.calls.contains("context") && !driver.calls.contains("ole-claim") && !driver.calls.contains("close"),"Foreign OLE changed Office or closed the editor")
         }
+        for nativeHost in ["powerpoint","word","excel"] {
         for failTransfer in [false,true] {
-            try check("Native OLE save \(failTransfer ? "failure retains the original and editor" : "updates source and retains the editor")") {
+            try check("\(nativeHost) native OLE save \(failTransfer ? "failure retains the original and editor" : "updates source and retains the editor")") {
                 let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.supportsNativeOLEWrite = true
                 let source = Data("VjCD0100".utf8)+Data(repeating:0,count:22)
                 let original = try ChemDrawOLE.create(source:source,preview:renderPNG(driver.vector))
                 driver.nativeOLE = original
-                try bridge.begin("powerpoint",tag:"ChemOffice OLE Selection:256:Object 1")
+                try bridge.begin(nativeHost,tag:"ChemOffice OLE Selection:256:Object 1")
                 let path = URL(fileURLWithPath:bridge.session!.path), document = bridge.session!.document
                 driver.finalSource = source+Data([1,2,3]); try driver.finalSource.write(to:path)
                 if failTransfer { driver.failure = "transferOLE" }
@@ -151,6 +152,21 @@ class TestAutomation: ChemistryAutomation {
                 try require(driver.calls.contains("ole-update") && !driver.calls.contains("update") && !driver.calls.contains("close"),"Native save used the picture replacement or close path")
                 try require(driver.calls.filter { $0 == "captureOLE" }.count == 1,"Native save recaptured the same original OLE")
             }
+        }
+        try check("\(nativeHost) pastes a native OLE and retains the current editing draft") {
+            let (bridge,driver) = try fixture(); try bridge.begin("word",tag:driver.tag)
+            let current = bridge.session!
+            driver.supportsNativeOLE = true; driver.supportsNativeOLEWrite = true
+            let source = Data("VjCD0100".utf8)+Data(repeating:0,count:22)
+            let snapshot = bridge.work.appendingPathComponent("native-paste")
+            try fm.createDirectory(at:snapshot,withIntermediateDirectories:true)
+            try source.write(to:snapshot.appendingPathComponent("source.cdx"))
+            driver.calls.removeAll()
+            try bridge.paste(nativeHost,snapshot:snapshot)
+            try require(try CompoundFile(driver.nativeOLE!).chemdrawSource() == source,"Native paste lost source")
+            try require(driver.calls.contains("ole-insert") && !driver.calls.contains("insert"),"Native paste used the picture route")
+            try require(bridge.session?.id == current.id && bridge.session?.document == current.document && driver.opened,"Native paste disturbed the current edit")
+        }
         }
         try check("A conflicting native OLE edit retains both the Office version and the editor draft") {
             let (bridge,driver) = try fixture(); driver.supportsNativeOLE = true; driver.supportsNativeOLEWrite = true

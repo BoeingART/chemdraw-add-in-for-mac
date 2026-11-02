@@ -39,6 +39,11 @@ protocol ChemistryAutomation: AnyObject {
     func captureEditableOLE(_ document:String, target:String) throws -> Data?
     func transferOLE(_ action:String, arguments:[String], object:Data, vector:Data) throws
     func verifiedOLETransfer(_ document:String,id:String,source:Data,expected:Data) throws -> [String:Any]?
+    func supportsNativeOLE(in host:String) -> Bool
+    func captureOLE(_ document:String,target:String,host:String) throws -> Data
+    func captureEditableOLE(_ document:String,target:String,host:String) throws -> Data?
+    func transferOLE(_ action:String,arguments:[String],object:Data,vector:Data,host:String) throws
+    func verifiedOLETransfer(_ document:String,id:String,source:Data,expected:Data,host:String) throws -> [String:Any]?
     func application() throws -> ChemDrawApplication
     func preferredApplication() throws -> ChemDrawApplication
     func useApplication(_ application: ChemDrawApplication)
@@ -63,6 +68,13 @@ extension ChemistryAutomation {
     }
     func transferOLE(_ action:String, arguments:[String], object:Data, vector:Data) throws { throw ChemOfficeError(L("ole.unsupported")) }
     func verifiedOLETransfer(_ document:String,id:String,source:Data,expected:Data) throws -> [String:Any]? { nil }
+    func supportsNativeOLE(in host:String) -> Bool { supportsNativeOLE }
+    func captureOLE(_ document:String,target:String,host:String) throws -> Data { try captureOLE(document,target:target) }
+    func captureEditableOLE(_ document:String,target:String,host:String) throws -> Data? {
+        try office("ole-kind",host,[document,target]) == "ole" ? captureOLE(document,target:target,host:host) : nil
+    }
+    func transferOLE(_ action:String,arguments:[String],object:Data,vector:Data,host:String) throws { try transferOLE(action,arguments:arguments,object:object,vector:vector) }
+    func verifiedOLETransfer(_ document:String,id:String,source:Data,expected:Data,host:String) throws -> [String:Any]? { try verifiedOLETransfer(document,id:id,source:source,expected:expected) }
     func preferredApplication() throws -> ChemDrawApplication { try application() }
 }
 class NativeAutomation: ChemistryAutomation {
@@ -73,7 +85,7 @@ class NativeAutomation: ChemistryAutomation {
     private var clipboardDepth = 0
     private var activatedOfficeFocus = false
     private var capturedOLEPreparation: (document:String,target:String,fields:[String])?
-    private var transferReceipt: (document:String,id:String,source:Data,fields:[String])?
+    private var transferReceipt: (host:String,document:String,id:String,source:Data,fields:[String])?
     private var documentHints = [String:String]()
     func withClipboard<T>(restoreFocus:Bool = false,_ body:() throws -> T) rethrows -> T {
         if clipboardDepth > 0 { return try body() }
@@ -179,17 +191,91 @@ class NativeAutomation: ChemistryAutomation {
                 try require(try CompoundFile(actual).chemdrawSource() == CompoundFile(object).chemdrawSource(),L("ole.clipboard"))
                 let fields = try office(action+"-commit","powerpoint",arguments+[pending]).components(separatedBy:"\t")
                 try require(fields.count == 3 && fields[0] == arguments[2],L("ole.clipboard"))
-                transferReceipt = (arguments[0],arguments[1],try CompoundFile(actual).chemdrawSource(),fields)
+                transferReceipt = ("powerpoint",arguments[0],arguments[1],try CompoundFile(actual).chemdrawSource(),fields)
             } catch {
                 _ = try? office("ole-discard","powerpoint",[arguments[0],pending])
                 throw error
             }
         }
     }
+    func supportsNativeOLE(in host:String) -> Bool { supportsNativeOLE && ["powerpoint","word","excel"].contains(host) }
+    func captureOLE(_ document:String,target:String,host:String) throws -> Data {
+        guard let object = try captureEditableOLE(document,target:target,host:host) else { throw UnsupportedChemDrawOLE() }
+        return object
+    }
+    func captureEditableOLE(_ document:String,target:String,host:String) throws -> Data? {
+        if host == "powerpoint" { return try captureEditableOLE(document,target:target) }
+        return try withClipboard {
+            NSPasteboard.general.clearContents()
+            let result = try office("ole-capture",host,[document,target])
+            if result == "picture" { return nil }
+            return try clipboardOLE()
+        }
+    }
+    func transferOLE(_ action:String,arguments:[String],object:Data,vector:Data,host:String) throws {
+        if host == "powerpoint" { try transferOLE(action,arguments:arguments,object:object,vector:vector); return }
+        if host == "excel" { try transferExcelOLE(action,arguments:arguments,object:object,vector:vector); return }
+        try require(host == "word",L("ole.unsupported"))
+        transferReceipt = nil
+        try withClipboard {
+            let pending = "CFM_OLE_PENDING:"+UUID().uuidString.lowercased()
+            let anchor = "CFMA_"+UUID().uuidString.replacingOccurrences(of:"-",with:"")
+            let bookmark = "CFMT_"+UUID().uuidString.replacingOccurrences(of:"-",with:"")
+            let directory = try oleTransportDirectory(host)
+            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+            let temporary = directory.appendingPathComponent("ole-"+UUID().uuidString).appendingPathExtension("docx")
+            defer { try? FileManager.default.removeItem(at:temporary) }
+            do {
+                let preparation = try office(action+"-prepare",host,arguments+[anchor]).components(separatedBy:"\t")
+                try require(preparation.count == 3,L("ole.clipboard"))
+                try ChemDrawOLE.wordTransport(object:object,vector:vector,marker:pending,bookmark:bookmark).write(to:temporary,options:.atomic)
+                try require(try office("ole-import-stage",host,arguments+[anchor,temporary.path,bookmark,pending]+preparation) == "staged",L("ole.clipboard"))
+                let actual = try clipboardOLE(), source = try CompoundFile(actual).chemdrawSource()
+                try require(try source == CompoundFile(object).chemdrawSource(),L("ole.clipboard"))
+                let fields = try office(action+"-commit",host,arguments+[pending,anchor,preparation[2]]).components(separatedBy:"\t")
+                try require(fields.count == 3 && fields[0] == arguments[2],L("ole.clipboard"))
+                transferReceipt = (host,arguments[0],arguments[1],source,fields)
+            } catch {
+                _ = try? office("ole-discard",host,[arguments[0],pending,anchor]); throw error
+            }
+        }
+    }
+    func oleTransportDirectory(_ host:String) throws -> URL { try NativePaths.officePreviews(host) }
+    private func transferExcelOLE(_ action:String,arguments:[String],object:Data,vector:Data) throws {
+        transferReceipt = nil
+        try withClipboard(restoreFocus:true) {
+            let preparation = try office(action+"-prepare","excel",arguments).components(separatedBy:"\t")
+            try require(preparation.count == 7,L("ole.clipboard"))
+            let pending = "CFM_OLE_PENDING:"+UUID().uuidString.lowercased()
+            let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("CFM-OLE-"+UUID().uuidString).appendingPathExtension("xlsx")
+            var opened = false
+            defer {
+                if opened { _ = try? office("ole-transport-close","excel",[temporary.path]) }
+                try? FileManager.default.removeItem(at:temporary)
+            }
+            do {
+                try ChemDrawOLE.excelTransport(object:object,vector:vector,marker:pending).write(to:temporary,options:.atomic)
+                try command(monitor,["--open-document-background",OfficeHost.excel.bundle,temporary.path]); opened = true
+                _ = try office("ole-transport-copy-close","excel",[temporary.path,pending]); opened = false
+                try require(try CompoundFile(clipboardOLE()).chemdrawSource() == CompoundFile(object).chemdrawSource(),L("ole.clipboard"))
+                try require(try office("ole-paste-stage","excel",arguments+preparation+[pending]) == "staged",L("ole.clipboard"))
+                let source = try CompoundFile(clipboardOLE()).chemdrawSource()
+                try require(try source == CompoundFile(object).chemdrawSource(),L("ole.clipboard"))
+                let fields = try office(action+"-commit","excel",arguments+[pending,preparation[6]]).components(separatedBy:"\t")
+                try require(fields.count == 3 && fields[0] == arguments[2],L("ole.clipboard"))
+                transferReceipt = ("excel",arguments[0],arguments[1],source,fields)
+            } catch {
+                _ = try? office("ole-discard","excel",[arguments[0],pending]); throw error
+            }
+        }
+    }
     func verifiedOLETransfer(_ document:String,id:String,source:Data,expected:Data) throws -> [String:Any]? {
+        try verifiedOLETransfer(document,id:id,source:source,expected:expected,host:"powerpoint")
+    }
+    func verifiedOLETransfer(_ document:String,id:String,source:Data,expected:Data,host:String) throws -> [String:Any]? {
         guard let receipt = transferReceipt else { return nil }
         transferReceipt = nil
-        try require(receipt.document == document && receipt.id == id && receipt.source == source,L("native.133"))
+        try require(receipt.host == host && receipt.document == document && receipt.id == id && receipt.source == source,L("native.133"))
         try require(try receipt.fields[0] == figureMarker(id,source:source),L("native.133"))
         guard let width = Double(receipt.fields[1].replacingOccurrences(of:",",with:".")),
               let height = Double(receipt.fields[2].replacingOccurrences(of:",",with:".")), width > 0, height > 0,

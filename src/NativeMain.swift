@@ -24,15 +24,15 @@ class NativeMonitorRuntime {
             if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen) }
         } catch {
             var failure = error
-            if error is UnsupportedChemDrawOLE, name == "open", event["host"] as? String == "powerpoint",
+            if error is UnsupportedChemDrawOLE, name == "open", let host = event["host"] as? String, OfficeHost(rawValue:host) != nil,
                let nativeEvent = event["nativeOLEEvent"] as? String,
                let reference = event["reference"] as? String, let tag = event["tag"] as? String {
-                // Leave foreign OLE activation to PowerPoint, only while the
+                // Leave foreign OLE activation to its Office host, only while the
                 // original document and object are still selected.
                 do {
-                    try command(bridge.root.appendingPathComponent("build/event-monitor").path,["--native-ole-open",nativeEvent,reference,tag])
+                    try command(bridge.root.appendingPathComponent("build/event-monitor").path,["--native-ole-open",nativeEvent,reference,tag,host])
                     if tracked { activity.end(editing:bridge.editingOpen,recoverable:bridge.session != nil && !bridge.editingOpen) }
-                    bridge.record("native_ole_passthrough",["host":"powerpoint"])
+                    bridge.record("native_ole_passthrough",["host":host])
                     return
                 } catch { failure = error }
             }

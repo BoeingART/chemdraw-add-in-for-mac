@@ -28,10 +28,11 @@ if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--is-running
     print(runningApplication(CommandLine.arguments[2]) == nil ? "no" : "yes")
     exit(0)
 }
-if CommandLine.arguments.count == 5 && CommandLine.arguments[1] == "--native-ole-open" {
-    guard let app = runningApplication("com.microsoft.Powerpoint"),
+if [5,6].contains(CommandLine.arguments.count) && CommandLine.arguments[1] == "--native-ole-open" {
+    let host = CommandLine.arguments.count == 6 ? CommandLine.arguments[5] : "powerpoint"
+    guard let office = OfficeHost(rawValue:host), let app = runningApplication(office.bundle),
           NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier,
-          let selected = selectedOfficeFigure("powerpoint"),
+          let selected = selectedOfficeFigure(host),
           selected.reference == CommandLine.arguments[3], selected.tag == CommandLine.arguments[4],
           let data = Data(base64Encoded:CommandLine.arguments[2]), data.count < 16384,
           let down = CGEvent(withDataAllocator:nil,data:data as CFData), down.type == .leftMouseDown,
@@ -242,23 +243,42 @@ func serviceCloseWindow(_ point: CGPoint, _ expected: String) -> AXUIElement? {
     return window
 }
 
+private func scriptLiteral(_ value:String) -> String {
+    "\""+value.replacingOccurrences(of:"\\",with:"\\\\").replacingOccurrences(of:"\"",with:"\\\"").replacingOccurrences(of:"\r",with:"\\r").replacingOccurrences(of:"\n",with:"\\n")+"\""
+}
 func selectedOfficeFigure(_ host: String) -> (tag:String,reference:String?)? {
-    if host == "excel", let name = selectedExcelDrawingName() { return (name,nil) }
+    let excelName = host == "excel" ? selectedExcelDrawingName() : nil
     let source: String
     if host == "word" {
         source = """
         tell application id "com.microsoft.Word"
             if (count inline shapes of selection) is not 1 then return ""
-            return alternative text of inline shape 1 of selection
+            set pic to inline shape 1 of selection
+            set tagText to alternative text of pic
+            if inline shape type of pic is inline shape embedded oleobject and tagText does not start with "ChemOffice Drawing:" then
+                set tagText to "ChemOffice OLE Selection:" & (start of content of text object of pic as string)
+            end if
+            set referenceText to name of active document
+            try
+                set referenceText to POSIX path of ((full name of active document) as alias)
+            end try
+            return {tagText, referenceText}
         end tell
         """
     } else if host == "excel" {
+        let selected = excelName.map { "set selectedName to "+scriptLiteral($0) } ?? "set selectedName to name of (get selection)"
         source = """
         tell application id "com.microsoft.Excel"
             try
-                set selectedObject to get selection
-                set selectedName to name of selectedObject
-                return selectedName
+                \(selected)
+                set pic to shape selectedName of active sheet
+                set tagText to selectedName
+                if shape type of pic is shape type embedded OLE control and tagText does not start with "ChemOffice Drawing:" then
+                    set tagText to "ChemOffice OLE Selection:" & (name of active sheet) & ":" & selectedName
+                end if
+                set referenceText to full name of active workbook
+                if referenceText does not start with "/" then set referenceText to name of active workbook
+                return {tagText, referenceText}
             on error
                 return ""
             end try
@@ -285,10 +305,10 @@ func selectedOfficeFigure(_ host: String) -> (tag:String,reference:String?)? {
     var error: NSDictionary?
     guard let script = NSAppleScript(source: source) else { return nil }
     let result = script.executeAndReturnError(&error)
-    let reference = host == "powerpoint" ? result.atIndex(2)?.stringValue : nil
-    guard let value = host == "powerpoint" ? result.atIndex(1)?.stringValue : result.stringValue,
+    let reference = result.atIndex(2)?.stringValue
+    guard let value = result.atIndex(1)?.stringValue,
           (value.hasPrefix("ChemOffice Drawing:") ||
-           (host == "powerpoint" && value.hasPrefix("ChemOffice OLE Selection:")) ||
+           value.hasPrefix("ChemOffice OLE Selection:") ||
            (host == "word" ? (value.hasPrefix("CFM1:") || value.hasPrefix("CFM2:")) : value.hasPrefix("CFM1_"))) else { return nil }
     return (value,reference)
 }

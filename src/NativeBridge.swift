@@ -67,9 +67,9 @@ class NativeBridge {
         return marker
     }
     func payload(_ host:String, _ document:String, _ id:String, marker:String? = nil) throws -> String {
-        if host == "powerpoint" && automation.supportsNativeOLE,
+        if automation.supportsNativeOLE(in:host),
            try automation.office("ole-kind",host,[document,id]) == "ole" {
-            return try encodeSource(CompoundFile(automation.captureOLE(document,target:id)).chemdrawSource(),id:id)
+            return try encodeSource(CompoundFile(automation.captureOLE(document,target:id,host:host)).chemdrawSource(),id:id)
         }
         let tag = try marker ?? automation.office("payload",host,[document,id])
         if tag.hasPrefix("CFM1:") || tag.hasPrefix("CFM2:") { return tag }
@@ -91,7 +91,7 @@ class NativeBridge {
         return saved.tag
     }
     func verifyOpenFigure(_ document:String, host:String, id:String, source:Data, expected:Data) throws -> [String:Any] {
-        if host == "powerpoint", let evidence = try automation.verifiedOLETransfer(document,id:id,source:source,expected:expected) { return evidence }
+        if let evidence = try automation.verifiedOLETransfer(document,id:id,source:source,expected:expected,host:host) { return evidence }
         let fields = try automation.office("inspect",host,[document,id]).components(separatedBy:"\t")
         try require(fields.count == 3,L("native.132"))
         let envelope = try payload(host,document,id,marker:fields[0])
@@ -150,9 +150,9 @@ class NativeBridge {
         try expected.write(to:snapshot.appendingPathComponent("preview.png"))
         try carrier.svg.write(to:snapshot.appendingPathComponent("figure.svg"))
         let marker = try cacheFigure(carrier.svg)
-        if host == "powerpoint" && automation.supportsNativeOLEWrite && source.starts(with:Data("VjCD0100".utf8)) {
+        if automation.supportsNativeOLE(in:host) && automation.supportsNativeOLEWrite && source.starts(with:Data("VjCD0100".utf8)) {
             let object = try ChemDrawOLE.create(source:source,preview:expected)
-            try automation.transferOLE("ole-insert",arguments:[document,id,marker,String(try svgAspect(carrier.svg))],object:object,vector:vector)
+            try automation.transferOLE("ole-insert",arguments:[document,id,marker,String(try svgAspect(carrier.svg))],object:object,vector:vector,host:host)
         } else {
             let preview = try officePreview(host,carrier.svg)
             _ = try automation.office("insert",host,[preview.path,marker,id,document,String(try svgAspect(carrier.svg))])
@@ -171,7 +171,7 @@ class NativeBridge {
         session = nil; editingOpen = false; try writeState()
     }
     func begin(_ host:String, tag:String, reference:String? = nil) throws {
-        let rawOLE = host == "powerpoint" && automation.supportsNativeOLE && tag.hasPrefix("ChemOffice OLE Selection:")
+        let rawOLE = automation.supportsNativeOLE(in:host) && tag.hasPrefix("ChemOffice OLE Selection:")
         // Classify before assigning document/shape markers or disturbing an
         // existing draft. Foreign OLE objects keep Office's native activation.
         var originalOLE: Data?
@@ -179,10 +179,10 @@ class NativeBridge {
         let document: String
         if rawOLE {
             let target = try reference ?? automation.office("reference",host,[])
-            let object = try automation.captureOLE(target,target:tag)
+            let object = try automation.captureOLE(target,target:tag,host:host)
             capturedSource = try CompoundFile(object).chemdrawSource(); originalOLE = object
             document = try automation.office("context",host,[UUID().uuidString.lowercased(),target])
-        } else { document = try automation.office("context",host,[UUID().uuidString.lowercased()]) }
+        } else { document = try automation.office("context",host,[UUID().uuidString.lowercased()]+(reference.map { [$0] } ?? [])) }
         let requestedID = rawOLE ? UUID().uuidString.lowercased() : try objectID(tag)
         _ = try reconcileDocumentLifecycle(confirmImmediately:true)
         if let previous = session {
@@ -299,7 +299,7 @@ class NativeBridge {
             else if try automation.isOpen(path) { source = try automation.saveSource(path) }
             else { source = try Data(contentsOf:path) }
             try validateSource(source)
-            if current.host == "powerpoint", automation.supportsNativeOLE, !automation.supportsNativeOLEWrite,
+            if automation.supportsNativeOLE(in:current.host), !automation.supportsNativeOLEWrite,
                try automation.office("ole-kind",current.host,[current.document,current.id]) == "ole",
                current.syncedSourceRevision != sha256(source) {
                 throw ChemOfficeError(L("ole.writeDisabled"))
@@ -322,8 +322,8 @@ class NativeBridge {
             let expected = try Data(contentsOf:image)
             try require(expected.starts(with:[137,80,78,71,13,10,26,10]),L("native.142"))
             let newTag = try encodeSource(source,id:current.id)
-            let nativeOLE = current.host == "powerpoint" && automation.supportsNativeOLEWrite && source.starts(with:Data("VjCD0100".utf8))
-            let original = nativeOLE ? try automation.captureEditableOLE(current.document,target:current.id) : nil
+            let nativeOLE = automation.supportsNativeOLE(in:current.host) && automation.supportsNativeOLEWrite && source.starts(with:Data("VjCD0100".utf8))
+            let original = nativeOLE ? try automation.captureEditableOLE(current.document,target:current.id,host:current.host) : nil
             let oldTag = try original.map { try encodeSource(CompoundFile($0).chemdrawSource(),id:current.id) }
                 ?? payload(current.host,current.document,current.id)
             try require(oldTag == current.originalTag || oldTag == newTag,L("native.143"))
@@ -333,7 +333,7 @@ class NativeBridge {
             let marker = try cacheFigure(carrier.svg)
             if nativeOLE {
                 let object = try ChemDrawOLE.create(source:source,preview:expected,original:original)
-                try automation.transferOLE("ole-update",arguments:[current.document,current.id,marker,String(try svgAspect(carrier.svg))],object:object,vector:vector)
+                try automation.transferOLE("ole-update",arguments:[current.document,current.id,marker,String(try svgAspect(carrier.svg))],object:object,vector:vector,host:current.host)
             } else {
                 let preview = try officePreview(current.host,carrier.svg)
                 _ = try automation.office("update",current.host,[current.document,current.id,preview.path,marker,String(try svgAspect(carrier.svg))])

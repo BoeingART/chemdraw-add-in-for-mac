@@ -2,6 +2,9 @@
 
 ## v2.0.0 — Development
 
+- Paste CDX structures as native ChemDraw OLE objects in Word and Excel, and retain OLE storage during edits and save synchronization. Word imports a bookmarked object range without changing surrounding text or opening a transport window.
+- Recognize unmarked embedded ChemDraw objects in Word and Excel and preserve the host application's handling of other OLE objects. Word has passed live paste/edit/save checks; Excel file-format and transaction checks are covered, with application testing pending.
+
 - Speed up PowerPoint OLE save synchronization with a warm background preview renderer, batched Office operations and validated document lookup reuse. Keep ChemDraw in front while loading and closing the temporary OLE transport in the background.
 - Preserve rounded-box shadow cutouts in previews on macOS 13 and later.
 
@@ -10,7 +13,7 @@
 - Add commands to extract a drawing, export an edited presentation copy, and create a new OLE presentation from a Mac CDX file. Existing output files are retained.
 - Enable native PowerPoint OLE paste and automatic write-back on ChemDraw Command-S and menu Save. Keep the editor open and preserve subsequent input using independent saved snapshots.
 - Resolve the target by its stable document identity and presentation name. Use direct shape copy and verified native paste, including unsaved presentations and switching between documents; retain the original until the new OLE source is read back successfully.
-- Recognize PowerPoint's saved OLE preview as part of its containing object. Keep Word/Excel OLE integration in development.
+- Recognize PowerPoint's saved OLE preview as part of its containing object.
 
 ## v1.5.6 — 2026-11-01
 

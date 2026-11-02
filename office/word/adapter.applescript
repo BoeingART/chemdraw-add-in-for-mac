@@ -25,7 +25,7 @@ end existingID
 
 on matchesDocument(d, referenceText)
     if referenceText starts with "cfm-document:" then return "cfm-document:" & my existingID(d) is referenceText
-    return my documentPath(d) is referenceText
+    tell application id "com.microsoft.Word" to return my documentPath(d) is referenceText or name of d is referenceText
 end matchesDocument
 
 -- Lifecycle checks must propagate failed reads instead of interpreting them
@@ -73,6 +73,36 @@ on contextID(d, candidateID)
         return "cfm-document:" & identityText
     end tell
 end contextID
+
+on findFigure(d, targetText)
+    tell application id "com.microsoft.Word"
+        set matches to {}
+        repeat with pictureIndex from 1 to count inline shapes of d
+            set pic to inline shape pictureIndex of d
+            set tagText to alternative text of pic
+            set rawTag to "ChemOffice OLE Selection:" & (start of content of text object of pic as string)
+            if tagText is targetText or my matchesSource(tagText, targetText) or rawTag is targetText then set end of matches to pictureIndex as integer
+        end repeat
+        if (count matches) is not 1 then error "Expected exactly one matching Word figure"
+        return inline shape (item 1 of matches) of d
+    end tell
+end findFigure
+
+on objectStart(d, pic)
+    tell application id "com.microsoft.Word"
+        set pictureStart to start of content of text object of pic
+        if inline shape type of pic is inline shape embedded oleobject then
+            repeat with fieldIndex from 1 to count fields of d
+                set f to field fieldIndex of d
+                if field type of f is field embed then
+                    if start of content of result range of f is pictureStart then return (start of content of field code of f) - 1
+                end if
+            end repeat
+            error "Expected exactly one matching Word figure"
+        end if
+        return pictureStart
+    end tell
+end objectStart
 
 on run argv
     set actionName to item 1 of argv
@@ -126,7 +156,87 @@ on run argv
             if (count inline shapes of selection) is not 1 then return ""
             return alternative text of inline shape 1 of selection
         else if actionName is "context" then
+            if (count argv) > 2 then return my contextID(my findDocument(item 3 of argv), item 2 of argv)
             return my contextID(active document, item 2 of argv)
+        else if actionName is "reference" then
+            set documentPath to my documentPath(active document)
+            if documentPath is not "" then return documentPath
+            return name of active document
+        else if actionName is "ole-transport-close" then
+            close (my findDocument(item 2 of argv)) saving no
+            return "closed"
+        else if actionName is "ole-kind" or actionName is "ole-capture" or actionName is "ole-claim" then
+            set d to my findDocument(item 2 of argv)
+            set pic to my findFigure(d, item 3 of argv)
+            if actionName is "ole-claim" then
+                set alternative text of pic to item 4 of argv
+                return "claimed"
+            end if
+            if inline shape type of pic is not inline shape embedded oleobject then return "picture"
+            if actionName is "ole-kind" then return "ole"
+            copy object text object of pic
+            return "copied"
+        else if actionName is "ole-insert-prepare" or actionName is "ole-update-prepare" then
+            set d to my findDocument(item 2 of argv)
+            set originalMarker to "-"
+            if actionName is "ole-insert-prepare" then
+                if not my matchesDocument(active document, item 2 of argv) then error "The target Word document changed before paste"
+                set insertionRange to collapse range (text object of selection) direction collapse end
+                set insertionStart to start of content of insertionRange
+                -- A selected OLE result is inside its field. Insert a new copy
+                -- after the entire field instead of nesting it in that result.
+                repeat with fieldIndex from 1 to count fields of d
+                    set f to field fieldIndex of d
+                    if field type of f is field embed then
+                        if insertionStart > (start of content of field code of f) - 1 and insertionStart <= end of content of result range of f then set insertionStart to (end of content of result range of f) + 1
+                    end if
+                end repeat
+                set pictureWidth to 320
+            else
+                set pic to my findFigure(d, item 3 of argv)
+                set insertionStart to my objectStart(d, pic)
+                set pictureWidth to width of pic
+                set originalMarker to alternative text of pic
+            end if
+            set insertionRange to create range d start insertionStart end insertionStart
+            make new bookmark at d with properties {name:item 6 of argv, text object:insertionRange}
+            return ((count inline shapes of d) as string) & tab & (pictureWidth as string) & tab & originalMarker
+        else if actionName is "ole-import-stage" then
+            set d to my findDocument(item 2 of argv)
+            set insertionRange to text object of bookmark (item 6 of argv) of d
+            if (count inline shapes of d) is not (item 10 of argv) as integer then error "Original image identity changed; retained both versions"
+            insert file at insertionRange file name (item 7 of argv) file range (item 8 of argv) confirm conversions false link false
+            if (count inline shapes of d) is not ((item 10 of argv) as integer) + 1 then error "Unexpected Word insertion result; retained both versions"
+            set pic to my findFigure(d, item 9 of argv)
+            if inline shape type of pic is not inline shape embedded oleobject then error "Word inserted a picture instead of an OLE object"
+            set lock aspect ratio of pic to false
+            set width of pic to (item 11 of argv) as real
+            set height of pic to ((item 11 of argv) as real) * ((item 5 of argv) as real)
+            copy object text object of pic
+            return "staged"
+        else if actionName is "ole-insert-commit" or actionName is "ole-update-commit" then
+            set d to my findDocument(item 2 of argv)
+            set newPic to my findFigure(d, item 6 of argv)
+            if inline shape type of newPic is not inline shape embedded oleobject then error "Expected exactly one matching Word figure"
+            if actionName is "ole-update-commit" then
+                set oldPic to my findFigure(d, item 3 of argv)
+                if alternative text of oldPic is not item 8 of argv then error "Original image identity changed; retained both versions"
+                delete oldPic
+            end if
+            set newPic to my findFigure(d, item 6 of argv)
+            set alternative text of newPic to item 4 of argv
+            if exists bookmark (item 7 of argv) of d then delete bookmark (item 7 of argv) of d
+            return (alternative text of newPic) & tab & (width of newPic as string) & tab & (height of newPic as string)
+        else if actionName is "ole-discard" then
+            set d to my findDocument(item 2 of argv)
+            if item 3 of argv does not start with "CFM_OLE_PENDING:" then error "Original image identity changed; retained both versions"
+            repeat with pictureIndex from count inline shapes of d to 1 by -1
+                if alternative text of inline shape pictureIndex of d is item 3 of argv then delete inline shape pictureIndex of d
+            end repeat
+            if (count argv) > 3 then
+                if exists bookmark (item 4 of argv) of d then delete bookmark (item 4 of argv) of d
+            end if
+            return "discarded"
         else if actionName is "path" then
             return my documentPath(my findDocument(item 2 of argv))
         else if actionName is "payload" or actionName is "inspect" then
