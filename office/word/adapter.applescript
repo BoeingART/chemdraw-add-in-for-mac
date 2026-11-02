@@ -24,7 +24,11 @@ on existingID(d)
 end existingID
 
 on matchesDocument(d, referenceText)
-    if referenceText starts with "cfm-document:" then return "cfm-document:" & my existingID(d) is referenceText
+    if referenceText starts with "cfm-document:" then
+        set boundary to offset of "|" in referenceText
+        if boundary > 0 then set referenceText to text 1 thru (boundary - 1) of referenceText
+        return "cfm-document:" & my existingID(d) is referenceText
+    end if
     tell application id "com.microsoft.Word" to return my documentPath(d) is referenceText or name of d is referenceText
 end matchesDocument
 
@@ -32,6 +36,8 @@ end matchesDocument
 -- as an absent document. Enumerate properties so a missing ID is distinct
 -- from a failed property request.
 on matchesOpenDocument(d, referenceText)
+    set boundary to offset of "|" in referenceText
+    if referenceText starts with "cfm-document:" and boundary > 0 then set referenceText to text 1 thru (boundary - 1) of referenceText
     tell application id "com.microsoft.Word"
         if referenceText starts with "cfm-document:" then
             repeat with propertyIndex from 1 to (count of custom document properties of d)
@@ -44,8 +50,48 @@ on matchesOpenDocument(d, referenceText)
     end tell
 end matchesOpenDocument
 
+on documentStamp()
+    tell application id "com.microsoft.Word" to set paths to get full name of every document
+    set stampText to ""
+    repeat with pathText in paths
+        set pathValue to pathText as text
+        set stampText to stampText & (length of pathValue) & ":" & pathValue
+    end repeat
+    return stampText
+end documentStamp
+
+on documentIndex(d)
+    tell application id "com.microsoft.Word"
+        set targetPath to full name of d
+        set paths to get full name of every document
+        repeat with i from 1 to count paths
+            if item i of paths is targetPath then return i as integer
+        end repeat
+        error "The original Word document is no longer uniquely available"
+    end tell
+end documentIndex
+
+on hintedDocumentIndex(referenceText)
+    if referenceText does not start with "cfm-document:" or referenceText does not contain "|" then return 0
+    try
+        set boundary to offset of "|" in referenceText
+        set identityText to text 1 thru (boundary - 1) of referenceText
+        set hintText to text (boundary + 1) thru -1 of referenceText
+        set boundary to offset of "|" in hintText
+        set hintedIndex to (text 1 thru (boundary - 1) of hintText) as integer
+        set expectedStamp to text (boundary + 1) thru -1 of hintText
+        if my documentStamp() is expectedStamp then
+            tell application id "com.microsoft.Word" to set d to document hintedIndex
+            if my matchesDocument(d, identityText) then return hintedIndex
+        end if
+    end try
+    return 0
+end hintedDocumentIndex
+
 on findDocument(referenceText)
     tell application id "com.microsoft.Word"
+        set hintedIndex to my hintedDocumentIndex(referenceText)
+        if hintedIndex > 0 then return document hintedIndex
         set matches to {}
         repeat with documentIndex from 1 to (count of documents)
             set d to document documentIndex
@@ -104,6 +150,15 @@ on objectStart(d, pic)
     end tell
 end objectStart
 
+on objectRange(d, pic)
+    tell application id "com.microsoft.Word"
+        set rangeStart to my objectStart(d, pic)
+        set rangeEnd to end of content of text object of pic
+        if inline shape type of pic is inline shape embedded oleobject then set rangeEnd to rangeEnd + 1
+        return create range d start rangeStart end rangeEnd
+    end tell
+end objectRange
+
 on run argv
     set actionName to item 1 of argv
     if actionName is "document-status" then
@@ -111,12 +166,18 @@ on run argv
     end if
     tell application id "com.microsoft.Word"
         if actionName is "document-status" then
+            set hintedIndex to my hintedDocumentIndex(item 2 of argv)
+            if hintedIndex > 0 then return "open" & tab & (hintedIndex as string) & tab & my documentStamp()
             set matchingCount to 0
+            set matchingIndex to 0
             repeat with documentIndex from 1 to (count of documents)
-                if my matchesOpenDocument(document documentIndex, item 2 of argv) then set matchingCount to matchingCount + 1
+                if my matchesOpenDocument(document documentIndex, item 2 of argv) then
+                    set matchingCount to matchingCount + 1
+                    set matchingIndex to documentIndex as integer
+                end if
             end repeat
             if matchingCount is 0 then return "closed"
-            if matchingCount is 1 then return "open"
+            if matchingCount is 1 then return "open" & tab & (matchingIndex as string) & tab & my documentStamp()
             return "ambiguous"
         else if actionName is "demo" then
             if (count of argv) < 6 then error "Drawing proportions are missing; no figure inserted"
@@ -176,28 +237,79 @@ on run argv
             if actionName is "ole-kind" then return "ole"
             copy object text object of pic
             return "copied"
-        else if actionName is "ole-insert-prepare" or actionName is "ole-update-prepare" then
+        else if actionName is "ole-update-stage" then
+            set d to my findDocument(item 2 of argv)
+            set oldPic to my findFigure(d, item 3 of argv)
+            set originalMarker to alternative text of oldPic
+            set originalCount to count inline shapes of d
+            set pictureWidth to width of oldPic
+            set scratch to make new document
+            try
+                set visible of active window of scratch to false
+                my contextID(scratch, item 9 of argv)
+                set formatted text of (create range scratch start 0 end 0) to formatted text of (my objectRange(d, oldPic))
+                set insertionStart to (end of content of text object of scratch) - 1
+                insert text return at (create range scratch start insertionStart end insertionStart)
+                set insertionStart to insertionStart + 1
+                insert file at (create range scratch start insertionStart end insertionStart) file name (item 6 of argv) file range (item 7 of argv) confirm conversions false link false
+                set pic to my findFigure(scratch, item 8 of argv)
+                if inline shape type of pic is not inline shape embedded oleobject then error "Word inserted a picture instead of an OLE object"
+                set lock aspect ratio of pic to false
+                set width of pic to pictureWidth
+                set height of pic to pictureWidth * ((item 5 of argv) as real)
+                set lock aspect ratio of pic to lock aspect ratio of oldPic
+                copy object text object of pic
+                return originalMarker & tab & (originalCount as string) & tab & (my documentIndex(d) as string) & tab & (my documentIndex(scratch) as string) & tab & my documentStamp()
+            on error errorText number errorNumber
+                close scratch saving no
+                error errorText number errorNumber
+            end try
+        else if actionName is "ole-update-replace" or actionName is "ole-update-restore" then
+            set d to my findDocument(item 2 of argv)
+            set scratch to my findDocument(item 6 of argv)
+            if actionName is "ole-update-replace" then
+                set oldPic to my findFigure(d, item 3 of argv)
+                if alternative text of oldPic is not item 7 of argv or (count inline shapes of d) is not (item 8 of argv) as integer then error "Original image identity changed; retained both versions"
+                set pic to my findFigure(scratch, item 9 of argv)
+                -- Formatted assignment replaces the entire EMBED field in one
+                -- Word operation. No second object enters the user's document.
+                set formatted text of (my objectRange(d, oldPic)) to formatted text of (my objectRange(scratch, pic))
+                set pic to my findFigure(d, item 9 of argv)
+                set alternative text of pic to item 4 of argv
+                if (count inline shapes of d) is not (item 8 of argv) as integer then error "Unexpected Word insertion result; retained both versions"
+                copy object text object of pic
+                return (alternative text of pic) & tab & (width of pic as string) & tab & (height of pic as string)
+            end if
+            try
+                set pic to my findFigure(d, item 3 of argv)
+            on error
+                set pic to my findFigure(d, item 9 of argv)
+            end try
+            if alternative text of pic is item 7 of argv then return "retained"
+            if alternative text of pic is not item 4 of argv and alternative text of pic is not item 9 of argv then error "Original image identity changed; retained both versions"
+            set backupPic to my findFigure(scratch, item 3 of argv)
+            set formatted text of (my objectRange(d, pic)) to formatted text of (my objectRange(scratch, backupPic))
+            return "restored"
+        else if actionName is "ole-update-release" then
+            if (count argv) > 2 then set d to my findDocument(item 3 of argv)
+            close (my findDocument(item 2 of argv)) saving no
+            if (count argv) > 2 then return (my documentIndex(d) as string) & tab & my documentStamp()
+            return "released"
+        else if actionName is "ole-insert-prepare" then
             set d to my findDocument(item 2 of argv)
             set originalMarker to "-"
-            if actionName is "ole-insert-prepare" then
-                if not my matchesDocument(active document, item 2 of argv) then error "The target Word document changed before paste"
-                set insertionRange to collapse range (text object of selection) direction collapse end
-                set insertionStart to start of content of insertionRange
-                -- A selected OLE result is inside its field. Insert a new copy
-                -- after the entire field instead of nesting it in that result.
-                repeat with fieldIndex from 1 to count fields of d
-                    set f to field fieldIndex of d
-                    if field type of f is field embed then
-                        if insertionStart > (start of content of field code of f) - 1 and insertionStart <= end of content of result range of f then set insertionStart to (end of content of result range of f) + 1
-                    end if
-                end repeat
-                set pictureWidth to 320
-            else
-                set pic to my findFigure(d, item 3 of argv)
-                set insertionStart to my objectStart(d, pic)
-                set pictureWidth to width of pic
-                set originalMarker to alternative text of pic
-            end if
+            if not my matchesDocument(active document, item 2 of argv) then error "The target Word document changed before paste"
+            set insertionRange to collapse range (text object of selection) direction collapse end
+            set insertionStart to start of content of insertionRange
+            -- A selected OLE result is inside its field. Insert a new copy
+            -- after the entire field instead of nesting it in that result.
+            repeat with fieldIndex from 1 to count fields of d
+                set f to field fieldIndex of d
+                if field type of f is field embed then
+                    if insertionStart > (start of content of field code of f) - 1 and insertionStart <= end of content of result range of f then set insertionStart to (end of content of result range of f) + 1
+                end if
+            end repeat
+            set pictureWidth to 320
             set insertionRange to create range d start insertionStart end insertionStart
             make new bookmark at d with properties {name:item 6 of argv, text object:insertionRange}
             return ((count inline shapes of d) as string) & tab & (pictureWidth as string) & tab & originalMarker
@@ -214,15 +326,10 @@ on run argv
             set height of pic to ((item 11 of argv) as real) * ((item 5 of argv) as real)
             copy object text object of pic
             return "staged"
-        else if actionName is "ole-insert-commit" or actionName is "ole-update-commit" then
+        else if actionName is "ole-insert-commit" then
             set d to my findDocument(item 2 of argv)
             set newPic to my findFigure(d, item 6 of argv)
             if inline shape type of newPic is not inline shape embedded oleobject then error "Expected exactly one matching Word figure"
-            if actionName is "ole-update-commit" then
-                set oldPic to my findFigure(d, item 3 of argv)
-                if alternative text of oldPic is not item 8 of argv then error "Original image identity changed; retained both versions"
-                delete oldPic
-            end if
             set newPic to my findFigure(d, item 6 of argv)
             set alternative text of newPic to item 4 of argv
             if exists bookmark (item 7 of argv) of d then delete bookmark (item 7 of argv) of d

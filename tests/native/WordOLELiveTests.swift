@@ -7,10 +7,10 @@ import Cocoa
 private final class WordOLEDevelopmentAutomation: NativeAutomation {
     override func oleTransportDirectory(_ host:String) throws -> URL { root.appendingPathComponent("build/word-ole-live/transports") }
     override func office(_ action:String,_ host:String,_ arguments:[String] = []) throws -> String {
-        if host == "word", action == "ole-import-stage" {
-            let path = arguments[5]
+        if host == "word", ["ole-import-stage","ole-update-stage"].contains(action) {
+            let path = arguments[action == "ole-import-stage" ? 5 : 4]
             try command(monitor,["--open-document-background",OfficeHost.word.bundle,path])
-            defer { _ = try? super.office("ole-transport-close",host,[path]) }
+            _ = try super.office("ole-transport-close",host,[path])
             return try super.office(action,host,arguments)
         }
         return try super.office(action,host,arguments)

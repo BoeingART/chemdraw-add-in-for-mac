@@ -216,6 +216,7 @@ class NativeAutomation: ChemistryAutomation {
         if host == "powerpoint" { try transferOLE(action,arguments:arguments,object:object,vector:vector); return }
         if host == "excel" { try transferExcelOLE(action,arguments:arguments,object:object,vector:vector); return }
         try require(host == "word",L("ole.unsupported"))
+        if action == "ole-update" { try updateWordOLE(arguments,object:object,vector:vector); return }
         transferReceipt = nil
         try withClipboard {
             let pending = "CFM_OLE_PENDING:"+UUID().uuidString.lowercased()
@@ -237,6 +238,48 @@ class NativeAutomation: ChemistryAutomation {
                 transferReceipt = (host,arguments[0],arguments[1],source,fields)
             } catch {
                 _ = try? office("ole-discard",host,[arguments[0],pending,anchor]); throw error
+            }
+        }
+    }
+    private func updateWordOLE(_ arguments:[String],object:Data,vector:Data) throws {
+        transferReceipt = nil
+        try withClipboard {
+            let pending = "CFM_OLE_PENDING:"+UUID().uuidString.lowercased()
+            let scratchID = UUID().uuidString.lowercased()
+            var scratch = "cfm-document:"+scratchID
+            let bookmark = "CFMT_"+UUID().uuidString.replacingOccurrences(of:"-",with:"")
+            let directory = try oleTransportDirectory("word")
+            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+            let transport = directory.appendingPathComponent("ole-"+UUID().uuidString).appendingPathExtension("docx")
+            defer { try? FileManager.default.removeItem(at:transport) }
+            let source = try CompoundFile(object).chemdrawSource()
+            try ChemDrawOLE.wordTransport(object:object,vector:vector,marker:pending,bookmark:bookmark).write(to:transport,options:.atomic)
+            var preparation = [String](), staged = false
+            do {
+                // Stage and size outside the user's document. The hidden Word
+                // document also retains a formatted copy of the original OLE.
+                preparation = try office("ole-update-stage","word",arguments+[transport.path,bookmark,pending,scratchID]).components(separatedBy:"\t")
+                staged = true
+                try require(preparation.count == 5,L("ole.clipboard"))
+                documentHints["word:"+arguments[0]] = arguments[0]+"|"+preparation[2]+"|"+preparation[4]
+                scratch += "|"+preparation[3]+"|"+preparation[4]
+                try require(try CompoundFile(clipboardOLE()).chemdrawSource() == source,L("ole.clipboard"))
+                let fields = try office("ole-update-replace","word",arguments+[scratch]+Array(preparation.prefix(2))+[pending]).components(separatedBy:"\t")
+                try require(fields.count == 3 && fields[0] == arguments[2],L("ole.clipboard"))
+                try require(try CompoundFile(clipboardOLE()).chemdrawSource() == source,L("ole.clipboard"))
+                let hint = try office("ole-update-release","word",[scratch,arguments[0]]).components(separatedBy:"\t")
+                if hint.count == 2 { documentHints["word:"+arguments[0]] = arguments[0]+"|"+hint[0]+"|"+hint[1] }
+                staged = false
+                transferReceipt = ("word",arguments[0],arguments[1],source,fields)
+            } catch {
+                let failure = error
+                if staged {
+                    do {
+                        _ = try office("ole-update-restore","word",arguments+[scratch]+Array(preparation.prefix(2))+[pending])
+                        _ = try office("ole-update-release","word",[scratch,arguments[0]])
+                    } catch { throw ChemOfficeError(failure.localizedDescription+"\n"+error.localizedDescription) }
+                }
+                throw failure
             }
         }
     }
@@ -332,13 +375,13 @@ class NativeAutomation: ChemistryAutomation {
         // A failed query is unknown availability, never permission to close an edit.
         if action == "document-status", try !isApplicationRunning(NativePaths.officeBundles[host]!) { return "closed" }
         let adapter = try String(contentsOf:root.appendingPathComponent("office/\(host)/adapter.applescript"),encoding:.utf8)
-        let resolved = host == "powerpoint"
-            ? arguments.map { documentHints[$0] ?? $0 } : arguments
+        let resolved = ["powerpoint","word"].contains(host)
+            ? arguments.map { documentHints[host+":"+$0] ?? $0 } : arguments
         let data = try executeScript(adapter,[action]+resolved)
         let result = String(decoding:data,as:UTF8.self).trimmingCharacters(in:.whitespacesAndNewlines)
-        if action == "document-status", host == "powerpoint", let document = arguments.first {
+        if action == "document-status", ["powerpoint","word"].contains(host), let document = arguments.first {
             let fields = result.split(separator:"\t",maxSplits:2,omittingEmptySubsequences:false).map(String.init)
-            documentHints[document] = fields.count == 3 && fields[0] == "open" ? document+"|"+fields[1]+"|"+fields[2] : nil
+            documentHints[host+":"+document] = fields.count == 3 && fields[0] == "open" ? document+"|"+fields[1]+"|"+fields[2] : nil
             return fields[0]
         }
         return result

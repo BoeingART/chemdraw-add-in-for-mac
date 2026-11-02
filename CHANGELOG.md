@@ -2,6 +2,9 @@
 
 ## v2.0.0 — Development
 
+- Update Word OLE drawings at their original position without a temporary duplicate or layout jump. Prepare the new size in a hidden document and restore the original source and preview if verification fails.
+- Reuse Word document lookup after validating the complete open-document list and stable identity; refresh it when documents are opened, closed or saved under another name.
+
 - Paste CDX structures as native ChemDraw OLE objects in Word and Excel, and retain OLE storage during edits and save synchronization. Word imports a bookmarked object range without changing surrounding text or opening a transport window.
 - Recognize unmarked embedded ChemDraw objects in Word and Excel and preserve the host application's handling of other OLE objects. Word has passed live paste/edit/save checks; Excel file-format and transaction checks are covered, with application testing pending.
 
