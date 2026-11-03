@@ -26,7 +26,7 @@ import Cocoa
         try check(try presentation.integer(36,4) == presentation.count-40,"OLE preview length is wrong")
         // DIB rows are bottom-up BGR; the renderer's input is top-down RGBA.
         // Include transparency to check that Office receives an opaque canvas.
-        let colours = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><path fill=\"#ff0000\" d=\"M0 0h5v5H0z\"/><path fill=\"#0000ff\" d=\"M5 0h5v5H5z\"/><path fill=\"#00ff00\" d=\"M0 5h5v5H0z\"/></svg>".utf8)
+        let colours = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\" viewBox=\"0 0 10 10\"><path fill=\"#ff0000\" d=\"M0 0h5v5H0z\"/><path fill=\"#0000ff\" d=\"M5 0h5v5H5z\"/><path fill=\"#00ff00\" d=\"M0 5h5v5H0z\"/></svg>".utf8)
         let coloured = try ChemDrawOLE.presentation(colours)
         let dibWidth = try coloured.integer(44,4), dibHeight = try coloured.integer(48,4), rowBytes = (dibWidth*3+3)/4*4
         for (x,y,bgr) in [(256,256,[0,0,255]),(768,256,[255,0,0]),(256,768,[0,255,0]),(768,768,[255,255,255])] {
@@ -75,6 +75,17 @@ import Cocoa
             let part = host == "word" ? "word/document.xml" : "xl/worksheets/sheet1.xml"
             let native = try xml(archive.read(part))
             try check(try nodes(native,"//*[local-name()='OLEObject' or local-name()='oleObject']").count == 1,"\(host) transport duplicated the OLE")
+            if host == "word" {
+                let second = file.deletingPathExtension().appendingPathExtension("second.docx")
+                defer { try? FileManager.default.removeItem(at:second) }
+                try ChemDrawOLE.wordTransport(object:original,vector:blankDrawingSVG(),marker:marker).write(to:second)
+                let other = try xml(OfficeArchive(second).read(part))
+                let firstObject = try nodes(native,"//*[local-name()='OLEObject']")[0]
+                let secondObject = try nodes(other,"//*[local-name()='OLEObject']")[0]
+                let shape = try nodes(other,"//*[local-name()='shape']")[0]
+                try check(attribute(firstObject,"ObjectID") != attribute(secondObject,"ObjectID") && attribute(firstObject,"ShapeID") != attribute(secondObject,"ShapeID"),"Independent Word transports reused OLE identities")
+                try check(attribute(secondObject,"ShapeID") == attribute(shape,"id"),"Word OLE and preview refer to different shapes")
+            }
             var parts = [String:Data]()
             for name in archive.entries.keys { parts[name] = try archive.read(name) }
             let relPart = host == "word" ? "word/_rels/document.xml.rels" : "xl/worksheets/_rels/sheet1.xml.rels"
@@ -93,6 +104,22 @@ import Cocoa
         try check(figure.source == source && figure.evidence["prog_id"] as? String == "ChemDraw.Document.6.0","PPT transport lost the native class or source")
         try check(try decodeSource(readCarrier(figure.preview)).source == source,"PPT vector preview lost the editable source")
         let archive = try OfficeArchive(temporary)
+        // A rendered saved snapshot can be reused without rasterizing it for
+        // every host transport. Verify its exact bytes in each package.
+        let suppliedPreview = try renderPNG(colours)
+        for host in ["word","powerpoint","excel"] {
+            let data: Data
+            switch host {
+            case "word": data = try ChemDrawOLE.wordTransport(object:original,vector:colours,marker:marker,preview:suppliedPreview)
+            case "excel": data = try ChemDrawOLE.excelTransport(object:original,vector:colours,marker:marker,preview:suppliedPreview)
+            default: data = try ChemDrawOLE.transport(template:root.appendingPathComponent("assets/ole-transport.pptx"),object:original,vector:colours,id:id,marker:marker,preview:suppliedPreview)
+            }
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at:file) }
+            try data.write(to:file)
+            let prefix = host == "word" ? "word" : (host == "excel" ? "xl":"ppt")
+            try check(try OfficeArchive(file).read(prefix+"/media/chemdraw.png") == suppliedPreview,"\(host) transport altered the saved preview")
+        }
         var normalizedParts = [String:Data]()
         for name in archive.entries.keys { normalizedParts[name] = try archive.read(name) }
         let normalizedSlide = try xml(normalizedParts["ppt/slides/slide1.xml"]!)

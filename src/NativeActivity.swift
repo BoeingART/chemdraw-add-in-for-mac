@@ -18,17 +18,29 @@ struct HelperActivity: Codable {
     }
 }
 
+struct OperationFailureNotice {
+    let title: String
+    let message: String
+    init(_ activity:HelperActivity) {
+        let key = ["paste":"operation.pasteFailed", "open":"operation.openFailed", "edit-selection":"operation.openFailed",
+                   "save":"operation.saveFailed", "close":"operation.closeFailed"][activity.operation] ?? "operation.failed"
+        title = L(key)
+        let action = activity.editing || activity.recoverable ? L("operation.keepDraft") :
+            activity.operation == "paste" ? L("native.146") : L("operation.retrySelection")
+        message = (activity.error ?? activity.message) + "\n\n" + action
+    }
+}
+
 struct FailurePresentationPolicy {
     private var shown: String?
-    mutating func shouldPresent(_ activity:HelperActivity?) -> Bool {
-        guard let activity else { return false }
-        guard let error = activity.error else {
-            if !activity.busy { shown = nil }
-            return false
-        }
-        let key = "\(activity.pid):\(activity.operation):\(error)"
-        guard key != shown else { return false }
-        shown = key; return true
+    mutating func notice(_ activity:HelperActivity?) -> OperationFailureNotice? {
+        guard let activity, !activity.busy, let error = activity.error else { return nil }
+        // Polling the same failure never opens another dialog. A new user
+        // attempt gets its own result even when the error text is unchanged.
+        let key = "\(activity.pid):\(activity.revision):\(error)"
+        guard key != shown else { return nil }
+        shown = key
+        return OperationFailureNotice(activity)
     }
 }
 

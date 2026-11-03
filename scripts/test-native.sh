@@ -44,3 +44,5 @@ xcrun swiftc -O "$PROJECT_DIR/src/NativeLocalization.swift" "$PROJECT_DIR/src/Na
 "$PROJECT_DIR/build/test-app-update"
 zsh "$PROJECT_DIR/scripts/test-application-lifecycle.sh"
 zsh "$PROJECT_DIR/scripts/test-ole.sh"
+
+python3 "$PROJECT_DIR/tests/script-worker.test.py"

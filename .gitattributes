@@ -1,0 +1,2 @@
+# Empty review columns are significant tab delimiters in this generated TSV.
+docs/ui-strings.tsv whitespace=-blank-at-eol

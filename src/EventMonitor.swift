@@ -139,6 +139,65 @@ if CommandLine.arguments.count == 4 && ["--activate-office", "--activate-window"
     print("activated")
     exit(0)
 }
+if CommandLine.arguments.count == 5 && CommandLine.arguments[1] == "--reveal-chemdraw" {
+    func failedReveal() -> Never { fputs(L("native.revealDrawing")+"\n",stderr); exit(2) }
+    func rectangle(_ value:Any?) -> CGRect? {
+        guard let values = value as? [Double], values.count == 4,
+              values.allSatisfy({ $0.isFinite && abs($0) < 1_000_000 }), values[2] > 0, values[3] > 0 else { return nil }
+        return CGRect(x:values[0],y:values[1],width:values[2],height:values[3])
+    }
+    let source = URL(fileURLWithPath:CommandLine.arguments[3]).resolvingSymlinksInPath()
+    guard source.lastPathComponent.hasPrefix("CFM-"),
+          let app = runningApplication(CommandLine.arguments[2]),
+          let metadata = try? JSONSerialization.jsonObject(with:Data(CommandLine.arguments[4].utf8)) as? [String:Any],
+          let page = rectangle(metadata["page"]), let drawing = rectangle(metadata["drawing"]), page.contains(drawing),
+          let magnification = metadata["magnification"] as? Double, (1...999).contains(magnification),
+          let windows = attribute(AXUIElementCreateApplication(app.processIdentifier),kAXWindowsAttribute) as? [AXUIElement] else { failedReveal() }
+    let matches = windows.filter { window in
+        guard attribute(window,kAXTitleAttribute) as? String == source.lastPathComponent else { return false }
+        if let value = attribute(window,kAXDocumentAttribute) as? String, let url = URL(string:value), url.isFileURL {
+            return url.resolvingSymlinksInPath().path == source.path
+        }
+        return true
+    }
+    guard matches.count == 1 else { failedReveal() }
+    var pending = [matches[0]], areas = [AXUIElement](), visited = 0
+    while !pending.isEmpty && visited < 200 {
+        let item = pending.removeFirst(); visited += 1
+        if attribute(item,kAXRoleAttribute) as? String == kAXScrollAreaRole { areas.append(item); continue }
+        pending += attribute(item,kAXChildrenAttribute) as? [AXUIElement] ?? []
+    }
+    guard areas.count == 1, let frame = elementFrame(areas[0]) else { failedReveal() }
+    let scale = magnification/100
+    let viewport = CGSize(width:frame.width/scale,height:frame.height/scale)
+    let bars = (attribute(areas[0],kAXChildrenAttribute) as? [AXUIElement] ?? []).filter { attribute($0,kAXRoleAttribute) as? String == kAXScrollBarRole }
+    for (vertical,minimum,length,start,extent,visible) in [
+        (false,page.minX,page.width,drawing.minX,drawing.width,viewport.width),
+        (true,page.minY,page.height,drawing.minY,drawing.height,viewport.height)
+    ] {
+        let scrollable = max(0,length-visible)
+        if scrollable == 0 { continue }
+        let orientation = vertical ? kAXVerticalOrientationValue:kAXHorizontalOrientationValue
+        guard let bar = bars.first(where:{ attribute($0,kAXOrientationAttribute) as? String == orientation }) else { failedReveal() }
+        let low = (attribute(bar,kAXMinValueAttribute) as? NSNumber)?.doubleValue ?? 0
+        let high = (attribute(bar,kAXMaxValueAttribute) as? NSNumber)?.doubleValue ?? 1
+        let current = (attribute(bar,kAXValueAttribute) as? NSNumber)?.doubleValue ?? low
+        guard high > low else { failedReveal() }
+        let origin = minimum + min(1,max(0,(current-low)/(high-low)))*scrollable
+        if start >= origin && start+extent <= origin+visible { continue }
+        // Large drawings start at their leading edge; small drawings are
+        // centered where the paper bounds allow it. Only the view is scrolled.
+        let desired = extent <= visible ? start+(extent-visible)/2:start-12
+        let fraction = min(1,max(0,(desired-minimum)/scrollable))
+        let target = low+fraction*(high-low)
+        var settable = DarwinBoolean(false)
+        guard AXUIElementIsAttributeSettable(bar,kAXValueAttribute as CFString,&settable) == .success, settable.boolValue,
+              AXUIElementSetAttributeValue(bar,kAXValueAttribute as CFString,NSNumber(value:target)) == .success,
+              let actual = (attribute(bar,kAXValueAttribute) as? NSNumber)?.doubleValue,
+              abs(actual-target) <= max(0.01,(high-low)*0.01) else { failedReveal() }
+    }
+    print("revealed"); exit(0)
+}
 if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--focused" {
     let app = NSWorkspace.shared.frontmostApplication
     let ax = app.map { AXUIElementCreateApplication($0.processIdentifier) }

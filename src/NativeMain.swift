@@ -180,6 +180,7 @@ class NativeMonitorRuntime {
         }
         do {
             switch args.first {
+            case "script-worker": try NativeAppleScriptWorker.serve()
             case "ole-extract":
                 try require(args.count == 3,L("ole.usage"))
                 let source = try ChemDrawOLE.powerPointSource(URL(fileURLWithPath:args[1]))

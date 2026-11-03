@@ -387,3 +387,14 @@ Your ChemDraw."
 372	ole.usage	src/NativeMain.swift	用法：ole-extract <PPTX> <CDX输出>；ole-export <PPTX> <CDX> <PPTX副本>；ole-new <CDX> <PPTX输出>	Usage: ole-extract <PPTX> <CDX output>; ole-export <PPTX> <CDX> <PPTX copy>; ole-new <CDX> <PPTX output>		
 373	ole.newOutput	src/NativeMain.swift	请选择尚不存在的输出文件名，原文档和源文件会保留。	Choose a new output filename. The original document and source file are retained.		
 374	ole.exported	src/NativeMain.swift	已导出：{0}	Exported: {0}		
+375	native.revealDrawing	src/NativeAutomation.swift；src/EventMonitor.swift	绘图已打开，但无法自动定位到结构所在页面。请在ChemDraw中滚动到目标页，或再次双击继续编辑已保留的草稿。	The drawing is open, but its page could not be located automatically. Scroll to the drawing in ChemDraw, or double-click again to resume the retained draft.		
+376	operation.pasteFailed	src/NativeActivity.swift	粘贴结构失败	Could Not Paste Drawing		
+377	operation.openFailed	src/NativeActivity.swift	打开结构失败	Could Not Open Drawing		
+378	operation.saveFailed	src/NativeActivity.swift	保存回写失败	Could Not Update Office Drawing		
+379	operation.closeFailed	src/NativeActivity.swift	关闭回写失败	Could Not Finish Drawing Edit		
+380	operation.failed	src/NativeActivity.swift	结构操作失败	Drawing Operation Failed		
+381	operation.keepDraft	src/NativeActivity.swift	编辑草稿已保留。请保留ChemDraw编辑窗口，处理上述问题后再次保存。	Your editing draft is retained. Keep the ChemDraw editor open, resolve the issue above, then save again.		
+382	operation.retrySelection	src/NativeActivity.swift	请确认原Office文档仍然打开，重新选择对应结构后重试。	Keep the original Office document open, select the drawing again, then retry.		
+383	operation.helperFailed	src/NativeApplication.swift	粘贴助手已停止	Paste Helper Stopped		
+384	ole.wordPicture	office/word/adapter.applescript	Word将结构导入为普通图片。请保留ChemDraw编辑窗口并重试保存。	Word imported the drawing as a picture. Keep the ChemDraw editor open and retry saving.		
+385	ole.excelPicture	office/excel/adapter.applescript	Excel将结构粘贴为普通图片。请重新复制结构后重试粘贴。	Excel pasted the drawing as a picture. Copy the structure again and retry pasting.		

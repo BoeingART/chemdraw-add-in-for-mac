@@ -904,6 +904,29 @@ class TestAutomation: ChemistryAutomation {
                 try rejects { _ = try driver.office("document-status",host.rawValue,["cfm-document:test"]) }
             }
         }
+        try check("Saved preview reuse cannot apply an earlier drawing to a later transport") {
+            class PreviewProbe: NativeAutomation {
+                var vector = blankDrawingSVG()
+                override func application() throws -> ChemDrawApplication {
+                    ChemDrawApplication(path:"/unused/ChemDraw.app",bundle:"example.preview",version:"22")
+                }
+                override func exportVector(_ source:URL,_ target:URL,application:ChemDrawApplication) throws {
+                    try vector.write(to:target)
+                }
+            }
+            let driver = PreviewProbe(root:root), image = root.appendingPathComponent("cached-preview.png")
+            let first = blankDrawingSVG()
+            let next = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"10\"><path fill=\"red\" d=\"M0 0h20v10H0z\"/></svg>".utf8)
+            try driver.savedSnapshot(root.appendingPathComponent("unused.cdx"),image)
+            try require(try driver.transportPreview(first) == Data(contentsOf:image),"Transport changed the saved snapshot preview")
+            let expected = try renderPNG(next)
+            try require(try driver.transportPreview(next) == expected && expected != Data(contentsOf:image),"An unrelated drawing reused a cached preview")
+            try rejects { _ = try driver.transportPreview(Data("invalid SVG".utf8)) }
+            driver.vector = next
+            try driver.savedSnapshot(root.appendingPathComponent("unused.cdx"),image)
+            try require(try driver.transportPreview(next) == Data(contentsOf:image),"A later saved snapshot used the previous preview")
+            try require(try driver.transportPreview(first) == renderPNG(first),"Replacing the saved snapshot corrupted an earlier drawing")
+        }
         try check("Native cold-launch failure cannot script an unready ChemDraw") {
             class LaunchProbe: NativeAutomation {
                 var scripted = false

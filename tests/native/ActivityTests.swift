@@ -30,17 +30,22 @@ import Foundation
         }
         var presentation = FailurePresentationPolicy()
         activity.begin("close"); activity.end(editing:true,recoverable:false,error:"Original document unavailable")
-        check("The first operation failure can open setup",presentation.shouldPresent(activity.snapshot()))
+        let notice = presentation.notice(activity.snapshot())
+        check("An operation failure produces a specific error dialog",notice?.title == L("operation.closeFailed") && notice!.message.contains("Original document unavailable"))
+        check("The error dialog explains how to continue with the retained draft",notice!.message.contains(L("operation.keepDraft")))
+        check("Polling does not show the same dialog again",presentation.notice(activity.snapshot()) == nil)
         activity.begin("close")
-        check("A retry in progress does not reset failure presentation",!presentation.shouldPresent(activity.snapshot()))
+        check("A running retry does not show an error dialog",presentation.notice(activity.snapshot()) == nil)
         activity.end(editing:true,recoverable:false,error:"Original document unavailable")
-        check("Repeated failures do not reopen setup for each activity revision",!presentation.shouldPresent(activity.snapshot()))
+        check("A failed retry reports its result even with identical error text",presentation.notice(activity.snapshot()) != nil)
         activity.end(editing:false,recoverable:false)
-        check("Successful detached cleanup does not open the plugin window",!presentation.shouldPresent(activity.snapshot()))
-        activity.begin("close"); activity.end(editing:true,recoverable:false,error:"Original document unavailable")
-        check("A new failure after successful work is presented",presentation.shouldPresent(activity.snapshot()))
-        activity.end(editing:true,recoverable:false,error:"Different failure")
-        check("A different failure remains visible",presentation.shouldPresent(activity.snapshot()))
+        check("Successful detached cleanup does not open a window",presentation.notice(activity.snapshot()) == nil)
+        for (operation,key) in [("paste","operation.pasteFailed"),("open","operation.openFailed"),("edit-selection","operation.openFailed"),("save","operation.saveFailed"),("close","operation.closeFailed")] {
+            activity.begin(operation); activity.end(editing:false,recoverable:false,error:"Concrete reason")
+            let notice = presentation.notice(activity.snapshot())
+            check("\(operation) reports the operation and exact reason",notice?.title == L(key) && notice!.message.contains("Concrete reason"))
+            check("\(operation) never uses the setup heading",notice?.title != L("native.025"))
+        }
         print("Passed \(count) operation status checks")
     }
 }

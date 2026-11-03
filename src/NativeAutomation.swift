@@ -87,6 +87,12 @@ class NativeAutomation: ChemistryAutomation {
     private var capturedOLEPreparation: (document:String,target:String,fields:[String])?
     private var transferReceipt: (host:String,document:String,id:String,source:Data,fields:[String])?
     private var documentHints = [String:String]()
+    private var scriptWorker: NativeAppleScriptWorker?
+    private var snapshotPreview: (vector:Data,png:Data)?
+    func transportPreview(_ vector:Data) throws -> Data {
+        if let preview = snapshotPreview, preview.vector == vector { return preview.png }
+        return try renderPNG(vector)
+    }
     func withClipboard<T>(restoreFocus:Bool = false,_ body:() throws -> T) rethrows -> T {
         if clipboardDepth > 0 { return try body() }
         clipboardDepth += 1
@@ -176,7 +182,7 @@ class NativeAutomation: ChemistryAutomation {
                 try? FileManager.default.removeItem(at:temporary)
             }
             do {
-                try ChemDrawOLE.transport(template:root.appendingPathComponent("assets/ole-transport.pptx"),object:object,vector:vector,id:arguments[1],marker:arguments[2]).write(to:temporary,options:.atomic)
+                try ChemDrawOLE.transport(template:root.appendingPathComponent("assets/ole-transport.pptx"),object:object,vector:vector,id:arguments[1],marker:arguments[2],preview:transportPreview(vector)).write(to:temporary,options:.atomic)
                 try command(monitor,["--open-document-background",OfficeHost.powerpoint.bundle,temporary.path])
                 openedTransport = true
                 let destination = try office("ole-transport-copy-close","powerpoint",[temporary.path,arguments[1],arguments[0]])
@@ -229,7 +235,7 @@ class NativeAutomation: ChemistryAutomation {
             do {
                 let preparation = try office(action+"-prepare",host,arguments+[anchor]).components(separatedBy:"\t")
                 try require(preparation.count == 3,L("ole.clipboard"))
-                try ChemDrawOLE.wordTransport(object:object,vector:vector,marker:pending,bookmark:bookmark).write(to:temporary,options:.atomic)
+                try ChemDrawOLE.wordTransport(object:object,vector:vector,marker:pending,bookmark:bookmark,preview:transportPreview(vector)).write(to:temporary,options:.atomic)
                 try require(try office("ole-import-stage",host,arguments+[anchor,temporary.path,bookmark,pending]+preparation) == "staged",L("ole.clipboard"))
                 let actual = try clipboardOLE(), source = try CompoundFile(actual).chemdrawSource()
                 try require(try source == CompoundFile(object).chemdrawSource(),L("ole.clipboard"))
@@ -253,7 +259,7 @@ class NativeAutomation: ChemistryAutomation {
             let transport = directory.appendingPathComponent("ole-"+UUID().uuidString).appendingPathExtension("docx")
             defer { try? FileManager.default.removeItem(at:transport) }
             let source = try CompoundFile(object).chemdrawSource()
-            try ChemDrawOLE.wordTransport(object:object,vector:vector,marker:pending,bookmark:bookmark).write(to:transport,options:.atomic)
+            try ChemDrawOLE.wordTransport(object:object,vector:vector,marker:pending,bookmark:bookmark,preview:transportPreview(vector)).write(to:transport,options:.atomic)
             var preparation = [String](), staged = false
             do {
                 // Stage and size outside the user's document. The hidden Word
@@ -267,6 +273,7 @@ class NativeAutomation: ChemistryAutomation {
                 let fields = try office("ole-update-replace","word",arguments+[scratch]+Array(preparation.prefix(2))+[pending]).components(separatedBy:"\t")
                 try require(fields.count == 3 && fields[0] == arguments[2],L("ole.clipboard"))
                 try require(try CompoundFile(clipboardOLE()).chemdrawSource() == source,L("ole.clipboard"))
+                NSPasteboard.general.clearContents()
                 let hint = try office("ole-update-release","word",[scratch,arguments[0]]).components(separatedBy:"\t")
                 if hint.count == 2 { documentHints["word:"+arguments[0]] = arguments[0]+"|"+hint[0]+"|"+hint[1] }
                 staged = false
@@ -276,6 +283,7 @@ class NativeAutomation: ChemistryAutomation {
                 if staged {
                     do {
                         _ = try office("ole-update-restore","word",arguments+[scratch]+Array(preparation.prefix(2))+[pending])
+                        NSPasteboard.general.clearContents()
                         _ = try office("ole-update-release","word",[scratch,arguments[0]])
                     } catch { throw ChemOfficeError(failure.localizedDescription+"\n"+error.localizedDescription) }
                 }
@@ -297,7 +305,7 @@ class NativeAutomation: ChemistryAutomation {
                 try? FileManager.default.removeItem(at:temporary)
             }
             do {
-                try ChemDrawOLE.excelTransport(object:object,vector:vector,marker:pending).write(to:temporary,options:.atomic)
+                try ChemDrawOLE.excelTransport(object:object,vector:vector,marker:pending,preview:transportPreview(vector)).write(to:temporary,options:.atomic)
                 try command(monitor,["--open-document-background",OfficeHost.excel.bundle,temporary.path]); opened = true
                 _ = try office("ole-transport-copy-close","excel",[temporary.path,pending]); opened = false
                 try require(try CompoundFile(clipboardOLE()).chemdrawSource() == CompoundFile(object).chemdrawSource(),L("ole.clipboard"))
@@ -363,7 +371,22 @@ class NativeAutomation: ChemistryAutomation {
                 catch { if !FileManager.default.fileExists(atPath:compiled.path) { throw error } }
             }
         }
-        return try command("/usr/bin/osascript",[compiled.path]+arguments,timeout:timeout)
+        let executable = root.appendingPathComponent("build/chemoffice")
+        // Standalone development adapters can run without a bundled helper.
+        // Choose this before executing; a failed mutation is never replayed.
+        if ProcessInfo.processInfo.environment["CFM_SCRIPT_BACKEND"] == "process" || !FileManager.default.isExecutableFile(atPath:executable.path) {
+            return try command("/usr/bin/osascript",[compiled.path]+arguments,timeout:timeout)
+        }
+        if scriptWorker?.isRunning != true {
+            scriptWorker = try NativeAppleScriptWorker(executable:executable)
+        }
+        do { return try scriptWorker!.execute(compiled,arguments:arguments,timeout:timeout) }
+        catch {
+            // A lost reply may follow a committed Office operation. Surface it;
+            // never replay a mutation merely because its worker has exited.
+            scriptWorker = nil
+            throw error
+        }
     }
     func office(_ action:String, _ host:String, _ arguments:[String] = []) throws -> String {
         transferReceipt = nil
@@ -392,17 +415,21 @@ class NativeAutomation: ChemistryAutomation {
         // than loading and validating it again after each Command-S.
         if windowlessPDFSDK(app) != nil { _ = try? warmPDFRenderer(app) }
         try command(monitor,["--open-document",app.path,path.path])
-        _ = try script("""
+        let view = try script("""
         with timeout of 40 seconds
         tell application \(appleQuote(app.path))
             set targetPath to item 1 of argv
             set targetFound to false
+            set targetMagnification to 0
+            set targetModified to true
             repeat 300 times
                 repeat with d in documents
                     try
                         if POSIX path of ((file of d) as alias) is targetPath then
                             set index of window of d to 1
                             set targetFound to true
+                            set targetMagnification to magnification of d
+                            set targetModified to modified of d
                         end if
                     end try
                 end repeat
@@ -411,9 +438,19 @@ class NativeAutomation: ChemistryAutomation {
             end repeat
             if not targetFound then error "ChemDraw did not open the managed source"
             activate
+            return (targetMagnification as string) & tab & (targetModified as string)
         end tell
         end timeout
         """,[path.path])
+        let fields = view.components(separatedBy:"\t")
+        if fields.count == 2, fields[1] == "false", let magnification = Double(fields[0]),
+           let settings = try? ChemDrawSourceSettings(Data(contentsOf:path)),
+           let page = settings.pageBounds, let drawing = settings.drawingBounds, page.contains(drawing) {
+            func values(_ rect:CGRect) -> [Double] { [rect.minX,rect.minY,rect.width,rect.height].map(Double.init) }
+            let data = try JSONSerialization.data(withJSONObject:["page":values(page),"drawing":values(drawing),"magnification":magnification])
+            do { try command(monitor,["--reveal-chemdraw",app.path,path.path,String(decoding:data,as:UTF8.self)]) }
+            catch { throw ChemOfficeError(L("native.revealDrawing")) }
+        }
     }
     func focus(_ path:URL,application app:ChemDrawApplication) throws {
         for _ in 0..<30 {
@@ -507,14 +544,19 @@ class NativeAutomation: ChemistryAutomation {
         try exportVector(source,vector,application:preferredApplication())
     }
     func savedSnapshot(_ source:URL, _ image:URL) throws {
+        snapshotPreview = nil
         let vector = image.deletingPathExtension().appendingPathExtension("svg")
         try exportVector(source,vector,application:application())
-        try renderPNG(Data(contentsOf:vector)).write(to:image)
+        let data = try Data(contentsOf:vector), png = try renderPNG(data)
+        try png.write(to:image)
+        snapshotPreview = (data,png)
     }
     func exportVector(_ source:URL, _ vector:URL, application:ChemDrawApplication) throws {
+        let fullPaper = try windowlessPDFRenderer(application) == nil && windowlessPDFSDK(application) == nil
         let pdf = try exportPDF(source,application:application)
+        let settings = try ChemDrawSourceSettings(Data(contentsOf:source))
         if let pdf { try pdf.write(to:vector.deletingPathExtension().appendingPathExtension("pdf"),options:.atomic) }
-        try (pdf.map { try pdfVectorSVG($0) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
+        try (pdf.map { try pdfVectorSVG($0,columns:settings.columns,pageMargins:settings.printMargins,fullPaperPages:fullPaper) } ?? blankDrawingSVG()).write(to:vector,options:.atomic)
     }
     func windowlessPDFRenderer(_ application:ChemDrawApplication) throws -> URL? {
         guard let executable = Bundle(url:URL(fileURLWithPath:application.path))?.executableURL else { return nil }
@@ -573,14 +615,18 @@ class NativeAutomation: ChemistryAutomation {
         defer { if completed { try? FileManager.default.removeItem(at:temporary) } }
         do {
             if let renderer = try windowlessPDFRenderer(application) {
+                let preview = try unpaginatedPreviewSource(original)
+                try preview.write(to:copy,options:.atomic)
                 let data = try exportWindowlessPDF(copy,renderer:renderer)
-                try require(try Data(contentsOf:copy) == original,L("native.141"))
+                try require(try Data(contentsOf:copy) == preview,L("native.141"))
                 completed = true
                 return data
             }
             if windowlessPDFSDK(application) != nil {
+                let preview = try unpaginatedPreviewSource(original)
+                try preview.write(to:copy,options:.atomic)
                 let data = try exportSDKPDF(copy,application:application)
-                try require(try Data(contentsOf:copy) == original,L("native.141"))
+                try require(try Data(contentsOf:copy) == preview,L("native.141"))
                 completed = true
                 return data
             }
@@ -721,5 +767,93 @@ private final class WarmPDFRenderer {
             throw ChemOfficeError(message.nilIfEmpty ?? L("native.pdfOutput"))
         }
         return data
+    }
+}
+
+// Keep OSA compilation and execution on the main thread of an isolated child.
+// Repeated Office events reuse loaded scripts instead of launching osascript for
+// each transaction phase. The parent bounds every request and owns the pipes.
+final class NativeAppleScriptWorker {
+    private let process = Process(), input = Pipe(), output = Pipe()
+    var isRunning:Bool { process.isRunning }
+    init(executable:URL) throws {
+        try require(fcntl(input.fileHandleForWriting.fileDescriptor,F_SETNOSIGPIPE,1) == 0,L("native.122","AppleScript"))
+        process.executableURL = executable; process.arguments = ["script-worker"]
+        process.standardInput = input; process.standardOutput = output
+        process.standardError = FileHandle.standardError
+        try process.run()
+    }
+    deinit {
+        try? input.fileHandleForWriting.close()
+        if process.isRunning { process.terminate() }
+    }
+    private static func read(_ handle:FileHandle,count:Int) throws -> Data {
+        var data = Data()
+        while data.count < count {
+            guard let part = try handle.read(upToCount:count-data.count), !part.isEmpty else { throw ChemOfficeError("AppleScript worker ended before returning its result") }
+            data.append(part)
+        }
+        return data
+    }
+    private static func frame(_ handle:FileHandle) throws -> Data {
+        let header = try read(handle,count:4)
+        let count = header.reduce(0) { ($0 << 8) | Int($1) }
+        try require(count <= 64*1024*1024,"AppleScript result exceeds the transfer limit")
+        return try read(handle,count:count)
+    }
+    private static func write(_ data:Data,to handle:FileHandle) throws {
+        var size = UInt32(data.count).bigEndian
+        try handle.write(contentsOf:withUnsafeBytes(of:&size) { Data($0) }+data)
+    }
+    func execute(_ path:URL,arguments:[String],timeout:TimeInterval) throws -> Data {
+        let timer = DispatchSource.makeTimerSource()
+        timer.schedule(deadline:.now()+timeout)
+        let child = process
+        timer.setEventHandler { if child.isRunning { child.terminate() } }
+        timer.resume(); defer { timer.cancel() }
+        let request = try JSONSerialization.data(withJSONObject:["path":path.path,"arguments":arguments])
+        try Self.write(request,to:input.fileHandleForWriting)
+        let data = try Self.frame(output.fileHandleForReading)
+        guard let result = try JSONSerialization.jsonObject(with:data) as? [String:String] else { throw ChemOfficeError("Invalid AppleScript worker response") }
+        if let error = result["error"] { throw ChemOfficeError(error) }
+        guard let value = result["result"] else { throw ChemOfficeError("Missing AppleScript worker result") }
+        return Data(value.utf8)
+    }
+    private static func text(_ descriptor:NSAppleEventDescriptor) -> String {
+        if descriptor.descriptorType == typeAEList {
+            return (1...max(1,descriptor.numberOfItems)).compactMap { descriptor.atIndex($0).map(text) }.joined(separator:", ")
+        }
+        if descriptor.descriptorType == typeBoolean { return descriptor.booleanValue ? "true" : "false" }
+        return descriptor.stringValue ?? descriptor.coerce(toDescriptorType:typeUnicodeText)?.stringValue ?? ""
+    }
+    static func serve() throws {
+        var scripts = [String:NSAppleScript]()
+        let reader = FileHandle.standardInput, writer = FileHandle.standardOutput
+        while true {
+            let request:Data
+            do { request = try frame(reader) } catch { return }
+            let response:[String:String] = autoreleasepool {
+                do {
+                    guard let message = try JSONSerialization.jsonObject(with:request) as? [String:Any],
+                          let path = message["path"] as? String, let args = message["arguments"] as? [String] else { throw ChemOfficeError("Invalid AppleScript request") }
+                    var error:NSDictionary?
+                    let script:NSAppleScript
+                    if let cached = scripts[path] { script = cached }
+                    else {
+                        guard let loaded = NSAppleScript(contentsOf:URL(fileURLWithPath:path),error:&error) else { throw ChemOfficeError(error?[NSAppleScript.errorMessage] as? String ?? "Cannot load AppleScript") }
+                        if scripts.count >= 64 { scripts.removeAll() }
+                        scripts[path] = loaded; script = loaded
+                    }
+                    let event = NSAppleEventDescriptor(eventClass:kCoreEventClass,eventID:kAEOpenApplication,targetDescriptor:nil,returnID:AEReturnID(kAutoGenerateReturnID),transactionID:AETransactionID(kAnyTransactionID))
+                    let list = NSAppleEventDescriptor.list()
+                    for (index,arg) in args.enumerated() { list.insert(NSAppleEventDescriptor(string:arg),at:index+1) }
+                    event.setParam(list,forKeyword:keyDirectObject)
+                    let value = script.executeAppleEvent(event,error:&error)
+                    if let error { throw ChemOfficeError((error[NSAppleScript.errorMessage] as? String ?? error.description)+" (\(error[NSAppleScript.errorNumber] ?? 0))") }
+                    return ["result":text(value)]
+                } catch { return ["error":error.localizedDescription] }
+            }
+            try write(JSONSerialization.data(withJSONObject:response),to:writer)
+        }
     }
 }

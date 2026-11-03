@@ -62,6 +62,194 @@ func validateSource(_ source: Data) throws {
     if source.starts(with: Data("VjCD0100".utf8)) && source.count >= 30 { return }
     try require(try xml(source).rootElement()?.name == "CDXML", L("native.156"))
 }
+// Clipboard CDX is a document: its drawing defaults and page grid belong to the
+// captured structure, rather than the current ChemDraw application's defaults.
+func unpaginatedPreviewSource(_ source:Data) throws -> Data {
+    if source.starts(with:Data("VjCD0100".utf8)) {
+        var offset = 22, objects = [Int](), pages = [Int](), layout = [Range<Int>]()
+        var margins:Range<Int>?, rootStart = 28, paginated = false
+        var maxX = 0.0, maxY = 0.0
+        while offset < source.count {
+            let start = offset
+            let tag = try source.integer(offset,2); offset += 2
+            if tag == 0 {
+                guard !objects.isEmpty else { throw ChemOfficeError(L("native.156")) }
+                objects.removeLast(); if objects.isEmpty { break }
+            } else if tag & 0x8000 != 0 {
+                _ = try source.integer(offset,4); offset += 4; objects.append(tag)
+                if tag == 0x8000 { rootStart = offset }
+                if tag == 0x8001 { pages.append(offset) }
+            } else {
+                var length = try source.integer(offset,2); offset += 2
+                if length == 0xffff { length = try source.integer(offset,4); offset += 4 }
+                try require(offset <= source.count-length,L("native.156"))
+                if objects.count == 1 && tag == 0x0802 { margins = start..<offset+length }
+                if objects.last == 0x8001 && (0x080f...0x0813).contains(tag) {
+                    layout.append(start..<offset+length)
+                    if [0x080f,0x0810].contains(tag) {
+                        try require(length == 2,L("native.156"))
+                        let count = try source.integer(offset,2)
+                        paginated = paginated || count > 1
+                    }
+                }
+                func coordinate(_ at:Int) throws -> Double { Double(Int32(bitPattern:UInt32(try source.integer(at,4))))/65536 }
+                if objects.last != 0x8001 {
+                    if tag == 0x0204 && length == 16 {
+                        maxY = max(maxY,try coordinate(offset+8)); maxX = max(maxX,try coordinate(offset+12))
+                    } else if tag == 0x0200 && length == 8 {
+                        maxY = max(maxY,try coordinate(offset)); maxX = max(maxX,try coordinate(offset+4))
+                    }
+                }
+                offset += length
+            }
+        }
+        try require(objects.isEmpty,L("native.156"))
+        guard paginated else { return source }
+        // A continuous Poster canvas avoids both per-page folding and clipping
+        // of later-page coordinates. Geometry and drawing styles stay byte exact.
+        let width = max(100,ceil(maxX+8)), height = max(100,ceil(maxY+8))
+        try require(width < 32768 && height < 32768,L("native.156"))
+        func property(_ tag:UInt16,_ data:Data) -> Data {
+            var result = Data([UInt8(tag & 255),UInt8(tag >> 8),UInt8(data.count & 255),UInt8(data.count >> 8)])
+            result.append(data); return result
+        }
+        func size(_ value:Double) -> Data {
+            var v = Int32(value*65536).littleEndian; return withUnsafeBytes(of:&v) { Data($0) }
+        }
+        let poster = property(0x080f,Data([1,0]))+property(0x0810,Data([1,0]))+property(0x0811,Data([1]))+property(0x0812,size(width))+property(0x0813,size(height))
+        var edits = layout.map { ($0,Data()) }
+        edits += pages.map { ($0..<$0,poster) }
+        edits.append((margins ?? rootStart..<rootStart,property(0x0802,Data(repeating:0,count:16))))
+        var result = source
+        // Delete existing page properties before inserting at the same offset.
+        for (range,data) in edits.sorted(by:{ $0.0.lowerBound == $1.0.lowerBound ? $0.0.count > $1.0.count : $0.0.lowerBound > $1.0.lowerBound }) {
+            result.replaceSubrange(range,with:data)
+        }
+        return result
+    }
+    let document = try xml(source)
+    let pages = try nodes(document,"/CDXML/page")
+    guard pages.contains(where:{ (Int(attribute($0,"WidthPages")) ?? 1) > 1 || (Int(attribute($0,"HeightPages")) ?? 1) > 1 }) else { return source }
+    var maxX = 0.0, maxY = 0.0
+    for node in try nodes(document,"//*") where node.name != "page" {
+        let box = attribute(node,"BoundingBox").split(separator:" ").compactMap { Double($0) }
+        let p = attribute(node,"p").split(separator:" ").compactMap { Double($0) }
+        if box.count == 4 { maxX = max(maxX,box[2]); maxY = max(maxY,box[3]) }
+        if p.count == 2 { maxX = max(maxX,p[0]); maxY = max(maxY,p[1]) }
+    }
+    for page in pages {
+        // ChemDraw 22's CDXML reader accepts the lowercase enum spelling.
+        // "Poster" silently retains page clipping and loses later-page objects.
+        for (key,value) in [("WidthPages","1"),("HeightPages","1"),("DrawingSpace","poster"),("Width",String(max(100,ceil(maxX+8)))),("Height",String(max(100,ceil(maxY+8))))] {
+            page.removeAttribute(forName:key); page.addAttribute(XMLNode.attribute(withName:key,stringValue:value) as! XMLNode)
+        }
+    }
+    let root = document.rootElement()!
+    root.removeAttribute(forName:"PrintMargins"); root.addAttribute(XMLNode.attribute(withName:"PrintMargins",stringValue:"0 0 0 0") as! XMLNode)
+    return document.xmlData
+}
+
+struct ChemDrawSourceSettings {
+    var columns = 1
+    var drawingBounds: CGRect?
+    var pageBounds: CGRect?
+    var printMargins = NSEdgeInsets()
+    var numbers = [String:Int]()
+    var fonts = [String:String]()
+    init(_ source:Data) throws {
+        var values = [String:String]()
+        func rectangle(_ values:[Double]) -> CGRect? {
+            guard values.count == 4, values.allSatisfy({ $0.isFinite && abs($0) < 1_000_000 }), values[2] > values[0], values[3] > values[1] else { return nil }
+            return CGRect(x:values[0],y:values[1],width:values[2]-values[0],height:values[3]-values[1])
+        }
+        if source.starts(with:Data("VjCD0100".utf8)) {
+            var offset = 22, depth = 0, root = [Int:Data](), page = [Int:Data]()
+            var firstPage = false, inFirstPage = false
+            while offset < source.count {
+                let tag = try source.integer(offset,2); offset += 2
+                if tag == 0 {
+                    if depth == 2 { inFirstPage = false }
+                    depth -= 1
+                    if depth <= 0 { break }
+                } else if tag & 0x8000 != 0 {
+                    _ = try source.integer(offset,4); offset += 4; depth += 1
+                    if depth == 2 && tag == 0x8001 && !firstPage { firstPage = true; inFirstPage = true }
+                } else {
+                    var length = try source.integer(offset,2); offset += 2
+                    if length == 0xffff { length = try source.integer(offset,4); offset += 4 }
+                    try require(offset <= source.count-length,L("native.156"))
+                    let data = source.subdata(in:offset..<offset+length); offset += length
+                    if depth == 1 { root[tag] = data }
+                    if depth == 2 && inFirstPage { page[tag] = data }
+                }
+            }
+            if let width = page[0x080f], width.count == 2 { columns = max(1,try width.integer(0,2)) }
+            func binaryRectangle(_ data:Data?) throws -> CGRect? {
+                guard let data, data.count == 16 else { return nil }
+                let v = try stride(from:0,to:16,by:4).map { Double(Int32(bitPattern:UInt32(try data.integer($0,4))))/65536 }
+                return rectangle([v[1],v[0],v[3],v[2]])
+            }
+            drawingBounds = try binaryRectangle(root[0x0204])
+            pageBounds = try binaryRectangle(page[0x0204])
+            if let data = root[0x0802], data.count == 16 {
+                values["PrintMargins"] = try stride(from:0,to:16,by:4).map { String(Double(try data.integer($0,4))/65536) }.joined(separator:" ")
+            }
+            for (tag,name) in [(0x0803,"ChainAngle"),(0x0805,"BondLength"),(0x0806,"BoldWidth"),(0x0807,"LineWidth"),(0x0808,"MarginWidth"),(0x0809,"HashSpacing")] {
+                if let data = root[tag], data.count == 4 { values[name] = String(Double(try data.integer(0,4))/65536) }
+            }
+            if let data = root[0x0804], data.count == 2 { values["BondSpacing"] = String(Double(try data.integer(0,2))/10) }
+            var fontNames = [Int:String]()
+            if let table = root[0x0100], table.count >= 4 {
+                var cursor = 4
+                for _ in 0..<(try table.integer(2,2)) {
+                    let id = try table.integer(cursor,2), length = try table.integer(cursor+4,2); cursor += 6
+                    try require(cursor <= table.count-length,L("native.156"))
+                    let bytes = table.subdata(in:cursor..<cursor+length); cursor += length
+                    fontNames[id] = String(data:bytes,encoding:.utf8) ?? String(data:bytes,encoding:.macOSRoman)
+                }
+            }
+            for (tag,prefix) in [(0x080a,"Label"),(0x080b,"Caption")] {
+                if let style = root[tag], style.count == 8 {
+                    values[prefix+"Font"] = fontNames[try style.integer(0,2)]
+                    values[prefix+"Size"] = String(Double(try style.integer(4,2))/20)
+                }
+            }
+            for (tag,name) in [(0x081a,"LabelFont"),(0x081b,"CaptionFont")] {
+                if let data = root[tag], data.count == 2 { values[name] = fontNames[try data.integer(0,2)] }
+            }
+            for (tag,name) in [(0x081c,"LabelSize"),(0x081d,"CaptionSize")] {
+                if let data = root[tag], data.count == 2 { values[name] = String(Double(try data.integer(0,2))/20) }
+            }
+        } else {
+            guard let document = try xml(source).rootElement() else { throw ChemOfficeError(L("native.156")) }
+            for node in document.attributes ?? [] { values[node.name ?? ""] = node.stringValue }
+            drawingBounds = rectangle(attribute(document,"BoundingBox").split(whereSeparator:{ $0.isWhitespace }).compactMap { Double($0) })
+            if let page = try nodes(document,"./page").first {
+                columns = max(1,Int(attribute(page,"WidthPages")) ?? 1)
+                pageBounds = rectangle(attribute(page,"BoundingBox").split(whereSeparator:{ $0.isWhitespace }).compactMap { Double($0) })
+            }
+            let table = try nodes(document,"./fonttable/font")
+            for key in ["LabelFont","CaptionFont"] {
+                if let font = table.first(where:{ attribute($0,"id") == values[key] }) { values[key] = attribute(font,"name") }
+                else { values.removeValue(forKey:key) }
+            }
+        }
+        if let margins = values["PrintMargins"]?.split(whereSeparator:{ $0.isWhitespace }).compactMap({ Double($0) }), margins.count == 4, margins.allSatisfy({ $0.isFinite && $0 >= 0 && $0 < 10000 }) {
+            // CDX rectangles are TLBR; CDXML rectangles are LTRB.
+            printMargins = source.starts(with:Data("VjCD0100".utf8))
+                ? NSEdgeInsets(top:margins[0],left:margins[1],bottom:margins[2],right:margins[3])
+                : NSEdgeInsets(top:margins[1],left:margins[0],bottom:margins[3],right:margins[2])
+        }
+        for (key,property,factor) in [("BondLength","fixed length",20.0),("LineWidth","line width",20),("BoldWidth","bold width",20),("MarginWidth","margin width",20),("HashSpacing","hash spacing",20),("ChainAngle","chain angle",1),("BondSpacing","bond spacing",1),("LabelSize","label size",20),("CaptionSize","caption size",20)] {
+            if let value = values[key].flatMap(Double.init), value.isFinite, value > 0, value*factor <= Double(Int32.max) {
+                numbers[property] = Int((value*factor).rounded())
+            }
+        }
+        for (key,property) in [("LabelFont","label font"),("CaptionFont","caption font")] {
+            if let font = values[key], !font.isEmpty { fonts[property] = font }
+        }
+    }
+}
 func encodeSource(_ source: Data, id: String = UUID().uuidString.lowercased()) throws -> String {
     try validateSource(source)
     guard let uuid = UUID(uuidString: id) else { throw ChemOfficeError(L("native.157")) }

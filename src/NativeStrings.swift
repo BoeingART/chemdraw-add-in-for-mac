@@ -378,6 +378,17 @@ enum NativeStrings {
         "ole.usage": ["en":"Usage: ole-extract <PPTX> <CDX output>; ole-export <PPTX> <CDX> <PPTX copy>; ole-new <CDX> <PPTX output>","zh":"用法：ole-extract <PPTX> <CDX输出>；ole-export <PPTX> <CDX> <PPTX副本>；ole-new <CDX> <PPTX输出>"],
         "ole.newOutput": ["en":"Choose a new output filename. The original document and source file are retained.","zh":"请选择尚不存在的输出文件名，原文档和源文件会保留。"],
         "ole.exported": ["en":"Exported: {0}","zh":"已导出：{0}"],
+        "native.revealDrawing": ["en":"The drawing is open, but its page could not be located automatically. Scroll to the drawing in ChemDraw, or double-click again to resume the retained draft.","zh":"绘图已打开，但无法自动定位到结构所在页面。请在ChemDraw中滚动到目标页，或再次双击继续编辑已保留的草稿。"],
+        "operation.pasteFailed": ["en":"Could Not Paste Drawing","zh":"粘贴结构失败"],
+        "operation.openFailed": ["en":"Could Not Open Drawing","zh":"打开结构失败"],
+        "operation.saveFailed": ["en":"Could Not Update Office Drawing","zh":"保存回写失败"],
+        "operation.closeFailed": ["en":"Could Not Finish Drawing Edit","zh":"关闭回写失败"],
+        "operation.failed": ["en":"Drawing Operation Failed","zh":"结构操作失败"],
+        "operation.keepDraft": ["en":"Your editing draft is retained. Keep the ChemDraw editor open, resolve the issue above, then save again.","zh":"编辑草稿已保留。请保留ChemDraw编辑窗口，处理上述问题后再次保存。"],
+        "operation.retrySelection": ["en":"Keep the original Office document open, select the drawing again, then retry.","zh":"请确认原Office文档仍然打开，重新选择对应结构后重试。"],
+        "operation.helperFailed": ["en":"Paste Helper Stopped","zh":"粘贴助手已停止"],
+        "ole.wordPicture": ["en":"Word imported the drawing as a picture. Keep the ChemDraw editor open and retry saving.","zh":"Word将结构导入为普通图片。请保留ChemDraw编辑窗口并重试保存。"],
+        "ole.excelPicture": ["en":"Excel pasted the drawing as a picture. Copy the structure again and retry pasting.","zh":"Excel将结构粘贴为普通图片。请重新复制结构后重试粘贴。"],
     ]
     static let scriptErrors: [String:String] = [
         "script.000": "ChemDraw did not open the managed source",
@@ -418,5 +429,7 @@ enum NativeStrings {
         "ole.script.0": "The selected shape is not an embedded OLE object",
         "ole.script.1": "PowerPoint did not insert exactly one OLE object; source retained",
         "ole.script.2": "PowerPoint pasted a picture instead of an OLE object; please retry",
+        "ole.wordPicture": "Word inserted a picture instead of an OLE object",
+        "ole.excelPicture": "Excel pasted a picture instead of an OLE object",
     ]
 }

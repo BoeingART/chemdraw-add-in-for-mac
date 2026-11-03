@@ -388,7 +388,7 @@ enum ChemDrawOLE {
     }
     // Mac PowerPoint keeps the ProgID and preview when copying an existing
     // PresentationML OLE frame. Importing just Embedded-Object loses both.
-    static func transport(template:URL, object:Data, vector:Data, id:String, marker:String) throws -> Data {
+    static func transport(template:URL, object:Data, vector:Data, id:String, marker:String,preview:Data? = nil) throws -> Data {
         let source = try CompoundFile(object).chemdrawSource()
         let carrier = try createCarrier(source,id:id,vector:vector)
         let archive = try OfficeArchive(template)
@@ -426,7 +426,7 @@ enum ChemDrawOLE {
         }
         parts["[Content_Types].xml"] = types.xmlData
         parts["ppt/embeddings/chemdraw.bin"] = object
-        parts["ppt/media/chemdraw.png"] = try renderPNG(vector)
+        parts["ppt/media/chemdraw.png"] = try preview ?? renderPNG(vector)
         parts["ppt/media/chemdraw.svg"] = carrier.svg
         return try zipPackage(parts)
     }
@@ -494,13 +494,17 @@ func powerPointSlideParts(_ archive:OfficeArchive) throws -> [String] {
 extension ChemDrawOLE {
     // Word imports the bookmarked object range directly, without opening a
     // transport window or changing the user's document path or section setup.
-    static func wordTransport(object:Data,vector:Data,marker:String,bookmark:String = "ChemOfficeOLE") throws -> Data {
+    static func wordTransport(object:Data,vector:Data,marker:String,bookmark:String = "ChemOfficeOLE",preview:Data? = nil) throws -> Data {
         _ = try CompoundFile(object).chemdrawSource()
         let height = 320 * (try svgAspect(vector))
-        let shape = element("v:shape",["id":"_x0000_i1025","type":"#_x0000_t75","alt":marker,"style":"width:320pt;height:\(height)pt","o:ole":""])
+        // Independent transport imports must not collide in Word's OLE cache.
+        // These are transport identities, not the original live object's ID.
+        let identity = UInt32.random(in:1...UInt32(Int32.max))
+        let shapeID = "_x0000_i\(identity)", objectID = "_\(identity)"
+        let shape = element("v:shape",["id":shapeID,"type":"#_x0000_t75","alt":marker,"style":"width:320pt;height:\(height)pt","o:ole":""])
         shape.addChild(element("v:imagedata",["r:id":"rIdPNG","o:title":""]))
         let body = """
-        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><w:body><w:p><w:bookmarkStart w:id="1" w:name="\(bookmark)"/><w:r><w:object><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" filled="f" stroked="f"><v:path o:extrusionok="f" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype>\(shape.xmlString)<o:OLEObject Type="Embed" ProgID="ChemDraw.Document.6.0" ShapeID="_x0000_i1025" DrawAspect="Content" ObjectID="_1700000001" r:id="rIdOLE"/></w:object></w:r><w:bookmarkEnd w:id="1"/></w:p><w:sectPr/></w:body></w:document>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><w:body><w:p><w:bookmarkStart w:id="1" w:name="\(bookmark)"/><w:r><w:object><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" filled="f" stroked="f"><v:path o:extrusionok="f" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype>\(shape.xmlString)<o:OLEObject Type="Embed" ProgID="ChemDraw.Document.6.0" ShapeID="\(shapeID)" DrawAspect="Content" ObjectID="\(objectID)" r:id="rIdOLE"/></w:object></w:r><w:bookmarkEnd w:id="1"/></w:p><w:sectPr/></w:body></w:document>
         """
         let base = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
         let rels = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -514,7 +518,7 @@ extension ChemDrawOLE {
             "word/_rels/document.xml.rels":Data("<Relationships xmlns=\"\(rels)\"><Relationship Id=\"rIdOLE\" Type=\"\(base)oleObject\" Target=\"embeddings/chemdraw.bin\"/><Relationship Id=\"rIdPNG\" Type=\"\(base)image\" Target=\"media/chemdraw.png\"/><Relationship Id=\"rIdSettings\" Type=\"\(base)settings\" Target=\"settings.xml\"/></Relationships>".utf8),
             "word/settings.xml":Data("<w:settings xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:compat><w:compatSetting w:name=\"compatibilityMode\" w:uri=\"http://schemas.microsoft.com/office/word\" w:val=\"15\"/></w:compat></w:settings>".utf8),
             "word/embeddings/chemdraw.bin":object,
-            "word/media/chemdraw.png":try renderPNG(vector)
+            "word/media/chemdraw.png":try preview ?? renderPNG(vector)
         ])
     }
     static func savedWordFigure(_ archive:OfficeArchive,id:String) throws -> SavedFigure? {
@@ -561,7 +565,7 @@ extension ChemDrawOLE {
 }
 
 extension ChemDrawOLE {
-    static func excelTransport(object:Data,vector:Data,marker:String) throws -> Data {
+    static func excelTransport(object:Data,vector:Data,marker:String,preview:Data? = nil) throws -> Data {
         _ = try CompoundFile(object).chemdrawSource()
         let width = 240*12700, height = Int(240*(try svgAspect(vector))*12700)
         let row = height/(15*12700), rowOffset = height%(15*12700)
@@ -593,7 +597,7 @@ extension ChemDrawOLE {
             "xl/drawings/drawing1.xml":Data(drawing.utf8),
             "xl/drawings/_rels/drawing1.xml.rels":Data("<Relationships xmlns=\"\(rel)\"><Relationship Id=\"rIdPNG\" Type=\"\(r)/image\" Target=\"../media/chemdraw.png\"/></Relationships>".utf8),
             "xl/embeddings/chemdraw.bin":object,
-            "xl/media/chemdraw.png":try renderPNG(vector)
+            "xl/media/chemdraw.png":try preview ?? renderPNG(vector)
         ])
     }
     static func savedExcelFigure(_ archive:OfficeArchive,id:String) throws -> SavedFigure? {

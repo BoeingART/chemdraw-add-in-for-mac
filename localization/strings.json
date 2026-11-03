@@ -2704,5 +2704,85 @@
     "locations": [
       "src/NativeMain.swift"
     ]
+  },
+  "native.revealDrawing": {
+    "zh": "绘图已打开，但无法自动定位到结构所在页面。请在ChemDraw中滚动到目标页，或再次双击继续编辑已保留的草稿。",
+    "en": "The drawing is open, but its page could not be located automatically. Scroll to the drawing in ChemDraw, or double-click again to resume the retained draft.",
+    "locations": [
+      "src/NativeAutomation.swift",
+      "src/EventMonitor.swift"
+    ]
+  },
+  "operation.pasteFailed": {
+    "zh": "粘贴结构失败",
+    "en": "Could Not Paste Drawing",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "operation.openFailed": {
+    "zh": "打开结构失败",
+    "en": "Could Not Open Drawing",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "operation.saveFailed": {
+    "zh": "保存回写失败",
+    "en": "Could Not Update Office Drawing",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "operation.closeFailed": {
+    "zh": "关闭回写失败",
+    "en": "Could Not Finish Drawing Edit",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "operation.failed": {
+    "zh": "结构操作失败",
+    "en": "Drawing Operation Failed",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "operation.keepDraft": {
+    "zh": "编辑草稿已保留。请保留ChemDraw编辑窗口，处理上述问题后再次保存。",
+    "en": "Your editing draft is retained. Keep the ChemDraw editor open, resolve the issue above, then save again.",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "operation.retrySelection": {
+    "zh": "请确认原Office文档仍然打开，重新选择对应结构后重试。",
+    "en": "Keep the original Office document open, select the drawing again, then retry.",
+    "locations": [
+      "src/NativeActivity.swift"
+    ]
+  },
+  "operation.helperFailed": {
+    "zh": "粘贴助手已停止",
+    "en": "Paste Helper Stopped",
+    "locations": [
+      "src/NativeApplication.swift"
+    ]
+  },
+  "ole.wordPicture": {
+    "zh": "Word将结构导入为普通图片。请保留ChemDraw编辑窗口并重试保存。",
+    "en": "Word imported the drawing as a picture. Keep the ChemDraw editor open and retry saving.",
+    "script_error": "Word inserted a picture instead of an OLE object",
+    "locations": [
+      "office/word/adapter.applescript"
+    ]
+  },
+  "ole.excelPicture": {
+    "zh": "Excel将结构粘贴为普通图片。请重新复制结构后重试粘贴。",
+    "en": "Excel pasted the drawing as a picture. Copy the structure again and retry pasting.",
+    "script_error": "Excel pasted a picture instead of an OLE object",
+    "locations": [
+      "office/excel/adapter.applescript"
+    ]
   }
 }

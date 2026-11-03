@@ -179,6 +179,36 @@ on objectRange(d, pic)
     end tell
 end objectRange
 
+-- Use Word's native copy/paste for OLE ranges. Cross-document FormattedText
+-- assignment can stall on a repeated update in a long manuscript. Paste over
+-- the complete EMBED field and retain the user's revision-tracking state.
+on replaceOLEContents(d, targetMarker, sourcePic, importedMarker)
+    tell application id "com.microsoft.Word"
+        set oldPic to my findFigure(d, targetMarker)
+        set replacementRange to my objectRange(d, oldPic)
+        set originalCount to count inline shapes of d
+        set wasTracking to track revisions of d
+        set imported to false
+        try
+            copy object text object of sourcePic
+            if wasTracking then set track revisions of d to false
+            paste object replacementRange
+            set newPic to my findFigure(d, importedMarker)
+            set imported to true
+            if inline shape type of newPic is not inline shape embedded oleobject then error "Word inserted a picture instead of an OLE object"
+            if (count inline shapes of d) is not originalCount then error "Unexpected Word insertion result; retained both versions"
+        on error errorText number errorNumber
+            try
+                my findFigure(d, targetMarker)
+                if imported then delete (my objectRange(d, my findFigure(d, importedMarker)))
+            end try
+            if wasTracking then set track revisions of d to true
+            error errorText number errorNumber
+        end try
+        if wasTracking then set track revisions of d to true
+    end tell
+end replaceOLEContents
+
 on run argv
     set actionName to item 1 of argv
     if actionName is "document-status" then
@@ -291,9 +321,9 @@ on run argv
                 set oldPic to my findFigure(d, item 3 of argv)
                 if alternative text of oldPic is not item 7 of argv or (count inline shapes of d) is not (item 8 of argv) as integer then error "Original image identity changed; retained both versions"
                 set pic to my findFigure(scratch, item 9 of argv)
-                -- Formatted assignment replaces the entire EMBED field in one
-                -- Word operation. No second object enters the user's document.
-                set formatted text of (my objectRange(d, oldPic)) to formatted text of (my objectRange(scratch, pic))
+                -- Native Word paste preserves the staged OLE and its preview;
+                -- the helper removes the original only after checking import.
+                my replaceOLEContents(d, item 7 of argv, pic, item 9 of argv)
                 set pic to my findFigure(d, item 9 of argv)
                 set alternative text of pic to item 4 of argv
                 if (count inline shapes of d) is not (item 8 of argv) as integer then error "Unexpected Word insertion result; retained both versions"
@@ -308,7 +338,7 @@ on run argv
             if alternative text of pic is item 7 of argv then return "retained"
             if alternative text of pic is not item 4 of argv and alternative text of pic is not item 9 of argv then error "Original image identity changed; retained both versions"
             set backupPic to my findFigure(scratch, item 3 of argv)
-            set formatted text of (my objectRange(d, pic)) to formatted text of (my objectRange(scratch, backupPic))
+            my replaceOLEContents(d, alternative text of pic, backupPic, item 7 of argv)
             return "restored"
         else if actionName is "ole-update-release" then
             if (count argv) > 2 then set d to my findDocument(item 3 of argv)

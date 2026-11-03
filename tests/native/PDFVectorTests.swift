@@ -10,6 +10,13 @@ func testPDF(bounds pageBounds:CGRect = CGRect(x:0,y:0,width:200,height:100),_ d
     context.beginPDFPage(nil); draw(context); context.endPDFPage(); context.closePDF()
     return data as Data
 }
+func testPagedPDF(_ count:Int,_ draw:(CGContext,Int)->Void) -> Data {
+    let data = NSMutableData()
+    var box = CGRect(x:0,y:0,width:200,height:100)
+    let context = CGContext(consumer:CGDataConsumer(data:data as CFMutableData)!,mediaBox:&box,nil)!
+    for index in 0..<count { context.beginPDFPage(nil); draw(context,index); context.endPDFPage() }
+    context.closePDF(); return data as Data
+}
 @main struct PDFVectorTests {
     static func main() throws {
         setbuf(stdout,nil)
@@ -104,6 +111,49 @@ func testPDF(bounds pageBounds:CGRect = CGRect(x:0,y:0,width:200,height:100),_ d
         try require(rejected,"Unsupported PDF shading silently discarded artwork")
         rejected = false; do { _ = try pdfVectorSVG(Data("partial".utf8)) } catch { rejected = true }
         try require(rejected,"Malformed PDF produced a preview")
+        let latePage = testPagedPDF(45) { c,index in
+            c.setFillColor(CGColor(gray:1,alpha:1)); c.fill(CGRect(x:0,y:0,width:200,height:100))
+            if index == 43 { c.setFillColor(CGColor(gray:0,alpha:1)); c.fill(CGRect(x:40,y:30,width:50,height:20)) }
+        }
+        let latePreview = try pdfVectorPreview(latePage,fullPaperPages:true)
+        try require(latePreview.bounds.width == 54 && latePreview.bounds.height == 24,"A selection on page 44 was lost or retained blank page margins")
+        let lateExpected = testPDF { c in c.fill(CGRect(x:40,y:30,width:50,height:20)) }
+        try pdfAgreement(latePreview.svg,referencePNG(lateExpected,bounds:CGRect(x:38,y:28,width:54,height:24)))
+        print("PASS A 45-page export retains a later-page selection and removes empty margins")
+        let tileColors = [CGColor(red:0,green:0,blue:0,alpha:1),CGColor(red:1,green:0,blue:0,alpha:1),CGColor(red:0,green:0,blue:1,alpha:1),CGColor(red:0,green:0.5,blue:0,alpha:1)]
+        let tiles = testPagedPDF(4) { c,index in
+            // Different fills and nested clipping exercise per-page resources.
+            c.saveGState(); c.clip(to:CGRect(x:0,y:0,width:200,height:100))
+            c.setFillColor(tileColors[index])
+            let boxes = [CGRect(x:180,y:0,width:20,height:20),CGRect(x:0,y:0,width:20,height:20),CGRect(x:180,y:80,width:20,height:20),CGRect(x:0,y:80,width:20,height:20)]
+            c.fill(boxes[index]); c.restoreGState()
+        }
+        let joined = try pdfVectorPreview(tiles,columns:2,fullPaperPages:true)
+        let expected = testPDF(bounds:CGRect(x:0,y:0,width:400,height:200)) { c in
+            for index in 0..<4 {
+                c.setFillColor(tileColors[index])
+                c.fill(CGRect(x:index%2 == 0 ? 180 : 200,y:index/2 == 0 ? 100 : 80,width:20,height:20))
+            }
+        }
+        try pdfAgreement(joined.svg,referencePNG(expected,bounds:joined.bounds))
+        try require(joined.bounds == CGRect(x:178,y:78,width:44,height:44),"Page tiles changed the relative geometry across boundaries")
+        print("PASS Selections across a two-by-two page grid retain geometry, vector paths and clipping")
+        let marginTiles = testPagedPDF(2) { c,index in c.fill(CGRect(x:index == 0 ? 180 : 10,y:25,width:10,height:20)) }
+        let marginPreview = try pdfVectorPreview(marginTiles,columns:2,pageMargins:NSEdgeInsets(top:5,left:10,bottom:5,right:10),fullPaperPages:true)
+        let marginReference = testPDF(bounds:CGRect(x:0,y:0,width:360,height:90)) { c in c.fill(CGRect(x:170,y:20,width:20,height:20)) }
+        try require(marginPreview.bounds == CGRect(x:168,y:18,width:24,height:24),"Print margins opened a gap in a cross-page selection")
+        try pdfAgreement(marginPreview.svg,referencePNG(marginReference,bounds:marginPreview.bounds))
+        print("PASS Native print margins are removed between adjacent drawing tiles")
+        _ = try previewAgreement(pdfVectorSVG(testPagedPDF(45) { _,_ in },fullPaperPages:true),blankDrawingSVG())
+        rejected = false; do { _ = try pdfVectorSVG(tiles) } catch { rejected = true }
+        try require(rejected,"Cropped vendor preview pages were implicitly tiled")
+        rejected = false
+        do { _ = try pdfVectorSVG(testPagedPDF(4) { c,_ in c.fill(CGRect(x:0,y:0,width:200,height:100)) },pageMargins:NSEdgeInsets(top:60,left:110,bottom:60,right:110),fullPaperPages:true) } catch { rejected = true }
+        try require(rejected,"Negative usable paper sizes passed CGRect's standardized size checks")
+        print("PASS Unclassified preview pages and negative usable paper dimensions fail before insertion")
+        rejected = false; do { _ = try pdfVectorSVG(testPagedPDF(1025) { _,_ in }) } catch { rejected = true }
+        try require(rejected,"Unbounded page count was accepted")
+        count += 7
         print("Passed \(count+2) native PDF vector conversion checks")
     }
 }

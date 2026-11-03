@@ -57,6 +57,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
     var helperMessage = L("native.011")
     var latestActivity: HelperActivity?
     var failurePresentation = FailurePresentationPolicy()
+    var presentingOperationFailure = false
     var version: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? L("native.development") }
     var appName: String { Bundle.main.object(forInfoDictionaryKey:"CFBundleDisplayName") as? String ?? "ChemDraw Add-in for Mac" }
     var helperReady: Bool {
@@ -411,6 +412,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             && configurationButtons.allSatisfy { $0.target === self && $0.action != nil && responds(to:$0.action!) }
             && ["build/chemoffice","build/event-monitor","office/addin/manifest.xml","assets/demo.cdxml","assets/banner.svg","assets/menu-bar-icon.png"].allSatisfy { FileManager.default.fileExists(atPath:root.appendingPathComponent($0).path) }
             && !mainWindow.contentView!.subviews.flatMap(\.subviews).contains { $0.identifier?.rawValue == "brand-banner" }
+        var failure = HelperActivity()
+        failure.operation = "save"; failure.error = "Test write-back failure"; failure.editing = true
+        let failureDialog = operationFailureAlert(OperationFailureNotice(failure))
+        valid = valid && failureDialog.messageText == L("operation.saveFailed")
+            && failureDialog.informativeText.contains("Test write-back failure")
+            && failureDialog.informativeText.contains(L("operation.keepDraft"))
+            && failureDialog.alertStyle == .warning && failureDialog.buttons.count == 1
+            && !setupWindow.isVisible
         hideStatusIcon(); valid = valid && statusItem == nil
         installStatusItem(); valid = valid && statusItem != nil
         if let destination = ProcessInfo.processInfo.environment["CFM_UI_SNAPSHOTS"] {
@@ -436,7 +445,12 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         guard !preview && !quitting else { return }
         if let helper {
             latestActivity = HelperActivity.read(work:work,pid:helper.processIdentifier)
-            if failurePresentation.shouldPresent(latestActivity) { showSetup() }
+            if !presentingOperationFailure, let notice = failurePresentation.notice(latestActivity) {
+                presentingOperationFailure = true
+                NSApp.activate(ignoringOtherApps:true)
+                operationFailureAlert(notice).runModal()
+                presentingOperationFailure = false
+            }
         } else { latestActivity = nil }
         let ready = readyForUse
         renderSetup(ready:ready)
@@ -507,6 +521,14 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
             }
         }
     }
+    func operationFailureAlert(_ notice:OperationFailureNotice) -> NSAlert {
+        let dialog = NSAlert()
+        dialog.alertStyle = .warning
+        dialog.messageText = notice.title
+        dialog.informativeText = notice.message
+        dialog.addButton(withTitle:L("native.108"))
+        return dialog
+    }
     @discardableResult func alert(_ title:String,_ message:String,confirm:String = L("native.108"),cancel:Bool = false) -> Bool {
         NSApp.activate(ignoringOtherApps:true)
         let dialog = NSAlert(); dialog.messageText = title; dialog.informativeText = message
@@ -551,6 +573,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
         } catch {
             try? output?.close(); output = nil
             startup.failed(requirements); helperMessage = error.localizedDescription
+            alert(L("operation.helperFailed"),helperMessage)
         }
     }
     func observeHelperExit(_ process:Process) {
@@ -566,7 +589,7 @@ final class ChemOfficeApplication: NSObject, NSApplicationDelegate {
                 if self.startup.wantsRunning {
                     self.startup.failed(self.requirements)
                     self.helperMessage = health?.message ?? L("native.117")
-                    self.showSetup()
+                    self.alert(L("operation.helperFailed"),self.helperMessage)
                 } else { self.helperMessage = L("native.104") }
                 self.renderSetup(ready:false)
             }
