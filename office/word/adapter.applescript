@@ -134,6 +134,26 @@ on findFigure(d, targetText)
     end tell
 end findFigure
 
+-- Windows copies retain alternative text, including our drawing identity.
+-- Claim a duplicated OLE by its selected range before assigning a fresh ID.
+on selectedFigureTag(d, pic)
+    tell application id "com.microsoft.Word"
+        set tagText to alternative text of pic
+        if inline shape type of pic is not inline shape embedded oleobject then return tagText
+        set markerLength to (length of "ChemOffice Drawing:") + 36
+        if tagText starts with "ChemOffice Drawing:" and (length of tagText) >= markerLength then
+            -- Compare the drawing UUID, even when revision suffixes differ.
+            set markerPrefix to text 1 thru markerLength of tagText
+            set markerCount to 0
+            repeat with otherTag in (get alternative text of every inline shape of d)
+                if otherTag is markerPrefix or otherTag starts with markerPrefix & ":" then set markerCount to markerCount + 1
+            end repeat
+            if markerCount is 1 then return tagText
+        end if
+        return "ChemOffice OLE Selection:" & (start of content of text object of pic as string)
+    end tell
+end selectedFigureTag
+
 on objectStart(d, pic)
     tell application id "com.microsoft.Word"
         set pictureStart to start of content of text object of pic
@@ -215,13 +235,13 @@ on run argv
             return "inserted"
         else if actionName is "selected" then
             if (count inline shapes of selection) is not 1 then return ""
-            return alternative text of inline shape 1 of selection
+            return my selectedFigureTag(active document, inline shape 1 of selection)
         else if actionName is "context" then
             if (count argv) > 2 then return my contextID(my findDocument(item 3 of argv), item 2 of argv)
             return my contextID(active document, item 2 of argv)
         else if actionName is "reference" then
-            set documentPath to my documentPath(active document)
-            if documentPath is not "" then return documentPath
+            set referencePath to my documentPath(active document)
+            if referencePath is not "" then return referencePath
             return name of active document
         else if actionName is "ole-transport-close" then
             close (my findDocument(item 2 of argv)) saving no

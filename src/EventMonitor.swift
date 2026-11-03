@@ -255,8 +255,19 @@ func selectedOfficeFigure(_ host: String) -> (tag:String,reference:String?)? {
             if (count inline shapes of selection) is not 1 then return ""
             set pic to inline shape 1 of selection
             set tagText to alternative text of pic
-            if inline shape type of pic is inline shape embedded oleobject and tagText does not start with "ChemOffice Drawing:" then
-                set tagText to "ChemOffice OLE Selection:" & (start of content of text object of pic as string)
+            if inline shape type of pic is inline shape embedded oleobject then
+                set uniqueMarker to false
+                set markerLength to (length of "ChemOffice Drawing:") + 36
+                if tagText starts with "ChemOffice Drawing:" and (length of tagText) >= markerLength then
+                    -- Compare the drawing UUID, even when revision suffixes differ.
+                    set markerPrefix to text 1 thru markerLength of tagText
+                    set markerCount to 0
+                    repeat with otherTag in (get alternative text of every inline shape of active document)
+                        if otherTag is markerPrefix or otherTag starts with markerPrefix & ":" then set markerCount to markerCount + 1
+                    end repeat
+                    set uniqueMarker to markerCount is 1
+                end if
+                if not uniqueMarker then set tagText to "ChemOffice OLE Selection:" & (start of content of text object of pic as string)
             end if
             set referenceText to name of active document
             try
