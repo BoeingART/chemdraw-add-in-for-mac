@@ -2784,5 +2784,12 @@
     "locations": [
       "office/excel/adapter.applescript"
     ]
+  },
+  "ole.groupMultiple": {
+    "en": "This group contains several ChemDraw drawings. Ungroup it, then select the drawing to edit.",
+    "zh": "此组合包含多个ChemDraw绘图。请先取消组合，再选择要编辑的绘图。",
+    "locations": [
+      "src/NativeOLE.swift"
+    ]
   }
 }

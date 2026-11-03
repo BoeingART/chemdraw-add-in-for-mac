@@ -398,3 +398,4 @@ Your ChemDraw."
 383	operation.helperFailed	src/NativeApplication.swift	粘贴助手已停止	Paste Helper Stopped		
 384	ole.wordPicture	office/word/adapter.applescript	Word将结构导入为普通图片。请保留ChemDraw编辑窗口并重试保存。	Word imported the drawing as a picture. Keep the ChemDraw editor open and retry saving.		
 385	ole.excelPicture	office/excel/adapter.applescript	Excel将结构粘贴为普通图片。请重新复制结构后重试粘贴。	Excel pasted the drawing as a picture. Copy the structure again and retry pasting.		
+386	ole.groupMultiple	src/NativeOLE.swift	此组合包含多个ChemDraw绘图。请先取消组合，再选择要编辑的绘图。	This group contains several ChemDraw drawings. Ungroup it, then select the drawing to edit.		

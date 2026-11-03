@@ -362,7 +362,9 @@ func selectedOfficeFigure(_ host: String) -> (tag:String,reference:String?)? {
                 if (count shapes of selectedShapes) is not 1 then return ""
                 set pic to shape 1 of selectedShapes
                 set tagText to name of pic
-                if shape type of pic is shape type embedded OLE control and tagText does not start with "ChemOffice Drawing:" then
+                if shape type of pic is shape type group and tagText does not start with "ChemOffice Drawing:" then
+                    set tagText to "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":group:" & tagText
+                else if shape type of pic is shape type embedded OLE control and tagText does not start with "ChemOffice Drawing:" then
                     set tagText to "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":" & tagText
                 end if
                 return {tagText, full name of active presentation}

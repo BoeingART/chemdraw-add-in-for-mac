@@ -132,10 +132,16 @@ class NativeAutomation: ChemistryAutomation {
         try withClipboard {
             NSPasteboard.general.clearContents()
             do {
+                if try office("ole-kind","powerpoint",[document,target]) == "group" {
+                    return try withPowerPointGroupSnapshot(document,target:target) { file,_ in
+                        try ChemDrawOLE.singlePowerPointGroupObject(file)
+                    }
+                }
                 let fields = try office("ole-capture","powerpoint",[document,target]).components(separatedBy:"\t")
                 if fields == ["picture"] { capturedOLEPreparation = nil; return nil }
                 capturedOLEPreparation = fields.count == 6 ? (document,target,fields) : nil
             }
+            catch let error as UnsupportedChemDrawOLE { throw error }
             catch { throw ChemOfficeError(L("ole.copyFailed",error.localizedDescription)) }
             return try clipboardOLE()
         }
@@ -165,6 +171,10 @@ class NativeAutomation: ChemistryAutomation {
     func transferOLE(_ action:String, arguments:[String], object:Data, vector:Data) throws {
         transferReceipt = nil
         try withClipboard(restoreFocus:true) {
+            if action == "ole-update", try office("ole-kind","powerpoint",[arguments[0],arguments[1]]) == "group" {
+                try transferPowerPointGroup(arguments,object:object,vector:vector)
+                return
+            }
             let captured = capturedOLEPreparation
             capturedOLEPreparation = nil
             let preparation:[String]
@@ -198,6 +208,56 @@ class NativeAutomation: ChemistryAutomation {
                 let fields = try office(action+"-commit","powerpoint",arguments+[pending]).components(separatedBy:"\t")
                 try require(fields.count == 3 && fields[0] == arguments[2],L("ole.clipboard"))
                 transferReceipt = ("powerpoint",arguments[0],arguments[1],try CompoundFile(actual).chemdrawSource(),fields)
+            } catch {
+                _ = try? office("ole-discard","powerpoint",[arguments[0],pending])
+                throw error
+            }
+        }
+    }
+    private func withPowerPointGroupSnapshot<T>(_ document:String,target:String,_ body:(URL,[String]) throws -> T) throws -> T {
+        let directory = try oleTransportDirectory("powerpoint")
+        try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+        let file = directory.appendingPathComponent("CFM-group-"+UUID().uuidString).appendingPathExtension("pptx")
+        defer { try? FileManager.default.removeItem(at:file) }
+        try Data(contentsOf:root.appendingPathComponent("assets/ole-transport.pptx")).write(to:file,options:.atomic)
+        try command(monitor,["--open-document-background",OfficeHost.powerpoint.bundle,file.path])
+        var opened = true
+        defer { if opened { _ = try? office("ole-transport-close","powerpoint",[file.path]) } }
+        let fields = try office("ole-group-export","powerpoint",[document,target,file.path]).components(separatedBy:"\t")
+        opened = false
+        try require(fields.count == 6,L("ole.clipboard"))
+        return try body(file,fields)
+    }
+    private func transferPowerPointGroup(_ arguments:[String],object:Data,vector:Data) throws {
+        let pending = "CFM_OLE_PENDING:"+UUID().uuidString.lowercased()
+        let directory = try oleTransportDirectory("powerpoint")
+        let transport = directory.appendingPathComponent("CFM-group-update-"+UUID().uuidString).appendingPathExtension("pptx")
+        var openedTransport = false
+        defer {
+            if openedTransport { _ = try? office("ole-transport-close","powerpoint",[transport.path]) }
+            try? FileManager.default.removeItem(at:transport)
+        }
+        try withPowerPointGroupSnapshot(arguments[0],target:arguments[1]) { snapshot,preparation in
+            let source = try CompoundFile(object).chemdrawSource()
+            try ChemDrawOLE.powerPointGroupTransport(snapshot,source:source,vector:vector,id:arguments[1],pending:pending).write(to:transport,options:.atomic)
+            do {
+                try command(monitor,["--open-document-background",OfficeHost.powerpoint.bundle,transport.path])
+                openedTransport = true
+                _ = try office("ole-transport-copy-close","powerpoint",[transport.path,pending,arguments[0]])
+                openedTransport = false
+                try focusOLEDocument(arguments[0])
+                try require(try office("ole-group-paste-stage","powerpoint",arguments+preparation+[pending]) == "staged",L("ole.clipboard"))
+                // Read the pasted copy before deleting the original group.
+                // Native structure and visible artwork must both survive import.
+                let dimensions = try withPowerPointGroupSnapshot(arguments[0],target:pending) { staged,_ -> [Double] in
+                    try require(try CompoundFile(ChemDrawOLE.singlePowerPointGroupObject(staged)).chemdrawSource() == source,L("native.133"))
+                    let figure = try readSavedFigure(staged.path,host:"powerpoint",id:arguments[1])
+                    _ = try previewAgreement(figure.preview,transportPreview(vector))
+                    return figure.dimensions.map { $0/12700 }
+                }
+                try require(dimensions.count == 2,L("native.134"))
+                _ = try office("ole-update-commit","powerpoint",arguments+[pending])
+                transferReceipt = ("powerpoint",arguments[0],arguments[1],source,[arguments[2],String(dimensions[0]),String(dimensions[1])])
             } catch {
                 _ = try? office("ole-discard","powerpoint",[arguments[0],pending])
                 throw error

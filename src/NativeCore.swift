@@ -16,10 +16,11 @@ func require(_ condition: Bool, _ message: String) throws {
     if !condition { throw ChemOfficeError(message) }
 }
 func sha256(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
-func xml(_ data: Data) throws -> XMLDocument {
+func xml(_ data: Data, preserveWhitespace: Bool = false) throws -> XMLDocument {
     try require(data.count <= maxCarrierBytes, L("native.150"))
     try require(data.range(of: Data("<!ENTITY".utf8)) == nil, L("native.151"))
-    let document = try XMLDocument(data: data, options: [.nodeLoadExternalEntitiesNever])
+    let options: XMLNode.Options = preserveWhitespace ? [.nodeLoadExternalEntitiesNever,.nodePreserveWhitespace] : [.nodeLoadExternalEntitiesNever]
+    let document = try XMLDocument(data:data,options:options)
     document.dtd = nil
     return document
 }

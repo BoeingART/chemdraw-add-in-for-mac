@@ -50,3 +50,21 @@ The signed universal Build 32 was installed in `/Applications/ChemDraw Add-in fo
 The installed helper then handled real Command-V input for the multipage sample in new unsaved Word and PowerPoint documents. Both pastes succeeded. The tester saved those independent test documents and read the resulting DOCX/PPTX. Each contained `ChemDraw.Document.6.0`, the exact 7,371-byte clipboard source and the expected 1,024 × 198 preview. Both preview comparisons measured zero mean pixel error. Evidence is under `build/ole-inplace-acceptance/installed-build32-*.log` and the corresponding test DOCX/PPTX files. Test windows were closed after saving; the original ChemDraw window was retained.
 
 The full native test script, isolated worker tests, Word application rollback checks and universal package checks passed. Original internal OLE identity retention and two-second saving remain unimplemented acceptance criteria in this installed build.
+
+## Grouped PowerPoint OLE regression — 3 November 2026
+
+`tests/Byte-pKa.pptx` contains a 7,775-byte native ChemDraw drawing inside the group on slide 2, alongside a cropped image and a caption. The selector and Office adapter previously inspected only slide-level shapes, so neither the group nor its nested drawing reached the native OLE opening path. PowerPoint's scripting interface exposes the selected group but rejects indexed access to its child shapes.
+
+The development branch now recognizes the group and copies it into an independent transport presentation. It reads and verifies the embedded native source there, updates the drawing inside the copied group, and reads back the staged source and artwork before replacing the original group. The transport starts from an existing blank file in the Office preview directory; opening and saving that independent file does not save or rename the user's presentation. Rewriting preserves whitespace-only text runs, which are used for spacing in the caption. Successive updates allocate independent package relationship names.
+
+`zsh scripts/test-powerpoint-group-live.sh tests/Byte-pKa.pptx` exercises disposable copies under `build/powerpoint-group-live/`. The application run passed with ChemDraw 22.0.0.22 and PowerPoint 16.114.1:
+
+- The panel selector and the production double-click selection script resolve the same group, and ChemDraw opens the exact original source.
+- Two successive saves replace the chemistry with a different structure and then restore the original source. Native source and preview readback succeed each time; ChemDraw stays open.
+- Companion image bytes, crop settings, caption text including spaces, and image coordinates remain intact. The group is moved behind the other shapes before testing; saving preserves that stacking order and the slide-level shape count.
+- The test presentation's saved bytes remain unchanged throughout automatic synchronization. Only the test harness then explicitly saves and reopens that disposable presentation; a fresh bridge opens its native source successfully.
+- The supplied input file remains unchanged.
+
+The file-format regression checks cover group-coordinate preservation, exact companion XML including whitespace-only runs, two revisions using the same drawing identity, and rejecting groups containing multiple ChemDraw drawings. Such groups show an instruction to ungroup and select the intended drawing before editing. This run validates the selection script and bridge directly; an installed-helper mouse double-click run is separate from this harness.
+
+The complete `scripts/test-native.sh` run passed, including 56 OLE checks and the persistent AppleScript worker tests. The native application build, seven localization checks, generated-resource validation and whitespace checks also passed. These changes are in `dev-2.0`; the installed application was not replaced during this regression run.

@@ -68,7 +68,7 @@ class NativeBridge {
     }
     func payload(_ host:String, _ document:String, _ id:String, marker:String? = nil) throws -> String {
         if automation.supportsNativeOLE(in:host),
-           try automation.office("ole-kind",host,[document,id]) == "ole" {
+           ["ole","group"].contains(try automation.office("ole-kind",host,[document,id])) {
             return try encodeSource(CompoundFile(automation.captureOLE(document,target:id,host:host)).chemdrawSource(),id:id)
         }
         let tag = try marker ?? automation.office("payload",host,[document,id])

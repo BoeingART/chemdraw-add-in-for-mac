@@ -163,6 +163,32 @@ import Cocoa
         try check(try OfficeArchive(sharedOutput).read("ppt/embeddings/chemdraw.bin") == original,"Editing changed a shared embedding")
         try check(try ChemDrawOLE.powerPointSource(sharedOutput,index:1) == source,"Editing changed another shape sharing the embedding")
         try check(try ChemDrawOLE.powerPointSource(sharedOutput,index:0) == updatedSource,"Editing failed to detach the changed shape from the shared embedding")
+        // A native OLE nested inside a group is one editable drawing. Rebuild
+        // that drawing without flattening or moving the group's companions.
+        var groupedParts = [String:Data]()
+        for name in archive.entries.keys { groupedParts[name] = try archive.read(name) }
+        let groupedSlide = try xml(groupedParts["ppt/slides/slide1.xml"]!)
+        let frame = try nodes(groupedSlide,"//*[local-name()='graphicFrame']")[0]
+        let group = try xml(Data("""
+        <p:grpSp xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><p:nvGrpSpPr><p:cNvPr id="20" name="Chemistry with caption"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="100000" y="200000"/><a:ext cx="6000000" cy="4000000"/><a:chOff x="0" y="0"/><a:chExt cx="3000000" cy="2000000"/></a:xfrm></p:grpSpPr><p:sp><p:nvSpPr><p:cNvPr id="21" name="Caption"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="40000" y="60000"/><a:ext cx="80000" cy="100000"/></a:xfrm></p:spPr><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Keep this caption</a:t></a:r><a:r><a:t>   </a:t></a:r><a:r><a:t>with spaces</a:t></a:r></a:p></p:txBody></p:sp></p:grpSp>
+        """.utf8),preserveWhitespace:true).rootElement()!.copy() as! XMLElement
+        let companion = try nodes(group,"./*[local-name()='sp']")[0].xmlString
+        let groupTransform = try nodes(group,"./*[local-name()='grpSpPr']")[0].xmlString
+        frame.detach(); group.addChild(frame)
+        try nodes(groupedSlide,"//*[local-name()='spTree']")[0].addChild(group)
+        groupedParts["ppt/slides/slide1.xml"] = groupedSlide.xmlData
+        let groupedFile = temporary.deletingPathExtension().appendingPathExtension("grouped.pptx")
+        defer { try? FileManager.default.removeItem(at:groupedFile) }
+        try zipPackage(groupedParts).write(to:groupedFile)
+        try check(try CompoundFile(ChemDrawOLE.singlePowerPointGroupObject(groupedFile)).chemdrawSource() == source,"Grouped object was not extracted")
+        for revision in [updatedSource,source] {
+            try ChemDrawOLE.powerPointGroupTransport(groupedFile,source:revision,vector:blankDrawingSVG(),id:id,pending:"CFM_OLE_PENDING:test").write(to:groupedFile,options:.atomic)
+            let rewritten = try xml(OfficeArchive(groupedFile).read("ppt/slides/slide1.xml"),preserveWhitespace:true)
+            try check(try readSavedFigure(groupedFile.path,host:"powerpoint",id:id).source == revision,"Grouped revision was not stored")
+            try check(try nodes(rewritten,"//*[local-name()='grpSp']/*[local-name()='sp']")[0].xmlString == companion,"Group update changed the companion")
+            try check(try nodes(rewritten,"//*[local-name()='grpSp']/*[local-name()='grpSpPr']")[0].xmlString == groupTransform,"Group update changed its coordinate transform")
+        }
+        try rejects("group containing multiple ChemDraw objects") { _ = try ChemDrawOLE.singlePowerPointGroupObject(sharedInput) }
         print("Passed \(passed) OLE checks")
     }
 }

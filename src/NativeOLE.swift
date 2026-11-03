@@ -213,6 +213,51 @@ enum ChemDrawOLE {
         }
         throw ChemOfficeError(L("ole.notChemDraw"))
     }
+    // Group children cannot be addressed by PowerPoint's AppleScript shape
+    // collection. Read the native object from a separately copied group instead.
+    static func singlePowerPointGroupObject(_ input:URL) throws -> Data {
+        let archive = try OfficeArchive(input)
+        var objects = [Data]()
+        for part in try powerPointSlideParts(archive) {
+            let document = try xml(archive.read(part))
+            let directory = (part as NSString).deletingLastPathComponent
+            let relations = try nodes(xml(archive.read(directory+"/_rels/"+(part as NSString).lastPathComponent+".rels")),"//*[local-name()='Relationship']")
+            for frame in try nodes(document,"//*[local-name()='graphicFrame']") {
+                let native = try nodes(frame,".//*[local-name()='oleObj']")
+                guard !native.isEmpty, native.allSatisfy({ attribute($0,"progId").hasPrefix("ChemDraw.Document.") }) else { continue }
+                let ids = Set(native.map { localAttribute($0,"id") })
+                let matching = relations.filter { ids.contains(attribute($0,"Id")) && attribute($0,"Type").hasSuffix("/oleObject") && attribute($0,"TargetMode") != "External" }
+                try require(ids.count == 1 && matching.count == 1,L("ole.storage"))
+                let base = URL(fileURLWithPath:"/"+directory,isDirectory:true)
+                let target = String(URL(fileURLWithPath:attribute(matching[0],"Target"),relativeTo:base).standardizedFileURL.path.dropFirst())
+                objects.append(try archive.read(target))
+            }
+        }
+        if objects.isEmpty { throw UnsupportedChemDrawOLE() }
+        try require(objects.count == 1,L("ole.groupMultiple"))
+        _ = try CompoundFile(objects[0]).chemdrawSource()
+        return objects[0]
+    }
+    static func powerPointGroupTransport(_ input:URL,source:Data,vector:Data,id:String,pending:String) throws -> Data {
+        _ = try singlePowerPointGroupObject(input)
+        let updated = try replacePowerPointFigure(input,source:source,vector:vector,id:id)
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("pptx")
+        try updated.write(to:temporary)
+        defer { try? FileManager.default.removeItem(at:temporary) }
+        let archive = try OfficeArchive(temporary)
+        var parts = [String:Data]()
+        for name in archive.entries.keys { parts[name] = try archive.read(name) }
+        let slides = try powerPointSlideParts(archive)
+        try require(slides.count == 1,L("ole.storage"))
+        let document = try xml(parts[slides[0]]!,preserveWhitespace:true)
+        let groups = try nodes(document,"//*[local-name()='spTree']/*[local-name()='grpSp']")
+        try require(groups.count == 1,L("ole.storage"))
+        let properties = try nodes(groups[0],"./*[local-name()='nvGrpSpPr']/*[local-name()='cNvPr']")
+        try require(properties.count == 1,L("ole.storage"))
+        properties[0].attribute(forName:"name")?.stringValue = pending
+        parts[slides[0]] = document.xmlData
+        return try zipPackage(parts)
+    }
     static func presentation(_ preview:Data) throws -> Data {
         let bitmap = try renderImage(preview), width = bitmap.pixelsWide, height = bitmap.pixelsHigh
         let stride = (width*3+3)/4*4
@@ -299,7 +344,7 @@ enum ChemDrawOLE {
         for name in archive.entries.keys { parts[name] = try archive.read(name) }
         var candidates = [(String,XMLDocument,XMLElement)]()
         for part in try powerPointSlideParts(archive) {
-            let document = try xml(parts[part]!)
+            let document = try xml(parts[part]!,preserveWhitespace:true)
             for frame in try nodes(document,"//*[local-name()='graphicFrame']") {
                 let ole = try nodes(frame,".//*[local-name()='oleObj']")
                 if !ole.isEmpty && ole.allSatisfy({ attribute($0,"progId").hasPrefix("ChemDraw.Document.") }) { candidates.append((part,document,frame)) }
@@ -326,7 +371,8 @@ enum ChemDrawOLE {
             node.removeAttribute(forName:name); node.addAttribute(XMLNode.attribute(withName:name,stringValue:value) as! XMLNode)
         }
         set(properties,"name",marker)
-        let stem = "cfm-"+id, relStem = "rIdCFM"+id.replacingOccurrences(of:"-",with:"")
+        let suffix = UUID().uuidString.replacingOccurrences(of:"-",with:"")
+        let stem = "cfm-"+id+"-"+suffix, relStem = "rIdCFM"+suffix
         let objectRel = relStem+"OLE", pngRel = relStem+"PNG", svgRel = relStem+"SVG"
         let namespace = "http://schemas.openxmlformats.org/package/2006/relationships"
         for (rid,type,target) in [(objectRel,"oleObject","../embeddings/"+stem+".bin"),(pngRel,"image","../media/"+stem+".png"),(svgRel,"image","../media/"+stem+".svg")] {

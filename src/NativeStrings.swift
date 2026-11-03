@@ -389,6 +389,7 @@ enum NativeStrings {
         "operation.helperFailed": ["en":"Paste Helper Stopped","zh":"粘贴助手已停止"],
         "ole.wordPicture": ["en":"Word imported the drawing as a picture. Keep the ChemDraw editor open and retry saving.","zh":"Word将结构导入为普通图片。请保留ChemDraw编辑窗口并重试保存。"],
         "ole.excelPicture": ["en":"Excel pasted the drawing as a picture. Copy the structure again and retry pasting.","zh":"Excel将结构粘贴为普通图片。请重新复制结构后重试粘贴。"],
+        "ole.groupMultiple": ["en":"This group contains several ChemDraw drawings. Ungroup it, then select the drawing to edit.","zh":"此组合包含多个ChemDraw绘图。请先取消组合，再选择要编辑的绘图。"],
     ]
     static let scriptErrors: [String:String] = [
         "script.000": "ChemDraw did not open the managed source",

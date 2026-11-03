@@ -2,6 +2,9 @@
 
 ## v2.0.0 — Development
 
+- Open and save a ChemDraw OLE drawing inside a PowerPoint group while retaining companion pictures, cropped artwork, captions and stacking order. Keep the ChemDraw editor open and leave saving the presentation to the user.
+- Preserve whitespace-only text runs when rewriting PowerPoint drawings so caption spacing survives updates.
+
 - Update Word OLE drawings at their original position without a temporary duplicate or layout jump. Prepare the new size in a hidden document and restore the original source and preview if verification fails.
 - Reuse Word document lookup after validating the complete open-document list and stable identity; refresh it when documents are opened, closed or saved under another name.
 

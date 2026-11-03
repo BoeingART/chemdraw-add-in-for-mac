@@ -8,6 +8,10 @@ on selectedOLETag()
         set selectedShapes to shape range of selection of active window
         if (count shapes of selectedShapes) is not 1 then return ""
         set pic to shape 1 of selectedShapes
+        if shape type of pic is shape type group then
+            if name of pic starts with "ChemOffice Drawing:" then return name of pic
+            return "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":group:" & name of pic
+        end if
         if shape type of pic is not shape type embedded OLE control then return name of pic
         if name of pic starts with "ChemOffice Drawing:" then return name of pic
         return "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":" & name of pic
@@ -175,7 +179,7 @@ on run argv
         else if actionName is "ole-window" then
             set p to my findDocument(item 2 of argv)
             return name of p
-        else if actionName is "ole-copy-direct" or actionName is "ole-capture" or actionName is "ole-transport-copy-close" or actionName is "ole-claim" or actionName is "ole-kind" then
+        else if actionName is "ole-copy-direct" or actionName is "ole-capture" or actionName is "ole-transport-copy-close" or actionName is "ole-claim" or actionName is "ole-kind" or actionName is "ole-group-export" then
             set p to my findDocument(item 2 of argv)
             set targetText to item 3 of argv
             set matches to {}
@@ -186,6 +190,7 @@ on run argv
                 repeat with pictureIndex from 1 to (count pictureNames)
                     set pictureName to item pictureIndex of pictureNames
                     set rawTag to slidePrefix & pictureName
+                    if shape type of shape pictureIndex of s is shape type group then set rawTag to slidePrefix & "group:" & pictureName
                     if rawTag is targetText or pictureName is targetText or my matchesSource(pictureName, targetText) then set end of matches to {slideIndex as integer, pictureIndex as integer}
                 end repeat
             end repeat
@@ -194,11 +199,36 @@ on run argv
             set pic to shape (item 2 of item 1 of matches) of s
             set pictureProperties to properties of pic
             if actionName is "ole-kind" then
+                if shape type of pictureProperties is shape type group then return "group"
                 if shape type of pictureProperties is shape type embedded OLE control then return "ole"
                 return "picture"
             end if
+            if actionName is "ole-group-export" then
+                if shape type of pictureProperties is not shape type group then error "Ambiguous or missing original PowerPoint figure"
+                -- Save only a newly created transport containing a copy of the
+                -- group. The user's presentation stays open and unsaved.
+                copy shape pic
+                set sourceWidth to slide width of page setup of p
+                set transport to my findDocument(item 4 of argv)
+                try
+                    set slide width of page setup of transport to sourceWidth
+                    set transportSlide to slide 1 of transport
+                    paste object view of document window 1 of transport
+                    if (count shapes of transportSlide) is not 1 then error "PowerPoint did not insert exactly one OLE object; source retained"
+                    save transport
+                on error messageText number errorNumber
+                    close transport saving no
+                    error messageText number errorNumber
+                end try
+                close transport saving no
+                return (slide ID of s as string) & tab & ((count shapes of s) as string) & tab & (left position of pictureProperties as string) & tab & (top of pictureProperties as string) & tab & (width of pictureProperties as string) & tab & (rotation of pictureProperties as string)
+            end if
+            if actionName is "ole-claim" and shape type of pictureProperties is shape type group then
+                set name of pic to item 4 of argv
+                return "ok"
+            end if
             if actionName is "ole-capture" and shape type of pictureProperties is not shape type embedded OLE control then return "picture"
-            if shape type of pictureProperties is not shape type embedded OLE control then error "The selected shape is not an embedded OLE object"
+            if shape type of pictureProperties is not shape type embedded OLE control and not (actionName is "ole-transport-copy-close" and shape type of pictureProperties is shape type group) then error "The selected shape is not an embedded OLE object"
             if actionName is "ole-copy-direct" or actionName is "ole-capture" or actionName is "ole-transport-copy-close" then
                 copy shape pic
                 if actionName is "ole-transport-copy-close" then
@@ -246,7 +276,7 @@ on run argv
             set p to my findDocument(item 2 of argv)
             close p saving no
             return "closed"
-        else if actionName is "ole-paste-direct" or actionName is "ole-stage" or actionName is "ole-paste-stage" then
+        else if actionName is "ole-paste-direct" or actionName is "ole-stage" or actionName is "ole-paste-stage" or actionName is "ole-group-paste-stage" then
             set p to my findDocument(item 2 of argv)
             set targetID to (item 6 of argv) as integer
             set foundSlides to {}
@@ -256,7 +286,7 @@ on run argv
             if (count foundSlides) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to slide (item 1 of foundSlides) of p
             set previousCount to (item 7 of argv) as integer
-            if actionName is "ole-paste-direct" or actionName is "ole-paste-stage" then
+            if actionName is "ole-paste-direct" or actionName is "ole-paste-stage" or actionName is "ole-group-paste-stage" then
                 if (count shapes of s) is not previousCount then error "Original image identity changed; retained both versions"
                 if not my matchesDocument(active presentation, item 2 of argv) then error "The target PowerPoint document changed before paste"
                 go to slide view of active window number (item 1 of foundSlides)
@@ -270,11 +300,18 @@ on run argv
             if (count shapes of s) is previousCount then return "waiting"
             if (count shapes of s) is not previousCount + 1 then error "PowerPoint did not insert exactly one OLE object; source retained"
             set newPic to shape (previousCount + 1) of s
-            if shape type of newPic is not shape type embedded OLE control then
+            set expectedType to shape type embedded OLE control
+            if actionName is "ole-group-paste-stage" then set expectedType to shape type group
+            if shape type of newPic is not expectedType then
                 delete newPic
                 error "PowerPoint pasted a picture instead of an OLE object; please retry"
             end if
             set name of newPic to item 12 of argv
+            if actionName is "ole-group-paste-stage" then
+                set left position of newPic to (item 8 of argv) as real
+                set top of newPic to (item 9 of argv) as real
+                return "staged"
+            end if
             set lock aspect ratio of newPic to false
             set properties of newPic to {left position:(item 8 of argv) as real, top:(item 9 of argv) as real, width:(item 10 of argv) as real, height:((item 10 of argv) as real) * ((item 5 of argv) as real), rotation:(item 11 of argv) as real}
             if actionName is "ole-paste-stage" then copy shape newPic
@@ -306,7 +343,10 @@ on run argv
             if actionName is "ole-update-commit" then
                 if (count oldMatches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
                 if (item 1 of item 1 of oldMatches) is not (item 1 of item 1 of newMatches) then error "Original image identity changed; retained both versions"
-                delete shape (item 2 of item 1 of oldMatches) of slide (item 1 of item 1 of oldMatches) of p
+                set oldShape to shape (item 2 of item 1 of oldMatches) of slide (item 1 of item 1 of oldMatches) of p
+                set oldOrder to z order position of oldShape
+                set wasGroup to shape type of oldShape is shape type group
+                delete oldShape
             end if
             set s to slide (item 1 of item 1 of newMatches) of p
             set name of shape (item 6 of argv) of s to item 4 of argv
@@ -315,6 +355,11 @@ on run argv
                 if item pictureIndex of pictureNames is "CFM_OLE_ANCHOR:" & (item 3 of argv) then delete shape pictureIndex of s
             end repeat
             set committedPic to shape (item 4 of argv) of s
+            if actionName is "ole-update-commit" and wasGroup then
+                repeat while z order position of committedPic > oldOrder
+                    z order committedPic z order position send shape backward
+                end repeat
+            end if
             set committedProperties to properties of committedPic
             return (name of committedProperties) & tab & (width of committedProperties as string) & tab & (height of committedProperties as string)
         else if actionName is "payload" or actionName is "inspect" or actionName is "update" then
