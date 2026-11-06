@@ -10,6 +10,45 @@ import PDFKit
         defer { try? fm.removeItem(at:temporary) }
         var count = 0
         func check(_ name:String, _ body:() throws -> Void) throws { try body(); count += 1; print("PASS \(name)") }
+        try check("Intercepted clicks activate only after the matching mouse release") {
+            var click = InterceptedMouseClick<String>()
+            click.intercept(targetPID:10,eventNumber:4,action:"open")
+            let completed = click.release(targetPID:10,eventNumber:4)
+            try require(completed.suppress && completed.action == "open","Matching press/release did not complete the deferred action")
+            let repeated = click.release(targetPID:10,eventNumber:4)
+            try require(!repeated.suppress && repeated.action == nil,"A second release was swallowed")
+        }
+        try check("Switching from Office to ChemDraw passes its release and cancels the old action") {
+            var click = InterceptedMouseClick<String>()
+            click.intercept(targetPID:10,eventNumber:4,action:"open")
+            let moved = click.release(targetPID:20,eventNumber:4)
+            try require(!moved.suppress && moved.action == nil,"An Office click stole ChemDraw's mouse-up")
+            try require(!click.release(targetPID:10,eventNumber:4).suppress,"A cancelled click left a pending release")
+        }
+        try check("Different click numbers cannot consume another press's release") {
+            var click = InterceptedMouseClick<String>()
+            click.intercept(targetPID:10,eventNumber:4,action:"paste")
+            let unrelated = click.release(targetPID:10,eventNumber:5)
+            try require(!unrelated.suppress && unrelated.action == nil,"Unrelated release completed a stale click")
+        }
+        for reason in ["new mouse-down", "tap timeout", "tap interruption", "Escape"] {
+            try check("\(reason) clears a lost release without swallowing the next canvas click") {
+                var click = InterceptedMouseClick<String>()
+                click.intercept(targetPID:10,eventNumber:4,action:"close")
+                click.reset()
+                let ordinary = click.release(targetPID:20,eventNumber:5)
+                try require(!ordinary.suppress && ordinary.action == nil,"A stale click survived cancellation")
+                click.intercept(targetPID:10,eventNumber:6,action:"open")
+                try require(click.release(targetPID:10,eventNumber:6).action == "open","A new click did not recover")
+            }
+        }
+        try check("Only one intercepted press can own the next release") {
+            var click = InterceptedMouseClick<String>()
+            click.intercept(targetPID:10,eventNumber:4,action:"paste")
+            click.intercept(targetPID:10,eventNumber:5,action:"open")
+            try require(click.release(targetPID:10,eventNumber:5).action == "open","Old click displaced the latest press")
+            try require(!click.release(targetPID:20,eventNumber:6).suppress,"Multiple gesture flags swallowed a later canvas release")
+        }
         let board = NSPasteboard(name:NSPasteboard.Name("ChemOffice-tests-"+UUID().uuidString))
         defer { board.releaseGlobally() }
         let cdx = try Data(contentsOf:root.appendingPathComponent("tests/fixtures/clipboard-ethanol.cdx"))

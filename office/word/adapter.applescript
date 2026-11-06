@@ -192,7 +192,19 @@ on replaceOLEContents(d, targetMarker, sourcePic, importedMarker)
         try
             copy object text object of sourcePic
             if wasTracking then set track revisions of d to false
-            paste object replacementRange
+            try
+                paste object replacementRange
+            on error pasteError number pasteNumber
+                -- Word can complete an OLE range paste and still report an
+                -- Apple-event error, notably when restoring a copied backup.
+                -- Inspect the result rather than replaying the mutation.
+                try
+                    set pastedPic to my findFigure(d, importedMarker)
+                    if inline shape type of pastedPic is not inline shape embedded oleobject or (count inline shapes of d) is not originalCount then error pasteError number pasteNumber
+                on error
+                    error pasteError number pasteNumber
+                end try
+            end try
             set newPic to my findFigure(d, importedMarker)
             set imported to true
             if inline shape type of newPic is not inline shape embedded oleobject then error "Word inserted a picture instead of an OLE object"
@@ -293,9 +305,11 @@ on run argv
             set originalMarker to alternative text of oldPic
             set originalCount to count inline shapes of d
             set pictureWidth to width of oldPic
-            set scratch to make new document
+            -- Create the staging document without a visible window. Hiding a
+            -- newly created window afterwards lets Word paint its intermediate
+            -- original/replacement layout before it disappears.
+            set scratch to make new document with properties {visible:false}
             try
-                set visible of active window of scratch to false
                 my contextID(scratch, item 9 of argv)
                 set formatted text of (create range scratch start 0 end 0) to formatted text of (my objectRange(d, oldPic))
                 set insertionStart to (end of content of text object of scratch) - 1

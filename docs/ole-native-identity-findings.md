@@ -1,8 +1,26 @@
-# 原 OLE 内部 ID 验收记录
+# OLE 保存同步与原生身份验证记录
 
-2026-11-03。用户明确要求保留原 OLE 内部 ID。此要求适用于 Word 和 PowerPoint；对象替换方案不能作为验收结果。
+## 2026-11-04 当前要求与 Windows 机制对照
 
-## 当前结论
+用户已明确允许更换原 Office 对象及其内部 ID，要求同步更新结构数据和预览。原生对象身份保留已从当前验收条件中移除。Office 文档由用户决定何时保存、未保存的新文档可用、定位原目标文档、使用独立保存快照以及保持 ChemDraw 编辑窗口打开等要求继续适用。
+
+Revvity 的[官方 ChemDraw 介绍，第 7 页](https://revvitysignals.com/sites/default/files/2024-11/rs-e-book-every-chemist-can-draw-with-chemdraw%20-%20.pdf)确认 Windows Office 支持双击打开 ChemDraw，并在 Office 中显示编辑结果。底层流程依据微软公开的 OLE 协议推导，ChemDraw 内部的具体接口调用顺序尚未核实。
+
+| 环节 | Windows 标准 OLE 机制 | 当前 Mac 插件代码 |
+| --- | --- | --- |
+| 保存结构数据 | 嵌入对象通过 `IOleClientSite::SaveObject` 请求容器保存；容器通过 `IPersistStorage` 保存对象内容。 | `NativeBridge.synchronize` 取得已保存内容的独立快照；`ChemDrawOLE.create` 在捕获的原 OLE 存储副本中更新 `CONTENTS`。 |
+| 更新显示 | OLE 缓存可从数据对象刷新显示内容；视图变化通过通知交给容器处理。 | `ChemDrawOLE.create` 更新 `OlePres` 预览流；传输文档同时提供 Office 所需的匹配预览。 |
+| 交回打开的文档 | Office 和 ChemDraw 通过 OLE 的容器与服务器连接交换内容。 | Word 覆盖原 EMBED 范围；PowerPoint、Excel 导入并验证新对象后删除旧对象。 |
+
+协议依据为微软的 [SaveObject](https://learn.microsoft.com/en-us/windows/win32/api/oleidl/nf-oleidl-ioleclientsite-saveobject)、[IPersistStorage::Save](https://learn.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-ipersiststorage-save)、[UpdateCache](https://learn.microsoft.com/en-us/windows/win32/api/oleidl/nf-oleidl-iolecache2-updatecache) 和 [OnViewChange](https://learn.microsoft.com/en-us/windows/win32/api/objidl/nf-objidl-iadvisesink-onviewchange)。这些文档描述的接口面向 Windows。
+
+当前代码已具备结构数据与预览同步路径。允许对象替换后，可沿用该路径满足内容同步要求；此前未通过的原生身份测试作为历史证据保留。原有动画、交互触发器、超链接及其他附加属性的迁移，以及保存性能，仍按各自验证结果评估。
+
+本次完成公开协议与本地代码对照，更新验收范围。未改动运行代码或重新进行 Office 应用测试。
+
+## 2026-11-03 历史要求与结论
+
+当时用户要求保留原 OLE 内部 ID，适用于 Word 和 PowerPoint；当时的对象替换方案未通过该项验收。
 
 已安装的本地版本为 2.0.0 Build 32。多页预览修复已在 Word 和 PowerPoint 中验证。原 OLE 内部 ID 保留仍未实现。
 
@@ -29,7 +47,7 @@ Revvity 的 [ChemDraw 产品功能表](https://revvitysignals.com/sites/default/
 
 ## 对象替换路径的具体缺点
 
-根据当前回写代码检查，替换路径存在以下缺口。用户最新要求保留原内部 ID，因此没有将此路径认作可接受的原位编辑实现。
+根据当时回写代码检查，替换路径存在以下缺口。当时用户要求保留原内部 ID，因此未将此路径认作可接受的原位编辑实现。
 
 | 项目 | 当前实现和影响 |
 | --- | --- |
@@ -47,7 +65,7 @@ Revvity 的 [ChemDraw 产品功能表](https://revvitysignals.com/sites/default/
 
 Word 传输文件原先重复使用固定的 VML/OLE 标识。改为独立的传输标识后，12 次连续保存的桥接事务为 2.61–2.92 秒，每次回读均与对应保存源一致，测试 Office 文档保持未保存。该测量来自对象替换路径，另计开发环境文件授权耗时；不能用于通过原位编辑验收，也没有达到最初要求的两秒保存目标。日志为 `build/ole-build33/unique-id-repeat.log`。
 
-## 后续验收方式
+## 历史身份验收方式
 
 新增显式身份核对模式：
 

@@ -67,9 +67,16 @@ class NativeBridge {
         return marker
     }
     func payload(_ host:String, _ document:String, _ id:String, marker:String? = nil) throws -> String {
-        if automation.supportsNativeOLE(in:host),
-           ["ole","group"].contains(try automation.office("ole-kind",host,[document,id])) {
-            return try encodeSource(CompoundFile(automation.captureOLE(document,target:id,host:host)).chemdrawSource(),id:id)
+        if automation.supportsNativeOLE(in:host) {
+            if host == "powerpoint" {
+                // Capture classifies and reads the same indexed object in one
+                // Office request. Pictures continue through their carrier path.
+                if let object = try automation.captureEditableOLE(document,target:id,host:host) {
+                    return try encodeSource(CompoundFile(object).chemdrawSource(),id:id)
+                }
+            } else if ["ole","group"].contains(try automation.office("ole-kind",host,[document,id])) {
+                return try encodeSource(CompoundFile(automation.captureOLE(document,target:id,host:host)).chemdrawSource(),id:id)
+            }
         }
         let tag = try marker ?? automation.office("payload",host,[document,id])
         if tag.hasPrefix("CFM1:") || tag.hasPrefix("CFM2:") { return tag }

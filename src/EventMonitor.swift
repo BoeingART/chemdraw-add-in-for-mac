@@ -221,9 +221,7 @@ if CommandLine.arguments.count == 5 && CommandLine.arguments[1] == "--diagnose-p
 guard CommandLine.arguments.count == 2 else { exit(64) }
 let statePath = CommandLine.arguments[1]
 var tap: CFMachPort?
-var swallowPasteMouseUp = false
-var swallowCloseMouseUp = false
-var swallowOpenMouseUp = false
+var interceptedClick = InterceptedMouseClick<() -> Void>()
 
 func emit(_ object: [String: Any]) {
     guard let data = try? JSONSerialization.data(withJSONObject:object) else { return }
@@ -519,16 +517,25 @@ func capturePaste(_ item:(String,Data,Int),host:String,menuPID:pid_t? = nil,menu
 let callback: CGEventTapCallBack = { _, type, event, _ in
     if event.getIntegerValueField(.eventSourceUserData) == nativeOLEReplaySignature { return Unmanaged.passUnretained(event) }
     if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        interceptedClick.reset()
         if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
         emit(["event": "tapResumed"])
         return Unmanaged.passUnretained(event)
     }
-    if type == .leftMouseUp && swallowPasteMouseUp { swallowPasteMouseUp = false; return nil }
-    if type == .leftMouseUp && swallowCloseMouseUp { swallowCloseMouseUp = false; return nil }
-    if type == .leftMouseUp && swallowOpenMouseUp { swallowOpenMouseUp = false; return nil }
+    // A missing release, a disabled tap or an app switch must not leave a flag
+    // that steals the release of the next ordinary ChemDraw canvas click.
+    if type == .leftMouseDown { interceptedClick.reset() }
+    if type == .keyDown && event.getIntegerValueField(.keyboardEventKeycode) == 53 { interceptedClick.reset() }
     let targetPID = pid_t(event.getIntegerValueField(.eventTargetUnixProcessID))
     let recipient = targetPID > 0 ? NSRunningApplication(processIdentifier: targetPID) : nil
-    guard let front = recipient ?? NSWorkspace.shared.frontmostApplication,
+    let target = recipient ?? NSWorkspace.shared.frontmostApplication
+    if type == .leftMouseUp {
+        let release = interceptedClick.release(targetPID:target?.processIdentifier ?? targetPID,
+                                               eventNumber:event.getIntegerValueField(.mouseEventNumber))
+        if let action = release.action { DispatchQueue.main.async(execute:action) }
+        return release.suppress ? nil : Unmanaged.passUnretained(event)
+    }
+    guard let front = target,
           let bundle = front.bundleIdentifier else { return Unmanaged.passUnretained(event) }
     if type == .leftMouseDown && ProcessInfo.processInfo.environment["CFM_DIAGNOSTICS"] == "1" {
         emit(["event":"paste_pointer","bundle":bundle,"front":NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "",
@@ -541,8 +548,10 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     if type == .leftMouseDown || type == .rightMouseDown,
        OfficeHost(bundle:bundle) != nil, chemicalClipboard() != nil {
         if type == .leftMouseDown, let menu = cachedPasteMenu(at:event.location,pid:front.processIdentifier) ?? directPasteMenu(at:event.location,pid:front.processIdentifier), let item = chemicalClipboard() {
-            swallowPasteMouseUp = true
-            capturePaste(item,host:OfficeHost(bundle:bundle)!.rawValue,menuPID:front.processIdentifier,menu:menu.menu)
+            let host = OfficeHost(bundle:bundle)!.rawValue, pid = front.processIdentifier
+            interceptedClick.intercept(targetPID:pid,eventNumber:event.getIntegerValueField(.mouseEventNumber)) {
+                capturePaste(item,host:host,menuPID:pid,menu:menu.menu)
+            }
             return nil
         }
         if type == .leftMouseDown { invalidatePasteMenu() }
@@ -570,8 +579,10 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
                       let data = event.data else { return Unmanaged.passUnretained(event) }
                 request["nativeOLEEvent"] = (data as Data).base64EncodedString()
             }
-            swallowOpenMouseUp = true
-            emit(request)
+            let captured = request
+            interceptedClick.intercept(targetPID:front.processIdentifier,eventNumber:event.getIntegerValueField(.mouseEventNumber)) {
+                emit(captured)
+            }
             return nil
         }
     }
@@ -601,10 +612,12 @@ let callback: CGEventTapCallBack = { _, type, event, _ in
     // dialogs responsive, and queue a close behind any in-flight save.
     let closeClick = type == .leftMouseDown && closeButtonContains(window, event.location)
     if closeKey || closeClick {
-        if closeClick { swallowCloseMouseUp = true }
-        if !closeKey || event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
-            emit(["event": "close", "gesture": closeKey ? "command-w" : "red-button",
-                  "id":current["id"] as? String ?? "","path":current["path"] as? String ?? ""])
+        let request: [String:Any] = ["event": "close", "gesture": closeKey ? "command-w" : "red-button",
+                                   "id":current["id"] as? String ?? "","path":current["path"] as? String ?? ""]
+        if closeClick {
+            interceptedClick.intercept(targetPID:front.processIdentifier,eventNumber:event.getIntegerValueField(.mouseEventNumber)) { emit(request) }
+        } else if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
+            emit(request)
         }
         return nil
     }

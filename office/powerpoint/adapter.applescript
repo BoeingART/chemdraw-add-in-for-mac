@@ -113,6 +113,47 @@ on contextID(p, candidateID)
     end tell
 end contextID
 
+-- Keep one immutable name index for each script operation. PowerPoint does not
+-- support a nested `name of every shape of every slide` query, so read once per
+-- slide. Resolve types only for matching raw OLE candidates, never every shape.
+on figureIndex(p)
+    tell application id "com.microsoft.Powerpoint"
+        set slideIDs to get slide ID of every slide of p
+        set shapeNames to {}
+        repeat with slideIndex from 1 to count slideIDs
+            set end of shapeNames to get name of every shape of slide slideIndex of p
+        end repeat
+    end tell
+    return {slideIDs, shapeNames}
+end figureIndex
+
+on matchingLocations(p, namesIndex, targetText)
+    set slideIDs to item 1 of namesIndex
+    set shapeNames to item 2 of namesIndex
+    set matches to {}
+    repeat with slideIndex from 1 to count slideIDs
+        set pictureNames to item slideIndex of shapeNames
+        set slidePrefix to "ChemOffice OLE Selection:" & (item slideIndex of slideIDs as string) & ":"
+        repeat with pictureIndex from 1 to count pictureNames
+            set pictureName to item pictureIndex of pictureNames
+            set matched to pictureName is targetText
+            if targetText does not start with "CFM_OLE_PENDING:" then set matched to matched or my matchesSource(pictureName, targetText)
+            if not matched and targetText starts with "ChemOffice OLE Selection:" then
+                set rawTag to slidePrefix & pictureName
+                set groupTag to slidePrefix & "group:" & pictureName
+                if rawTag is targetText or groupTag is targetText then
+                    tell application id "com.microsoft.Powerpoint"
+                        if shape type of shape pictureIndex of slide slideIndex of p is shape type group then set rawTag to groupTag
+                    end tell
+                    set matched to rawTag is targetText
+                end if
+            end if
+            if matched then set end of matches to {slideIndex as integer, pictureIndex as integer}
+        end repeat
+    end repeat
+    return matches
+end matchingLocations
+
 on run argv
     set actionName to item 1 of argv
     if actionName is "document-status" then
@@ -182,18 +223,8 @@ on run argv
         else if actionName is "ole-copy-direct" or actionName is "ole-capture" or actionName is "ole-transport-copy-close" or actionName is "ole-claim" or actionName is "ole-kind" or actionName is "ole-group-export" then
             set p to my findDocument(item 2 of argv)
             set targetText to item 3 of argv
-            set matches to {}
-            repeat with slideIndex from 1 to (count slides of p)
-                set s to slide slideIndex of p
-                set pictureNames to get name of every shape of s
-                set slidePrefix to "ChemOffice OLE Selection:" & (slide ID of s as string) & ":"
-                repeat with pictureIndex from 1 to (count pictureNames)
-                    set pictureName to item pictureIndex of pictureNames
-                    set rawTag to slidePrefix & pictureName
-                    if shape type of shape pictureIndex of s is shape type group then set rawTag to slidePrefix & "group:" & pictureName
-                    if rawTag is targetText or pictureName is targetText or my matchesSource(pictureName, targetText) then set end of matches to {slideIndex as integer, pictureIndex as integer}
-                end repeat
-            end repeat
+            set namesIndex to my figureIndex(p)
+            set matches to my matchingLocations(p, namesIndex, targetText)
             if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to slide (item 1 of item 1 of matches) of p
             set pic to shape (item 2 of item 1 of matches) of s
@@ -203,6 +234,7 @@ on run argv
                 if shape type of pictureProperties is shape type embedded OLE control then return "ole"
                 return "picture"
             end if
+            if actionName is "ole-capture" and shape type of pictureProperties is shape type group then return "group"
             if actionName is "ole-group-export" then
                 if shape type of pictureProperties is not shape type group then error "Ambiguous or missing original PowerPoint figure"
                 -- Save only a newly created transport containing a copy of the
@@ -253,17 +285,11 @@ on run argv
                 set pictureWidth to 400
                 set pictureRotation to 0
             else
-                set matches to {}
-                repeat with slideIndex from 1 to (count slides of p)
-                    set candidateSlide to slide slideIndex of p
-                    set pictureNames to get name of every shape of candidateSlide
-                    repeat with pictureIndex from 1 to (count pictureNames)
-                        if my matchesSource(item pictureIndex of pictureNames, figureID) then set end of matches to {candidateSlide, shape pictureIndex of candidateSlide}
-                    end repeat
-                end repeat
+                set namesIndex to my figureIndex(p)
+                set matches to my matchingLocations(p, namesIndex, figureID)
                 if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
-                set s to item 1 of item 1 of matches
-                set oldPic to item 2 of item 1 of matches
+                set s to slide (item 1 of item 1 of matches) of p
+                set oldPic to shape (item 2 of item 1 of matches) of s
                 set pictureLeft to left position of oldPic
                 set pictureTop to top of oldPic
                 set pictureWidth to width of oldPic
@@ -280,8 +306,9 @@ on run argv
             set p to my findDocument(item 2 of argv)
             set targetID to (item 6 of argv) as integer
             set foundSlides to {}
-            repeat with slideIndex from 1 to (count slides of p)
-                if slide ID of slide slideIndex of p is targetID then set end of foundSlides to slideIndex as integer
+            set slideIDs to get slide ID of every slide of p
+            repeat with slideIndex from 1 to count slideIDs
+                if item slideIndex of slideIDs is targetID then set end of foundSlides to slideIndex as integer
             end repeat
             if (count foundSlides) is not 1 then error "Ambiguous or missing original PowerPoint figure"
             set s to slide (item 1 of foundSlides) of p
@@ -319,26 +346,21 @@ on run argv
         else if actionName is "ole-discard" then
             set p to my findDocument(item 2 of argv)
             if item 3 of argv does not start with "CFM_OLE_PENDING:" then error "Original image identity changed; retained both versions"
-            repeat with slideIndex from 1 to (count slides of p)
-                set s to slide slideIndex of p
-                repeat with pictureIndex from (count shapes of s) to 1 by -1
-                    if name of shape pictureIndex of s is (item 3 of argv) then delete shape pictureIndex of s
-                end repeat
+            set namesIndex to my figureIndex(p)
+            set matches to my matchingLocations(p, namesIndex, item 3 of argv)
+            repeat with matchIndex from count matches to 1 by -1
+                set location to item matchIndex of matches
+                delete shape (item 2 of location) of slide (item 1 of location) of p
             end repeat
             return "discarded"
         else if actionName is "ole-insert-commit" or actionName is "ole-update-commit" then
             set p to my findDocument(item 2 of argv)
-            set newMatches to {}
-            set oldMatches to {}
-            repeat with slideIndex from 1 to (count slides of p)
-                set s to slide slideIndex of p
-                set pictureNames to get name of every shape of s
-                repeat with pictureIndex from 1 to (count pictureNames)
-                    set pictureName to item pictureIndex of pictureNames
-                    if pictureName is (item 6 of argv) then set end of newMatches to {slideIndex as integer, pictureIndex as integer}
-                    if my matchesSource(pictureName, item 3 of argv) then set end of oldMatches to {slideIndex as integer, pictureIndex as integer}
-                end repeat
-            end repeat
+            -- Rebuild immediately before mutation: detect a moved/deleted
+            -- original or a duplicate marker created while transport imported.
+            -- Both identities share this read, including all other slides.
+            set namesIndex to my figureIndex(p)
+            set newMatches to my matchingLocations(p, namesIndex, item 6 of argv)
+            set oldMatches to my matchingLocations(p, namesIndex, item 3 of argv)
             if (count newMatches) is not 1 then error "Cannot uniquely identify the inserted preview; source retained"
             if actionName is "ole-update-commit" then
                 if (count oldMatches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
@@ -411,17 +433,14 @@ on run argv
             return "updated"
         else if actionName is "activate" then
             set p to my findDocument(item 2 of argv)
+            set namesIndex to my figureIndex(p)
+            set matches to my matchingLocations(p, namesIndex, item 3 of argv)
+            if (count matches) is not 1 then error "Ambiguous or missing original PowerPoint figure"
+            set location to item 1 of matches
+            set s to slide (item 1 of location) of p
             set index of window (name of p) to 1
-            repeat with slideIndex from 1 to (count of slides of p)
-                set s to slide slideIndex of p
-                repeat with pictureIndex from 1 to (count of shapes of s)
-                    if my matchesSource(name of shape pictureIndex of s, item 3 of argv) then
-                        set slide of view of document window 1 of p to s
-                        select shape pictureIndex of s
-                        exit repeat
-                    end if
-                end repeat
-            end repeat
+            set slide of view of document window 1 of p to s
+            select shape (item 2 of location) of s
             activate
             return "activated"
         end if

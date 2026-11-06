@@ -84,7 +84,7 @@ class NativeAutomation: ChemistryAutomation {
     // owned by Office during transfer; restore portable data after the operation.
     private var clipboardDepth = 0
     private var activatedOfficeFocus = false
-    private var capturedOLEPreparation: (document:String,target:String,fields:[String])?
+    private var capturedOLEPreparation: (document:String,target:String,kind:String,fields:[String])?
     private var transferReceipt: (host:String,document:String,id:String,source:Data,fields:[String])?
     private var documentHints = [String:String]()
     private var scriptWorker: NativeAppleScriptWorker?
@@ -130,16 +130,20 @@ class NativeAutomation: ChemistryAutomation {
     }
     func captureEditableOLE(_ document:String,target:String) throws -> Data? {
         try withClipboard {
+            capturedOLEPreparation = nil
             NSPasteboard.general.clearContents()
             do {
-                if try office("ole-kind","powerpoint",[document,target]) == "group" {
-                    return try withPowerPointGroupSnapshot(document,target:target) { file,_ in
+                let fields = try office("ole-capture","powerpoint",[document,target]).components(separatedBy:"\t")
+                if fields == ["group"] {
+                    let object = try withPowerPointGroupSnapshot(document,target:target) { file,_ in
                         try ChemDrawOLE.singlePowerPointGroupObject(file)
                     }
+                    capturedOLEPreparation = (document,target,"group",[])
+                    return object
                 }
-                let fields = try office("ole-capture","powerpoint",[document,target]).components(separatedBy:"\t")
                 if fields == ["picture"] { capturedOLEPreparation = nil; return nil }
-                capturedOLEPreparation = fields.count == 6 ? (document,target,fields) : nil
+                try require(fields.count == 6,L("ole.clipboard"))
+                capturedOLEPreparation = (document,target,"ole",fields)
             }
             catch let error as UnsupportedChemDrawOLE { throw error }
             catch { throw ChemOfficeError(L("ole.copyFailed",error.localizedDescription)) }
@@ -171,14 +175,19 @@ class NativeAutomation: ChemistryAutomation {
     func transferOLE(_ action:String, arguments:[String], object:Data, vector:Data) throws {
         transferReceipt = nil
         try withClipboard(restoreFocus:true) {
-            if action == "ole-update", try office("ole-kind","powerpoint",[arguments[0],arguments[1]]) == "group" {
+            let captured = capturedOLEPreparation
+            capturedOLEPreparation = nil
+            let matchingCapture = captured?.document == arguments[0] && captured?.target == arguments[1]
+            // A native capture already resolved the exact object and its type.
+            // Commit performs fresh, document-wide identity checks before any
+            // deletion, so a second classification adds no write-back evidence.
+            let kind = action == "ole-update" ? try (matchingCapture ? captured!.kind : office("ole-kind","powerpoint",[arguments[0],arguments[1]])) : ""
+            if kind == "group" {
                 try transferPowerPointGroup(arguments,object:object,vector:vector)
                 return
             }
-            let captured = capturedOLEPreparation
-            capturedOLEPreparation = nil
             let preparation:[String]
-            if action == "ole-update", captured?.document == arguments[0], captured?.target == arguments[1] { preparation = captured!.fields }
+            if action == "ole-update", matchingCapture { preparation = captured!.fields }
             else {
                 try focusOLEDocument(arguments[0])
                 preparation = try office(action+"-prepare","powerpoint",arguments).components(separatedBy:"\t")

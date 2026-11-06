@@ -2,6 +2,13 @@
 
 ## v2.0.0 — Development
 
+- Speed up PowerPoint drawing opening and save synchronization by batching shape lookups and reusing captured object properties. Keep document and object identity checks, native source and preview verification, and recovery of pending edits.
+
+- Wait for the matching mouse release before opening a drawing, pasting from an Office menu or closing the managed drawing. Clear interrupted click state so switching applications cannot swallow a ChemDraw canvas release.
+
+- Create Word save-staging documents without a visible window to prevent temporary drawings from flashing during synchronization.
+- Finish failed-save recovery after Word has restored the original drawing, and close its temporary document.
+
 - Open and save a ChemDraw OLE drawing inside a PowerPoint group while retaining companion pictures, cropped artwork, captions and stacking order. Keep the ChemDraw editor open and leave saving the presentation to the user.
 - Preserve whitespace-only text runs when rewriting PowerPoint drawings so caption spacing survives updates.
 
