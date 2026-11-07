@@ -10,9 +10,11 @@ from urllib.parse import urlparse
 
 REPOSITORY = "BoeingART/chemdraw-add-in-for-mac"
 
-def validate(release, version, directory, draft=False):
-    tag = "v" + version
-    if release.get("tag_name") != tag or release.get("prerelease") or (release.get("draft") and not draft):
+def validate(release, version, directory, draft=False, prerelease=None):
+    if prerelease is not None and not re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z-]*(?:\.[0-9A-Za-z][0-9A-Za-z-]*)*", prerelease):
+        raise ValueError("Invalid prerelease identifier")
+    tag = "v" + version + ("-" + prerelease if prerelease else "")
+    if release.get("tag_name") != tag or release.get("prerelease") is not bool(prerelease) or (release.get("draft") and not draft):
         raise ValueError("Release version or publication state does not match this build")
     download_tag = tag
     if draft and release.get("draft"):
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     parser.add_argument("version")
     parser.add_argument("directory", type=Path)
     parser.add_argument("--draft", action="store_true")
+    parser.add_argument("--prerelease", metavar="IDENTIFIER")
     args = parser.parse_args()
-    validate(json.loads(args.metadata.read_text()), args.version, args.directory, args.draft)
+    validate(json.loads(args.metadata.read_text()), args.version, args.directory, args.draft, args.prerelease)
     print("PASS release includes the verified automatic-update ZIP and first-install DMG")

@@ -78,9 +78,9 @@ elif name == 'zsh':
     def write_metadata(self):
         self.metadata.write_text(json.dumps(self.release))
 
-    def run_release(self, mode):
+    def run_release(self, mode, *options):
         self.write_metadata()
-        return subprocess.run(["/bin/zsh", str(self.root / "scripts/release.sh"), mode], cwd=self.root, env=self.env, capture_output=True, text=True)
+        return subprocess.run(["/bin/zsh", str(self.root / "scripts/release.sh"), mode, *options], cwd=self.root, env=self.env, capture_output=True, text=True)
 
     def calls(self):
         return [json.loads(line) for line in self.log.read_text().splitlines()] if self.log.exists() else []
@@ -113,6 +113,54 @@ elif name == 'zsh':
         self.release["assets"] = self.release["assets"][1:]
         self.assertNotEqual(self.run_release("--publish").returncode, 0)
         self.assertFalse(any(call[:3] == ["gh", "release", "edit"] for call in self.calls()))
+
+    def test_beta_uses_its_exact_tag_and_leaves_latest_stable(self):
+        self.release.update(tag_name="v" + self.version + "-beta", prerelease=True)
+        result = self.run_release("--publish", "--prerelease", "beta")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls()
+        create = next(call for call in calls if call[:3] == ["gh", "release", "create"])
+        edit = next(call for call in calls if call[:3] == ["gh", "release", "edit"])
+        for call in (create, edit):
+            self.assertEqual(call[3], self.release["tag_name"])
+            self.assertIn("--prerelease", call)
+            self.assertIn("--latest=false", call)
+            self.assertNotIn("--latest", call)
+        checks = [call for call in calls if call[:2] == ["python3", "scripts/check-release.py"]]
+        self.assertEqual(len(checks), 2)
+        self.assertTrue(all(call[-2:] == ["--prerelease", "beta"] for call in checks))
+        published = json.loads(self.metadata.read_text())
+        self.assertTrue(published["prerelease"])
+        checker.validate(published, self.version, self.root / "dist", prerelease="beta")
+
+    def test_stable_release_keeps_the_latest_publication_path(self):
+        result = self.run_release("--publish")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        edit = next(call for call in self.calls() if call[:3] == ["gh", "release", "edit"])
+        self.assertIn("--latest", edit)
+        self.assertNotIn("--prerelease", edit)
+
+    def test_beta_metadata_cannot_publish_as_stable_or_another_beta(self):
+        self.release.update(tag_name="v" + self.version + "-beta", prerelease=True)
+        for identifier in (None, "beta.1"):
+            with self.assertRaises(ValueError):
+                checker.validate(self.release, self.version, self.root / "dist", draft=True, prerelease=identifier)
+        self.release["prerelease"] = False
+        result = self.run_release("--publish", "--prerelease", "beta")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(any(call[:3] == ["gh", "release", "edit"] for call in self.calls()))
+
+    def test_beta_still_requires_notarization_before_upload(self):
+        self.release.update(tag_name="v" + self.version + "-beta", prerelease=True)
+        self.env["TEST_NOTARY_FAILURE"] = "1"
+        self.assertNotEqual(self.run_release("--publish", "--prerelease", "beta").returncode, 0)
+        self.assertFalse(any(call[0] == "gh" for call in self.calls()))
+
+    def test_invalid_prerelease_identifiers_stop_before_any_external_action(self):
+        for identifier in ("", "../beta", "beta beta", "beta..1", "--publish"):
+            result = self.run_release("--publish", "--prerelease", identifier)
+            self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls(), [])
 
     def test_wrong_remote_bytes_keep_the_release_unpublished(self):
         self.release["assets"][0]["size"] += 1

@@ -1,6 +1,8 @@
 # Changelog
 
-## v2.0.0 — Development
+## v2.0.0-beta — 2026-11-07
+
+- Publish the 2.0 beta as a GitHub prerelease with universal Mac installation and application ZIP packages. Keep the stable release selected for automatic updates.
 
 - Speed up PowerPoint drawing opening and save synchronization by batching shape lookups and reusing captured object properties. Keep document and object identity checks, native source and preview verification, and recovery of pending edits.
 
