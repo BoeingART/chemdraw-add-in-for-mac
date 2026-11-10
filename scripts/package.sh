@@ -65,7 +65,9 @@ if (( CFM_LOCAL_TEST )); then
     print -r -- "$CFM_VERSION 本地测试构建：将应用拖到Applications，按系统提示完成授权。
 Local test build: drag the app into Applications and complete the system permission prompts." > "$CFM_DMG_ROOT/Local-Test.txt"
 fi
-/usr/bin/hdiutil create -volname "$CFM_NAME $CFM_VERSION" -srcfolder "$CFM_DMG_ROOT" -format UDZO -ov "$CFM_DISK_IMAGE"
+# Match the compact HFS+ images used by earlier builds on macOS versions
+# whose default image filesystem is APFS.
+/usr/bin/hdiutil create -volname "$CFM_NAME $CFM_VERSION" -srcfolder "$CFM_DMG_ROOT" -fs HFS+ -format UDZO -ov "$CFM_DISK_IMAGE"
 /usr/bin/codesign --force --sign "$CFM_APP_SIGNING_ID" $CFM_DMG_SIGN_OPTIONS "$CFM_DISK_IMAGE"
 cd "$PROJECT_DIR/dist"
 /usr/bin/shasum -a 256 "${CFM_ARCHIVE:t}" "${CFM_DISK_IMAGE:t}" > SHA256SUMS.txt

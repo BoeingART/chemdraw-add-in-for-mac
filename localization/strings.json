@@ -2148,8 +2148,8 @@
     "element": "h1"
   },
   "installer.welcome.1": {
-    "zh": "开发版2.0.0 · Apple Silicon + Intel · macOS 12或更新",
-    "en": "Development version 2.0.0 · Apple Silicon + Intel · macOS 12 or later",
+    "zh": "2.0.1-beta · Apple Silicon + Intel · macOS 12 或更新",
+    "en": "2.0.1-beta · Apple Silicon + Intel · macOS 12 or later",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2157,8 +2157,8 @@
     "element": "p"
   },
   "installer.welcome.2": {
-    "zh": "新增PowerPoint原生ChemDraw OLE粘贴与自动回写。ChemDraw保存后更新原对象并保持编辑窗口打开，支持尚未保存的PPT。",
-    "en": "Add native ChemDraw OLE paste and automatic write-back in PowerPoint. Saving in ChemDraw updates the original object and keeps the editor open, including in unsaved presentations.",
+    "zh": "修复 PowerPoint 粘贴相同 ChemDraw 对象后无法编辑的问题。每个副本可单独打开和保存。",
+    "en": "Fix editing identical ChemDraw objects pasted in PowerPoint. Open and save each copy independently.",
     "locations": [
       "packaging/Welcome.html"
     ],
@@ -2166,8 +2166,8 @@
     "element": "p"
   },
   "installer.welcome.3": {
-    "zh": "升级时选择“检查更新”，确认后自动下载、替换并重新打开应用。",
-    "en": "Choose Check for Updates and confirm to download, replace and reopen the app automatically.",
+    "zh": "升级到此测试版时，请从 GitHub 下载 DMG 并替换 Applications 中的应用。",
+    "en": "To install this beta, download the DMG from GitHub and replace the app in Applications.",
     "locations": [
       "packaging/Welcome.html"
     ],

@@ -57,6 +57,7 @@ private final class LookupAutomation: NativeAutomation {
         let end = monitor.range(of:"\n        \"\"\"",range:start..<monitor.endIndex)!.lowerBound
         let selector = String(monitor[start..<end])
         var results = [[String:Any]]()
+        let copiesOnly = ProcessInfo.processInfo.environment["CFM_LOOKUP_COPIES_ONLY"] == "1"
         let faultsOnly = ProcessInfo.processInfo.environment["CFM_LOOKUP_FAULTS_ONLY"] == "1"
         let prepareGesture = ProcessInfo.processInfo.environment["CFM_LOOKUP_PREPARE_GESTURE"] == "1"
         for (slideCount,shapesPerSlide) in [(1,0),(12,12)] {
@@ -93,6 +94,10 @@ private final class LookupAutomation: NativeAutomation {
             let document = try automation.office("context","powerpoint",[UUID().uuidString.lowercased()])
             var tag = try automation.office("selected","powerpoint",[])
             let id = try objectID(tag)
+            if copiesOnly {
+                try verifyCopies(bridge,automation:automation,document:document,name:name,source:source,selector:selector)
+                return
+            }
             if prepareGesture {
                 let fixture:[String:Any] = ["name":name,"document":document,"tag":tag,"id":id,"slides":slideCount,"filler_shapes":slideCount*shapesPerSlide]
                 let file = base.appendingPathComponent("gesture-fixture.json")
@@ -237,5 +242,66 @@ private final class LookupAutomation: NativeAutomation {
         }
         try JSONSerialization.data(withJSONObject:results,options:[.prettyPrinted,.sortedKeys]).write(to:base.appendingPathComponent("timings.json"))
         print("PASS independent unsaved decks; exact source, preview, retained editor and document cleanup",base.path)
+    }
+
+    private static func verifyCopies(_ bridge:NativeBridge,automation:LookupAutomation,document:String,name:String,source:Data,selector:String) throws {
+        let tags = try automation.withClipboard {
+            try automation.script("""
+            tell application id "com.microsoft.Powerpoint"
+                set p to presentation (item 1 of argv)
+                set s to slide 1 of p
+                set pic to shape 1 of s
+                copy shape pic
+                paste object view of document window 1 of p
+                repeat 80 times
+                    if (count shapes of s) is 2 then return (name of shape 1 of s) & tab & (name of shape 2 of s)
+                    delay 0.1
+                end repeat
+                error "PowerPoint did not paste the OLE copy"
+            end tell
+            """,[name]).components(separatedBy:"\t")
+        }
+        try require(tags.count == 2 && tags[0] == tags[1],"Expected PowerPoint to retain the original drawing marker on the pasted copy")
+        let originalID = try objectID(tags[0])
+        var otherID = originalID
+        for index in [2,1] {
+            _ = try automation.script("""
+            tell application id "com.microsoft.Powerpoint"
+                activate
+                select shape \(index) of slide 1 of presentation (item 1 of argv)
+            end tell
+            """,[name])
+            let tag = try automation.office("selected","powerpoint",[])
+            let fromMonitor = try automation.script(selector,[]).components(separatedBy:", ")[0]
+            try require(fromMonitor == tag,"Double-click and panel selected different copies")
+            if index == 2 {
+                try bridge.handle(["event":"edit-selection","host":"powerpoint"])
+            } else {
+                try bridge.begin("powerpoint",tag:fromMonitor,reference:name)
+            }
+            let session = bridge.session!, path = URL(fileURLWithPath:session.path)
+            defer { try? automation.closeWithoutActivation(path) }
+            try require(try Data(contentsOf:path) == source,"The selected copy lost its source")
+            try require(index == 2 ? session.id != originalID : session.id == originalID,"The copy reused or replaced the original identity")
+            let app = try automation.application()
+            _ = try automation.script("""
+            tell application \(appleQuote(app.path))
+                set d to document (item 1 of argv)
+                set label size of d to (label size of d) + \(index)
+                save d
+            end tell
+            """,[path.lastPathComponent])
+            let saved = try Data(contentsOf:path)
+            try require(saved != source,"The test edit did not change the source")
+            let other = try CompoundFile(automation.captureOLE(document,target:otherID)).chemdrawSource()
+            try bridge.save(SavedDrawingChange(id:session.id,path:path.path,source:saved))
+            try require(try CompoundFile(automation.captureOLE(document,target:session.id)).chemdrawSource() == saved,"Save did not update the selected copy")
+            try require(try CompoundFile(automation.captureOLE(document,target:otherID)).chemdrawSource() == other,"Save changed the other copy")
+            try require(try automation.isOpen(path),"Save closed the ChemDraw editor")
+            try automation.closeWithoutActivation(path)
+            otherID = session.id
+        }
+        try require(try automation.office("path","powerpoint",[document]).isEmpty,"The presentation was saved automatically")
+        print("PASS PowerPoint duplicate OLE markers resolve to independent copies and save back separately")
     }
 }

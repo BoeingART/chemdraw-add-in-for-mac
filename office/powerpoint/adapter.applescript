@@ -8,13 +8,27 @@ on selectedOLETag()
         set selectedShapes to shape range of selection of active window
         if (count shapes of selectedShapes) is not 1 then return ""
         set pic to shape 1 of selectedShapes
-        if shape type of pic is shape type group then
-            if name of pic starts with "ChemOffice Drawing:" then return name of pic
-            return "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":group:" & name of pic
+        set tagText to name of pic
+        set isGroup to shape type of pic is shape type group
+        if not isGroup and shape type of pic is not shape type embedded OLE control then return tagText
+        -- PowerPoint preserves shape names when pasting OLE copies. Count the
+        -- drawing UUID across slides, including copies with another revision.
+        set markerLength to (length of "ChemOffice Drawing:") + 36
+        if tagText starts with "ChemOffice Drawing:" and (length of tagText) >= markerLength then
+            set markerPrefix to text 1 thru markerLength of tagText
+            set markerCount to 0
+            set p to active presentation
+            repeat with slideIndex from 1 to count slides of p
+                repeat with otherTag in (get name of every shape of slide slideIndex of p)
+                    if otherTag is markerPrefix or otherTag starts with markerPrefix & ":" then set markerCount to markerCount + 1
+                end repeat
+                if markerCount > 1 then exit repeat
+            end repeat
+            if markerCount is 1 then return tagText
         end if
-        if shape type of pic is not shape type embedded OLE control then return name of pic
-        if name of pic starts with "ChemOffice Drawing:" then return name of pic
-        return "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":" & name of pic
+        set locationTag to "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":at:" & (z order position of pic as string) & ":"
+        if isGroup then set locationTag to locationTag & "group:"
+        return locationTag & tagText
     end tell
 end selectedOLETag
 
@@ -141,7 +155,18 @@ on matchingLocations(p, namesIndex, targetText)
             if not matched and targetText starts with "ChemOffice OLE Selection:" then
                 set rawTag to slidePrefix & pictureName
                 set groupTag to slidePrefix & "group:" & pictureName
-                if rawTag is targetText or groupTag is targetText then
+                set locationPrefix to slidePrefix & "at:" & (pictureIndex as string) & ":"
+                set locatedTag to locationPrefix & pictureName
+                set locatedGroupTag to locationPrefix & "group:" & pictureName
+                if locatedTag is targetText or locatedGroupTag is targetText then
+                    tell application id "com.microsoft.Powerpoint"
+                        set pic to shape pictureIndex of slide slideIndex of p
+                        if z order position of pic is pictureIndex then
+                            set matched to (shape type of pic is shape type group and locatedGroupTag is targetText) or (shape type of pic is shape type embedded OLE control and locatedTag is targetText)
+                        end if
+                    end tell
+                else if rawTag is targetText or groupTag is targetText then
+                    -- Accept the original name-based locators from earlier builds.
                     tell application id "com.microsoft.Powerpoint"
                         if shape type of shape pictureIndex of slide slideIndex of p is shape type group then set rawTag to groupTag
                     end tell

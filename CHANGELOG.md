@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.1-beta
+
+- Fix opening and saving identical ChemDraw OLE copies pasted in PowerPoint. Each selected copy gets its own editing identity when PowerPoint has retained the same marker.
+
 ## v2.0.0-beta — 2026-11-07
 
 - Publish the 2.0 beta as a GitHub prerelease with universal Mac installation and application ZIP packages. Keep the stable release selected for automatic updates.

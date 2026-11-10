@@ -360,12 +360,28 @@ func selectedOfficeFigure(_ host: String) -> (tag:String,reference:String?)? {
                 if (count shapes of selectedShapes) is not 1 then return ""
                 set pic to shape 1 of selectedShapes
                 set tagText to name of pic
-                if shape type of pic is shape type group and tagText does not start with "ChemOffice Drawing:" then
-                    set tagText to "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":group:" & tagText
-                else if shape type of pic is shape type embedded OLE control and tagText does not start with "ChemOffice Drawing:" then
-                    set tagText to "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":" & tagText
+                set isGroup to shape type of pic is shape type group
+                set p to active presentation
+                if isGroup or shape type of pic is shape type embedded OLE control then
+                    -- Match the panel's selection rules, including copies with different revisions.
+                    set markerCount to 0
+                    set markerLength to (length of "ChemOffice Drawing:") + 36
+                    if tagText starts with "ChemOffice Drawing:" and (length of tagText) >= markerLength then
+                        set markerPrefix to text 1 thru markerLength of tagText
+                        repeat with slideIndex from 1 to count slides of p
+                            repeat with otherTag in (get name of every shape of slide slideIndex of p)
+                                if otherTag is markerPrefix or otherTag starts with markerPrefix & ":" then set markerCount to markerCount + 1
+                            end repeat
+                            if markerCount > 1 then exit repeat
+                        end repeat
+                    end if
+                    if markerCount is not 1 then
+                        set locationTag to "ChemOffice OLE Selection:" & (slide ID of slide of view of active window as string) & ":at:" & (z order position of pic as string) & ":"
+                        if isGroup then set locationTag to locationTag & "group:"
+                        set tagText to locationTag & tagText
+                    end if
                 end if
-                return {tagText, full name of active presentation}
+                return {tagText, full name of p}
             on error
                 return ""
             end try
