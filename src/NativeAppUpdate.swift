@@ -36,7 +36,7 @@ enum NativeAppUpdate {
         #else
         let architecture = "x86_64"
         #endif
-        _ = try command("/usr/bin/lipo",["-verify_arch",architecture,executable.path])
+        _ = try command("/usr/bin/lipo",[executable.path,"-verify_arch",architecture])
     }
     static func extract(_ archive:URL,to directory:URL) throws -> URL {
         let zip = try OfficeArchive(archive), prefix = applicationName+"/"
