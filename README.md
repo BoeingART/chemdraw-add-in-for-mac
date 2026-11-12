@@ -6,9 +6,11 @@ English | [简体中文](README_CN.md)
 
 # ChemDraw Add-in for Mac
 
-[Download the latest published installer](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest) · [Installation guide](docs/installation.md)
+[Download the latest published installer](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest) · [Installation guide](docs/installation.md) · [Quick start and FAQ](docs/editable-chemdraw-office-mac.md)
 
 </div>
+
+**Editable ChemDraw structures in Microsoft Word, PowerPoint and Excel for Mac.**
 
 Copy a chemical structure in ChemDraw, paste an editable drawing into Word, PowerPoint or Excel, and double-click it to keep editing. Saving in ChemDraw updates the original Office image while keeping the editor open. Each drawing carries its editable source and vector artwork.
 
@@ -37,6 +39,24 @@ Closing the window keeps the helper running in the menu bar. Reopen the app from
 5. Save your Office document whenever you choose. New, unsaved documents support direct paste, opening, and write-back.
 
 Pasting during an existing edit creates an independent drawing. The original edit keeps its Office document and ChemDraw target through window switches and Save As. The panel and setup window show operation progress, specific failure reasons, and the next action.
+
+## Frequently asked questions
+
+### How do I keep ChemDraw structures editable in Word for Mac?
+
+Paste through this add-in, then double-click the drawing to edit its chemical source. Saving in ChemDraw updates the original Office image. The same workflow supports PowerPoint and Excel. Follow the [quick start](docs/editable-chemdraw-office-mac.md).
+
+### Do I need to save a new Office document first?
+
+New, unsaved Word documents, PowerPoint presentations and Excel workbooks support pasting, opening and write-back. Save your Office document when you choose.
+
+### What about existing Windows ChemDraw OLE objects?
+
+The published 1.5.7 workflow edits drawings pasted through this add-in. Work on existing Windows OLE objects is tracked on the [2.0 development branch](https://github.com/BoeingART/chemdraw-add-in-for-mac/tree/dev-2.0), including its current host support and validation records.
+
+### Where can I get help?
+
+The panel and setup window show the failed step and the next action. [Report an issue](https://github.com/BoeingART/chemdraw-add-in-for-mac/issues/new) with your macOS, ChemDraw, Office and add-in versions, the steps to reproduce the problem and the error text.
 
 ## Local data and recovery
 

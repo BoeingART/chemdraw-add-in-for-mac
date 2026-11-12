@@ -6,11 +6,13 @@
 
 # ChemDraw Add-in for Mac
 
-[下载最新安装包](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest) · [安装指南](docs/installation.md)
+[下载最新安装包](https://github.com/BoeingART/chemdraw-add-in-for-mac/releases/latest) · [安装指南](docs/installation.md) · [快速上手与常见问题](docs/editable-chemdraw-office-mac_CN.md)
 
 </div>
 
-在 ChemDraw 中复制化学结构，即可将可编辑的绘图粘贴到 Word、PowerPoint 或 Excel，双击绘图可继续编辑。在 ChemDraw 中保存后，原 Office 图片会同步更新，编辑窗口保持打开。每个绘图都携带可编辑的源数据和 矢量图形。
+**在 Mac 版 Word、PowerPoint 和 Excel 中双击编辑 ChemDraw 化学结构。**
+
+在 ChemDraw 中复制化学结构，即可将可编辑的绘图粘贴到 Word、PowerPoint 或 Excel，双击绘图可继续编辑。在 ChemDraw 中保存后，原 Office 图片会同步更新，编辑窗口保持打开。每个绘图都携带可编辑的源数据和矢量图形。
 
 ## 功能演示
 
@@ -37,6 +39,24 @@
 5. 由你决定何时保存 Office 文档。新建且尚未保存的文档也支持直接粘贴、打开和回写化学结构。
 
 编辑期间再次粘贴，会创建独立的绘图。切换窗口或另存为后，原编辑仍对应原来的 Office 文档和 ChemDraw 编辑目标。面板和设置窗口会显示操作进度、具体失败原因及下一步操作。
+
+## 常见问题
+
+### Mac 上 ChemDraw 粘贴到 Word 后怎么继续编辑
+
+通过本加载项粘贴结构后，双击绘图即可在 ChemDraw 中编辑。按 ⌘S 或使用菜单“保存”，原 Office 图片会同步更新。PowerPoint 和 Excel 使用相同流程，具体步骤见[快速上手](docs/editable-chemdraw-office-mac_CN.md)。
+
+### 新建的 Office 文档需要先保存吗
+
+新建且尚未保存的 Word、PowerPoint 和 Excel 文档也支持粘贴、打开和回写。Office 文档由你决定何时保存。
+
+### 已有的 Windows ChemDraw OLE 对象怎么处理
+
+已发布的 1.5.7 版本编辑通过本加载项粘贴的绘图。读取和回写已有 Windows OLE 对象的功能在 [2.0 开发分支](https://github.com/BoeingART/chemdraw-add-in-for-mac/tree/dev-2.0)推进，当前支持的 Office 应用及验证记录见该分支说明。
+
+### 遇到问题在哪里反馈
+
+面板和设置窗口会显示具体失败步骤及下一步操作。可在 [GitHub Issues](https://github.com/BoeingART/chemdraw-add-in-for-mac/issues/new)反馈，附上 macOS、ChemDraw、Office 和加载项版本，写清复现步骤及错误文字。
 
 ## 本地数据与恢复
 
